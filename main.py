@@ -1,7 +1,15 @@
 import os
+import logging
+import dns.asyncresolver
 from pymongo import AsyncMongoClient
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+
+logging.basicConfig(level=logging.INFO)
+
+resolver = dns.asyncresolver.Resolver(configure=False)
+resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
+dns.asyncresolver.default_resolver = resolver
 
 client = AsyncMongoClient(os.environ["MONGO_URI"])
 users = client["waifu"]["users"]
