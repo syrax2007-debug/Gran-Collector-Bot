@@ -1,17 +1,10 @@
 import os
-import asyncio
-from aiogram import Bot, Dispatcher
-from aiogram.filters import Command
-from aiogram.types import Message
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-bot = Bot(token=os.environ["BOT_TOKEN"])
-dp = Dispatcher()
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Salom! Men waifu botman 🌸")
 
-@dp.message(Command("start"))
-async def start(m: Message):
-    await m.answer("Salom! Men waifu botman 🌸")
-
-async def main():
-    await dp.start_polling(bot)
-
-asyncio.run(main())
+app = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).build()
+app.add_handler(CommandHandler("start", start))
+app.run_polling()
