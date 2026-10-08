@@ -21,7 +21,7 @@ resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
 dns.asyncresolver.default_resolver = resolver
 
 # ---------- Sozlamalar ----------
-ADMIN_ID =   # o'zingizning Telegram ID raqamingiz
+ADMIN_ID = 8288620037  # o'zingizning Telegram ID raqamingiz
 CHIQISH_ORALIGI = 10  # nechta xabardan keyin personaj chiqadi
 
 # kalit: (ko'rinadigan nom, chiqish ehtimoli)
