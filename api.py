@@ -18,6 +18,14 @@ RUXSAT_ETILGAN = os.environ.get(
     "ALLOWED_ORIGIN", "https://syrax2007-debug.github.io"
 )
 
+TOSHKENT = timezone(timedelta(hours=5))
+REPLAY_NARX = 60  # qayta o'ynash narxi (tanga)
+TANGA_QIYMATLARI = [5, 10, 15, 20, 25, 50]
+
+
+def bugun():
+    return datetime.now(TOSHKENT).strftime("%Y-%m-%d")
+
 
 def tekshir(init_data):
     # Telegram yuborgan ma'lumot haqiqiyligini tekshiradi
