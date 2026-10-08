@@ -183,8 +183,15 @@ async def kolleksiyam(update: Update, context: ContextTypes.DEFAULT_TYPE):
         qatorlar.append(
             f"• {p['name']} ({p['anime']}) {nodirlik_belgisi(p)} x{soni}"
         )
+        tugma = InlineKeyboardMarkup([[
+        InlineKeyboardButton(
+            "🖼 Kolleksiyani ko'rish",
+            switch_inline_query_current_chat="",
+        )
+    ]])
     await update.message.reply_text(
-        f"🌸 {f.first_name} kolleksiyasi:\n" + "\n".join(qatorlar)
+        f"🌸 {f.first_name} kolleksiyasi:\n" + "\n".join(qatorlar),
+        reply_markup=tugma,
     )
 
 
