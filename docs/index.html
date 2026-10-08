@@ -352,7 +352,7 @@ function stats() {
 }
 
 function chips() {
-  const all = [[0, "HAMMASI"]].concat([1, 2, 3, 4].map((k) => [k, RAR[k].e + " " + RAR[k].n]));
+  const all = [[0, "HAMMASI"]].concat([1, 2, 3, 4, 5].map((k) => [k, RAR[k].e + " " + RAR[k].n]));
   $("chips").innerHTML = all
     .map(([k, t]) => `<button class="chip ${k === filter ? "on" : ""}" data-k="${k}">${t}</button>`)
     .join("");
