@@ -140,4 +140,5 @@ app.add_handler(
 app.add_handler(
     MessageHandler(filters.ChatType.GROUPS & ~filters.COMMAND, count_messages)
 )
+app.add_handler(InlineQueryHandler(inline))
 app.run_polling()
