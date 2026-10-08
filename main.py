@@ -5,7 +5,10 @@ import logging
 from collections import Counter
 import dns.asyncresolver
 from pymongo import AsyncMongoClient
-from telegram import Update, InlineQueryResultCachedPhoto
+from telegram import (
+    Update, InlineQueryResultCachedPhoto,
+    InlineKeyboardButton, InlineKeyboardMarkup,
+)
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
     InlineQueryHandler, ContextTypes, filters,
