@@ -24,17 +24,19 @@ resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
 dns.asyncresolver.default_resolver = resolver
 
 # ---------- Sozlamalar ----------
-ADMIN_ID = 8288620037  # o'zingizning Telegram ID raqamingiz
+ADMIN_ID = 0  # o'zingizning Telegram ID raqamingiz
 CHIQISH_ORALIGI = 10  # nechta xabardan keyin personaj chiqadi
 CIZIQ = "━━━━━━━━━━━━━━"
+YUQORI = "╔══════════════╗"
+PASTKI = "╚══════════════╝"
 
 # kalit: (ko'rinadigan nom, chiqish ehtimoli)
 # Kalitlar bazadagi eski personajlar bilan mos qolishi uchun o'zgarmadi
 NODIRLIK = {
-    "common": ("✨ Yaxshi", 60),
-    "rare": ("💎 Ajoyib", 25),
-    "epic": ("🏆 Super", 10),
-    "legendary": ("👑 Mega", 5),
+    "common": ("✨ YAXSHI", 60),
+    "rare": ("💎 AJOYIB", 25),
+    "epic": ("🔥 SUPER", 10),
+    "legendary": ("👑 MEGA", 5),
 }
 
 # /yuklash da yoziladigan nomlar (eski nomlar ham ishlaydi)
@@ -57,14 +59,8 @@ SARLAVHA = {
     "legendary": "🔥👑 MEGA PERSONAJ CHIQDI! 👑🔥",
 }
 
-# Daraja yulduzlari va ramka belgisi
+# Daraja yulduzlari
 YULDUZ = {"common": 1, "rare": 2, "epic": 3, "legendary": 4}
-RAMKA = {
-    "common": "┈",
-    "rare": "◈",
-    "epic": "❖",
-    "legendary": "✦",
-}
 
 # ---------- Baza ----------
 mijoz = AsyncMongoClient(os.environ["MONGO_URI"])
@@ -77,9 +73,9 @@ hisoblagich = {}
 
 
 # ---------- Yordamchi funksiyalar ----------
-def e(matn):
-    # HTML belgilarini xavfsiz qilish
-    return html.escape(str(matn))
+def K(matn):
+    # Katta harfga o'tkazib, HTML uchun xavfsiz qilish
+    return html.escape(str(matn).upper())
 
 
 def nodirlik_kaliti(matn):
@@ -90,33 +86,32 @@ def nodirlik_kaliti(matn):
 
 def nodirlik_belgisi(p):
     kalit = p["rarity"].lower()
-    return NODIRLIK[kalit][0] if kalit in NODIRLIK else p["rarity"]
+    return NODIRLIK[kalit][0] if kalit in NODIRLIK else p["rarity"].upper()
 
 
 def kartochka(p, sarlavha):
     kalit = p["rarity"].lower()
     soni = YULDUZ.get(kalit, 1)
     yulduz = "★" * soni + "☆" * (4 - soni)
-    chiziq = RAMKA.get(kalit, "─") * 12
     kod = str(p["_id"])[-4:].upper()
     return (
         f"{sarlavha}\n"
-        f"{chiziq}\n"
+        f"{YUQORI}\n"
         f"<blockquote>"
-        f"👤 <b>Ism:</b> {e(p['name'])}\n"
-        f"📺 <b>Anime:</b> <i>{e(p['anime'])}</i>\n"
-        f"💎 <b>Nodirlik:</b> {nodirlik_belgisi(p)}\n"
-        f"🌟 <b>Daraja:</b> {yulduz}\n"
-        f"🆔 <b>Kod:</b> <code>#{kod}</code>"
+        f"👤 <b>ISM:</b> {K(p['name'])}\n"
+        f"📺 <b>ANIME:</b> <i>{K(p['anime'])}</i>\n"
+        f"💎 <b>NODIRLIK:</b> {nodirlik_belgisi(p)}\n"
+        f"🌟 <b>DARAJA:</b> {yulduz}\n"
+        f"🆔 <b>KOD:</b> <code>#{kod}</code>"
         f"</blockquote>\n"
-        f"{chiziq}"
+        f"{PASTKI}"
     )
 
 
 def kolleksiya_tugmasi():
     return InlineKeyboardMarkup([[
         InlineKeyboardButton(
-            "🖼 Kolleksiyani ko'rish",
+            "🖼 KOLLEKSIYANI KO'RISH",
             switch_inline_query_current_chat="",
         )
     ]])
@@ -150,20 +145,20 @@ async def boshlash(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"✨{CIZIQ}✨\n"
         f"🌸 <b>WAIFU BOTGA XUSH KELIBSIZ!</b> 🌸\n"
         f"✨{CIZIQ}✨\n\n"
-        f"👋 Salom, <b>{e(f.first_name)}</b>!\n"
-        f"👥 Botda <b>{jami}</b> ta foydalanuvchi bor\n\n"
-        f"📜 <b>Buyruqlar:</b>\n"
-        f"🔹 /topish <i>ism</i> — personajni topish\n"
-        f"🔹 /kolleksiya — mening kolleksiyam\n"
-        f"🔹 /id — Telegram ID raqamim\n\n"
-        f"🎴 Botni guruhga qo'shing va personajlarni yig'ing!"
+        f"👋 SALOM, <b>{K(f.first_name)}</b>!\n"
+        f"👥 BOTDA <b>{jami}</b> TA FOYDALANUVCHI BOR\n\n"
+        f"📜 <b>BUYRUQLAR:</b>\n"
+        f"🔹 <code>/topish ism</code> — PERSONAJNI TOPISH\n"
+        f"🔹 /kolleksiya — MENING KOLLEKSIYAM\n"
+        f"🔹 /id — TELEGRAM ID RAQAMIM\n\n"
+        f"🎴 BOTNI GURUHGA QO'SHING VA PERSONAJLARNI YIG'ING!"
     )
     await update.message.reply_text(matn, parse_mode="HTML")
 
 
 async def id_korsat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        f"🆔 Sizning ID: <code>{update.effective_user.id}</code>",
+        f"🆔 SIZNING ID: <code>{update.effective_user.id}</code>",
         parse_mode="HTML",
     )
 
@@ -176,16 +171,16 @@ async def yuklash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     qismlar = [q.strip() for q in matn.split("|")]
     if len(qismlar) != 3 or not all(qismlar):
         await xabar.reply_text(
-            "Rasm yuboring, izohga yozing:\n"
+            "RASM YUBORING, IZOHGA YOZING:\n"
             "/yuklash Ism | Anime | Nodirlik\n"
-            "Nodirlik: Yaxshi, Ajoyib, Super yoki Mega"
+            "NODIRLIK: YAXSHI, AJOYIB, SUPER YOKI MEGA"
         )
         return
     ism, anime, nodirlik = qismlar
     kalit = nodirlik_kaliti(nodirlik)
     if not kalit:
         await xabar.reply_text(
-            "Nodirlik: Yaxshi, Ajoyib, Super yoki Mega bo'lishi kerak."
+            "NODIRLIK: YAXSHI, AJOYIB, SUPER YOKI MEGA BO'LISHI KERAK."
         )
         return
     await personajlar.insert_one({
@@ -194,8 +189,8 @@ async def yuklash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     })
     jami = await personajlar.count_documents({})
     await xabar.reply_text(
-        f"✅ <b>{e(ism)}</b> ({NODIRLIK[kalit][0]}) qo'shildi!\n"
-        f"🎴 Jami personaj: <b>{jami}</b>",
+        f"✅ <b>{K(ism)}</b> ({NODIRLIK[kalit][0]}) QO'SHILDI!\n"
+        f"🎴 JAMI PERSONAJ: <b>{jami}</b>",
         parse_mode="HTML",
     )
 
@@ -219,7 +214,7 @@ async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"✨{CIZIQ}✨\n"
             f"<b>{sarlavha}</b>\n"
             f"✨{CIZIQ}✨\n\n"
-            f"💬 Ismini toping:\n"
+            f"💬 ISMINI TOPING:\n"
             f"👉 <code>/topish ism</code>"
         ),
         parse_mode="HTML",
@@ -229,11 +224,11 @@ async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     if not context.args:
-        await update.message.reply_text("💬 Ism yozing: /topish ism")
+        await update.message.reply_text("💬 ISM YOZING: /topish ism")
         return
     chiqqan = await chiqqanlar.find_one({"_id": chat_id})
     if not chiqqan:
-        await update.message.reply_text("🔍 Hozir topiladigan personaj yo'q.")
+        await update.message.reply_text("🔍 HOZIR TOPILADIGAN PERSONAJ YO'Q.")
         return
     p = await personajlar.find_one({"_id": chiqqan["char_id"]})
     javob = " ".join(context.args).lower().strip()
@@ -244,7 +239,8 @@ async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await kolleksiya.insert_one({"user_id": f.id, "char_id": p["_id"]})
         matn = (
             kartochka(p, "🎉 <b>TABRIKLAYMAN!</b> 🎉")
-            + f"\n✅ <b>{e(f.first_name)}</b>, personaj kolleksiyangizga qo'shildi!"
+            + f"\n✅ <b>{K(f.first_name)}</b>, "
+            f"PERSONAJ KOLLEKSIYANGIZGA QO'SHILDI!"
         )
         await update.message.reply_photo(
             p["file_id"], caption=matn, parse_mode="HTML",
@@ -252,7 +248,7 @@ async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     else:
         await update.message.reply_text(
-            "❌ <b>Noto'g'ri!</b> Qayta urinib ko'ring 🔁",
+            "❌ <b>NOTO'G'RI!</b> QAYTA URINIB KO'RING 🔁",
             parse_mode="HTML",
         )
 
@@ -262,8 +258,8 @@ async def kolleksiyam(update: Update, context: ContextTypes.DEFAULT_TYPE):
     idlar = [d["char_id"] async for d in kolleksiya.find({"user_id": f.id})]
     if not idlar:
         await update.message.reply_text(
-            "📭 Kolleksiyangiz hozircha bo'sh.\n"
-            "Guruhda personajni topib, kolleksiyani boshlang!"
+            "📭 KOLLEKSIYANGIZ HOZIRCHA BO'SH.\n"
+            "GURUHDA PERSONAJNI TOPIB, KOLLEKSIYANI BOSHLANG!"
         )
         return
     sanash = {}
@@ -281,14 +277,14 @@ async def kolleksiyam(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for i, p in enumerate(royxat[:40], 1):
         belgi = nodirlik_belgisi(p).split()[0]
         qatorlar.append(
-            f"{i}. {belgi} <b>{e(p['name'])}</b> "
-            f"<i>({e(p['anime'])})</i> ×{sanash[p['_id']]}"
+            f"{i}. {belgi} <b>{K(p['name'])}</b> "
+            f"<i>({K(p['anime'])})</i> ×{sanash[p['_id']]}"
         )
     matn = (
-        f"📚 <b>{e(f.first_name)} KOLLEKSIYASI</b>\n"
+        f"📚 <b>{K(f.first_name)} KOLLEKSIYASI</b>\n"
         f"{CIZIQ}\n"
-        f"🎴 Jami: <b>{len(idlar)}</b> ta | "
-        f"Turli: <b>{len(royxat)}</b> xil\n"
+        f"🎴 JAMI: <b>{len(idlar)}</b> TA | "
+        f"TURLI: <b>{len(royxat)}</b> XIL\n"
         f"{CIZIQ}\n"
         + "\n".join(qatorlar)
     )
