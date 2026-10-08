@@ -397,39 +397,80 @@ $("shop").addEventListener("click", (e) => {
 });
 
 /* ---------- O'yin ---------- */
-let gameDone = false, prizeIdx = 0, coinVals = [];
+let gameBusy = false, freePlay = true, replayCost = 60;
+
+function gameInfo() {
+  $("gnote").textContent = freePlay
+    ? "🎁 BUGUNGI BEPUL URINISH BOR!"
+    : `⏳ BEPUL URINISH ISHLATILDI. QAYTA O'YNASH: 🪙 ${replayCost}`;
+}
+
 function newGame() {
-  gameDone = false;
-  prizeIdx = Math.floor(Math.random() * 9);
-  const opts = [5, 10, 15, 20, 25, 50];
-  coinVals = Array.from({ length: 9 }, () => opts[Math.floor(Math.random() * opts.length)]);
+  gameBusy = false;
   $("gmsg").textContent = "BITTA KARTANI TANLANG";
   $("again").style.display = "none";
   $("board").innerHTML = Array.from({ length: 9 }, (_, i) =>
     `<button class="gc" data-i="${i}"><span>❓</span></button>`).join("");
+  gameInfo();
 }
-$("board").addEventListener("click", (e) => {
-  const b = e.target.closest(".gc");
-  if (!b || gameDone) return;
-  gameDone = true;
-  const pick = Number(b.dataset.i);
-  document.querySelectorAll(".gc").forEach((el, i) => {
-    el.classList.add("open");
-    if (i === prizeIdx) {
-      el.classList.add("prize");
-      el.innerHTML = "<span>🎁</span><small>NODIR PERSONAJ</small>";
-    } else {
-      el.innerHTML = `<span>🪙</span><small>+${coinVals[i]}</small>`;
-    }
-    if (i === pick) el.classList.add("picked");
-  });
-  $("gmsg").textContent = pick === prizeIdx
-    ? "🎉 TABRIKLAYMAN! NODIR PERSONAJ YUTDINGIZ!"
-    : `🪙 +${coinVals[pick]} TANGA (HISOBGA QO'SHISH TEZ ORADA)`;
-  $("again").style.display = "block";
-  if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred(pick === prizeIdx ? "success" : "warning");
-});
 
+$("board").addEventListener("click", async (e) => {
+  const b = e.target.closest(".gc");
+  if (!b || gameBusy) return;
+  if (!API_URL || !(tg && tg.initData)) {
+    toast("O'YIN FAQAT TELEGRAM ICHIDA ISHLAYDI");
+    return;
+  }
+  if (!freePlay && coins < replayCost) {
+    toast(`TANGA YETMAYDI: KERAK 🪙 ${replayCost}`);
+    return;
+  }
+  gameBusy = true;
+  $("gmsg").textContent = "⏳ ...";
+  const pick = Number(b.dataset.i);
+  try {
+    const res = await fetch(API_URL + "/api/game/play", {
+      method: "POST",
+      headers: { "X-Init-Data": tg.initData, "Content-Type": "application/json" },
+      body: JSON.stringify({ pick }),
+    });
+    const d = await res.json();
+    if (!res.ok) {
+      toast(d.error === "tanga_yetmaydi" ? "TANGA YETMAYDI" : "XATO, QAYTA URINING");
+      $("gmsg").textContent = "BITTA KARTANI TANLANG";
+      gameBusy = false;
+      return;
+    }
+    document.querySelectorAll(".gc").forEach((el, i) => {
+      const c = d.taxta[i];
+      el.classList.add("open");
+      if (c.tur === "personaj") {
+        el.classList.add("prize");
+        el.innerHTML = "<span>🎁</span><small>NODIR PERSONAJ</small>";
+      } else {
+        el.innerHTML = `<span>🪙</span><small>+${c.miqdor}</small>`;
+      }
+      if (i === pick) el.classList.add("picked");
+    });
+    coins = d.coins;
+    freePlay = false;
+    replayCost = d.replay_cost;
+    stats();
+    $("gmsg").textContent = d.natija.tur === "personaj"
+      ? `🎉 TABRIKLAYMAN! ${String(d.natija.name).toUpperCase()} YUTDINGIZ!`
+      : `🪙 +${d.natija.miqdor} TANGA!`;
+    $("again").style.display = "block";
+    gameInfo();
+    if (tg && tg.HapticFeedback) {
+      tg.HapticFeedback.notificationOccurred(d.natija.tur === "personaj" ? "success" : "warning");
+    }
+    if (d.natija.tur === "personaj") loadCollection();
+  } catch (err) {
+    toast("ULANISH XATOSI");
+    $("gmsg").textContent = "BITTA KARTANI TANLANG";
+    gameBusy = false;
+  }
+});
 /* ---------- Yuklash ---------- */
 async function load() {
   const u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
