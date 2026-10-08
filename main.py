@@ -25,7 +25,7 @@ resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
 dns.asyncresolver.default_resolver = resolver
 
 # ---------- Sozlamalar ----------
-ADMIN_ID = 0  # o'zingizning Telegram ID raqamingiz
+ADMIN_ID = 8288620037  # o'zingizning Telegram ID raqamingiz
 MINI_APP_URL = "https://syrax2007-debug.github.io/Gran-Collector-Bot/"
 CHIQISH_ORALIGI = 50  # nechta xabardan keyin personaj chiqadi
 CIZIQ = "━━━━━━━━━━━━━━"
