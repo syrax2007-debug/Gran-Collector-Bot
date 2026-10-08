@@ -109,6 +109,93 @@ async def rasm(request):
         headers={"Cache-Control": "public, max-age=86400"},
     )
 
+async def foydalanuvchi_ol(baza, f):
+    await baza["users"].update_one(
+        {"_id": f["id"]},
+        {"$set": {"name": f.get("first_name", "")}},
+        upsert=True,
+    )
+    return await baza["users"].find_one({"_id": f["id"]})
+
+
+async def me_api(request):
+    f = tekshir(request.headers.get("X-Init-Data", ""))
+    if not f:
+        raise web.HTTPUnauthorized(text="Ruxsat yo'q")
+    u = await foydalanuvchi_ol(request.app["baza"], f)
+    return web.json_response({
+        "coins": u.get("coins", 0),
+        "free": u.get("last_free_play") != bugun(),
+        "replay_cost": REPLAY_NARX,
+    })
+
+
+async def oyin_api(request):
+    f = tekshir(request.headers.get("X-Init-Data", ""))
+    if not f:
+        raise web.HTTPUnauthorized(text="Ruxsat yo'q")
+    try:
+        tanlov = int((await request.json()).get("pick"))
+    except Exception:
+        raise web.HTTPBadRequest(text="pick kerak")
+    if not 0 <= tanlov <= 8:
+        raise web.HTTPBadRequest(text="pick xato")
+
+    baza = request.app["baza"]
+    users = baza["users"]
+    uid = f["id"]
+    await foydalanuvchi_ol(baza, f)
+
+    # 1) Kunlik bepul urinish, 2) bo'lmasa tanga evaziga
+    r = await users.update_one(
+        {"_id": uid, "last_free_play": {"$ne": bugun()}},
+        {"$set": {"last_free_play": bugun()}},
+    )
+    pullik = False
+    if r.modified_count == 0:
+        r = await users.update_one(
+            {"_id": uid, "coins": {"$gte": REPLAY_NARX}},
+            {"$inc": {"coins": -REPLAY_NARX}},
+        )
+        if r.modified_count == 0:
+            return web.json_response(
+                {"error": "tanga_yetmaydi", "replay_cost": REPLAY_NARX},
+                status=402,
+            )
+        pullik = True
+
+    # Taxtani server tuzadi
+    shart = {"rarity": {"$in": ["rare", "Rare"]}}
+    nodir_soni = await baza["characters"].count_documents(shart)
+    sovrin = random.randrange(9) if nodir_soni else -1
+    tangalar = [random.choice(TANGA_QIYMATLARI) for _ in range(9)]
+
+    if tanlov == sovrin:
+        p = await baza["characters"].find_one(
+            shart, skip=random.randrange(nodir_soni)
+        )
+        await baza["collection"].insert_one({"user_id": uid, "char_id": p["_id"]})
+        natija = {
+            "tur": "personaj", "name": p["name"], "anime": p["anime"],
+            "rarity": p["rarity"], "image": f"/api/photo/{p['_id']}",
+        }
+    else:
+        natija = {"tur": "tanga", "miqdor": tangalar[tanlov]}
+        await users.update_one({"_id": uid}, {"$inc": {"coins": tangalar[tanlov]}})
+
+    u = await users.find_one({"_id": uid})
+    return web.json_response({
+        "natija": natija,
+        "taxta": [
+            {"tur": "personaj"} if i == sovrin
+            else {"tur": "tanga", "miqdor": tangalar[i]}
+            for i in range(9)
+        ],
+        "pullik": pullik,
+        "coins": u.get("coins", 0),
+        "replay_cost": REPLAY_NARX,
+    })
+
 
 async def ishga_tushish(app):
     app["mijoz"] = AsyncMongoClient(MONGO_URI)
