@@ -1,8 +1,8 @@
 import os
 import re
+import html
 import random
 import logging
-from collections import Counter
 import dns.asyncresolver
 from pymongo import AsyncMongoClient
 from telegram import (
@@ -24,23 +24,46 @@ resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
 dns.asyncresolver.default_resolver = resolver
 
 # ---------- Sozlamalar ----------
-ADMIN_ID = 8288620037  # o'zingizning Telegram ID raqamingiz
+ADMIN_ID =   # o'zingizning Telegram ID raqamingiz
 CHIQISH_ORALIGI = 10  # nechta xabardan keyin personaj chiqadi
+CIZIQ = "━━━━━━━━━━━━━━"
 
 # kalit: (ko'rinadigan nom, chiqish ehtimoli)
+# Kalitlar bazadagi eski personajlar bilan mos qolishi uchun o'zgarmadi
 NODIRLIK = {
-    "common": ("☀️ Yaxshi", 60),
-    "rare": ("✨ Ajoyib", 25),
+    "common": ("✨ Yaxshi", 60),
+    "rare": ("💎 Ajoyib", 25),
     "epic": ("🏆 Super", 10),
     "legendary": ("👑 Mega", 5),
 }
 
-# /yuklash da yoziladigan nomlar
+# /yuklash da yoziladigan nomlar (eski nomlar ham ishlaydi)
 NODIRLIK_NOMLARI = {
+    "yaxshi": "common",
+    "ajoyib": "rare",
+    "super": "epic",
+    "mega": "legendary",
     "oddiy": "common",
     "nodir": "rare",
     "epik": "epic",
     "afsonaviy": "legendary",
+}
+
+# Guruhda chiqqanda ko'rinadigan sarlavhalar
+SARLAVHA = {
+    "common": "🌸 YANGI PERSONAJ CHIQDI! 🌸",
+    "rare": "💎 AJOYIB PERSONAJ CHIQDI! 💎",
+    "epic": "⚡ SUPER PERSONAJ CHIQDI! ⚡",
+    "legendary": "🔥👑 MEGA PERSONAJ CHIQDI! 👑🔥",
+}
+
+# Daraja yulduzlari va ramka belgisi
+YULDUZ = {"common": 1, "rare": 2, "epic": 3, "legendary": 4}
+RAMKA = {
+    "common": "┈",
+    "rare": "◈",
+    "epic": "❖",
+    "legendary": "✦",
 }
 
 # ---------- Baza ----------
@@ -54,6 +77,11 @@ hisoblagich = {}
 
 
 # ---------- Yordamchi funksiyalar ----------
+def e(matn):
+    # HTML belgilarini xavfsiz qilish
+    return html.escape(str(matn))
+
+
 def nodirlik_kaliti(matn):
     matn = matn.lower().strip()
     matn = NODIRLIK_NOMLARI.get(matn, matn)
@@ -63,6 +91,35 @@ def nodirlik_kaliti(matn):
 def nodirlik_belgisi(p):
     kalit = p["rarity"].lower()
     return NODIRLIK[kalit][0] if kalit in NODIRLIK else p["rarity"]
+
+
+def kartochka(p, sarlavha):
+    kalit = p["rarity"].lower()
+    soni = YULDUZ.get(kalit, 1)
+    yulduz = "★" * soni + "☆" * (4 - soni)
+    chiziq = RAMKA.get(kalit, "─") * 12
+    kod = str(p["_id"])[-4:].upper()
+    return (
+        f"{sarlavha}\n"
+        f"{chiziq}\n"
+        f"<blockquote>"
+        f"👤 <b>Ism:</b> {e(p['name'])}\n"
+        f"📺 <b>Anime:</b> <i>{e(p['anime'])}</i>\n"
+        f"💎 <b>Nodirlik:</b> {nodirlik_belgisi(p)}\n"
+        f"🌟 <b>Daraja:</b> {yulduz}\n"
+        f"🆔 <b>Kod:</b> <code>#{kod}</code>"
+        f"</blockquote>\n"
+        f"{chiziq}"
+    )
+
+
+def kolleksiya_tugmasi():
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(
+            "🖼 Kolleksiyani ko'rish",
+            switch_inline_query_current_chat="",
+        )
+    ]])
 
 
 async def tasodifiy_personaj():
@@ -89,13 +146,26 @@ async def boshlash(update: Update, context: ContextTypes.DEFAULT_TYPE):
         {"_id": f.id}, {"$set": {"name": f.first_name}}, upsert=True
     )
     jami = await foydalanuvchilar.count_documents({})
-    await update.message.reply_text(
-        f"Salom, {f.first_name}! Botda {jami} ta foydalanuvchi bor 🌸"
+    matn = (
+        f"✨{CIZIQ}✨\n"
+        f"🌸 <b>WAIFU BOTGA XUSH KELIBSIZ!</b> 🌸\n"
+        f"✨{CIZIQ}✨\n\n"
+        f"👋 Salom, <b>{e(f.first_name)}</b>!\n"
+        f"👥 Botda <b>{jami}</b> ta foydalanuvchi bor\n\n"
+        f"📜 <b>Buyruqlar:</b>\n"
+        f"🔹 /topish <i>ism</i> — personajni topish\n"
+        f"🔹 /kolleksiya — mening kolleksiyam\n"
+        f"🔹 /id — Telegram ID raqamim\n\n"
+        f"🎴 Botni guruhga qo'shing va personajlarni yig'ing!"
     )
+    await update.message.reply_text(matn, parse_mode="HTML")
 
 
 async def id_korsat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"Sizning ID: {update.effective_user.id}")
+    await update.message.reply_text(
+        f"🆔 Sizning ID: <code>{update.effective_user.id}</code>",
+        parse_mode="HTML",
+    )
 
 
 async def yuklash(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -108,14 +178,14 @@ async def yuklash(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await xabar.reply_text(
             "Rasm yuboring, izohga yozing:\n"
             "/yuklash Ism | Anime | Nodirlik\n"
-            "Nodirlik: Oddiy, Nodir, Epik yoki Afsonaviy"
+            "Nodirlik: Yaxshi, Ajoyib, Super yoki Mega"
         )
         return
     ism, anime, nodirlik = qismlar
     kalit = nodirlik_kaliti(nodirlik)
     if not kalit:
         await xabar.reply_text(
-            "Nodirlik: Oddiy, Nodir, Epik yoki Afsonaviy bo'lishi kerak."
+            "Nodirlik: Yaxshi, Ajoyib, Super yoki Mega bo'lishi kerak."
         )
         return
     await personajlar.insert_one({
@@ -124,7 +194,9 @@ async def yuklash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     })
     jami = await personajlar.count_documents({})
     await xabar.reply_text(
-        f"✅ {ism} ({NODIRLIK[kalit][0]}) qo'shildi. Jami: {jami}"
+        f"✅ <b>{e(ism)}</b> ({NODIRLIK[kalit][0]}) qo'shildi!\n"
+        f"🎴 Jami personaj: <b>{jami}</b>",
+        parse_mode="HTML",
     )
 
 
@@ -140,20 +212,28 @@ async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await chiqqanlar.update_one(
         {"_id": chat_id}, {"$set": {"char_id": p["_id"]}}, upsert=True
     )
+    sarlavha = SARLAVHA.get(p["rarity"].lower(), "🌸 YANGI PERSONAJ CHIQDI! 🌸")
     await context.bot.send_photo(
         chat_id, p["file_id"],
-        caption="🌸 Yangi personaj chiqdi!\nIsmini topish uchun: /topish ism",
+        caption=(
+            f"✨{CIZIQ}✨\n"
+            f"<b>{sarlavha}</b>\n"
+            f"✨{CIZIQ}✨\n\n"
+            f"💬 Ismini toping:\n"
+            f"👉 <code>/topish ism</code>"
+        ),
+        parse_mode="HTML",
     )
 
 
 async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     if not context.args:
-        await update.message.reply_text("Ism yozing: /topish ism")
+        await update.message.reply_text("💬 Ism yozing: /topish ism")
         return
     chiqqan = await chiqqanlar.find_one({"_id": chat_id})
     if not chiqqan:
-        await update.message.reply_text("Hozir topiladigan personaj yo'q.")
+        await update.message.reply_text("🔍 Hozir topiladigan personaj yo'q.")
         return
     p = await personajlar.find_one({"_id": chiqqan["char_id"]})
     javob = " ".join(context.args).lower().strip()
@@ -162,36 +242,58 @@ async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await chiqqanlar.delete_one({"_id": chat_id})
         f = update.effective_user
         await kolleksiya.insert_one({"user_id": f.id, "char_id": p["_id"]})
-        await update.message.reply_text(
-            f"✅ To'g'ri! {f.first_name}, {p['name']} ({p['anime']})\n"
-            f"Nodirlik: {nodirlik_belgisi(p)}\n"
-            f"Kolleksiyangizga qo'shildi."
+        matn = (
+            kartochka(p, "🎉 <b>TABRIKLAYMAN!</b> 🎉")
+            + f"\n✅ <b>{e(f.first_name)}</b>, personaj kolleksiyangizga qo'shildi!"
+        )
+        await update.message.reply_photo(
+            p["file_id"], caption=matn, parse_mode="HTML",
+            reply_markup=kolleksiya_tugmasi(),
         )
     else:
-        await update.message.reply_text("❌ Noto'g'ri, qayta urinib ko'ring.")
+        await update.message.reply_text(
+            "❌ <b>Noto'g'ri!</b> Qayta urinib ko'ring 🔁",
+            parse_mode="HTML",
+        )
 
 
 async def kolleksiyam(update: Update, context: ContextTypes.DEFAULT_TYPE):
     f = update.effective_user
     idlar = [d["char_id"] async for d in kolleksiya.find({"user_id": f.id})]
     if not idlar:
-        await update.message.reply_text("Kolleksiyangiz hozircha bo'sh.")
+        await update.message.reply_text(
+            "📭 Kolleksiyangiz hozircha bo'sh.\n"
+            "Guruhda personajni topib, kolleksiyani boshlang!"
+        )
         return
+    sanash = {}
+    for pid in idlar:
+        sanash[pid] = sanash.get(pid, 0) + 1
+    tartib = list(NODIRLIK)[::-1]  # Megadan boshlab
+    royxat = [
+        p async for p in personajlar.find({"_id": {"$in": list(sanash)}})
+    ]
+    royxat.sort(
+        key=lambda p: tartib.index(p["rarity"].lower())
+        if p["rarity"].lower() in tartib else 99
+    )
     qatorlar = []
-    for pid, soni in list(Counter(idlar).items())[:50]:
-        p = await personajlar.find_one({"_id": pid})
+    for i, p in enumerate(royxat[:40], 1):
+        belgi = nodirlik_belgisi(p).split()[0]
         qatorlar.append(
-            f"• {p['name']} ({p['anime']}) {nodirlik_belgisi(p)} x{soni}"
+            f"{i}. {belgi} <b>{e(p['name'])}</b> "
+            f"<i>({e(p['anime'])})</i> ×{sanash[p['_id']]}"
         )
-        tugma = InlineKeyboardMarkup([[
-        InlineKeyboardButton(
-            "🖼 Kolleksiyani ko'rish",
-            switch_inline_query_current_chat="",
-        )
-    ]])
+    matn = (
+        f"📚 <b>{e(f.first_name)} KOLLEKSIYASI</b>\n"
+        f"{CIZIQ}\n"
+        f"🎴 Jami: <b>{len(idlar)}</b> ta | "
+        f"Turli: <b>{len(royxat)}</b> xil\n"
+        f"{CIZIQ}\n"
+        + "\n".join(qatorlar)
+    )
     await update.message.reply_text(
-        f"🌸 {f.first_name} kolleksiyasi:\n" + "\n".join(qatorlar),
-        reply_markup=tugma,
+        matn, parse_mode="HTML", reply_markup=kolleksiya_tugmasi()
     )
 
 
@@ -210,7 +312,8 @@ async def inline_qidiruv(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineQueryResultCachedPhoto(
                 id=str(p["_id"]),
                 photo_file_id=p["file_id"],
-                caption=f"🌸 {p['name']}\n{p['anime']} | {nodirlik_belgisi(p)}",
+                caption=kartochka(p, "🌸 <b>PERSONAJ</b> 🌸"),
+                parse_mode="HTML",
             )
         )
         if len(natijalar) >= 50:
