@@ -7,6 +7,7 @@ from urllib.parse import parse_qsl
 from aiohttp import web, ClientSession
 from bson import ObjectId
 from pymongo import AsyncMongoClient
+from main import ilova as telegram_bot
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 MONGO_URI = os.environ["MONGO_URI"]
