@@ -445,7 +445,7 @@ async function load() {
       items = data.map((x) => ({
         name: x.name, anime: x.anime,
         r: RMAP[String(x.rarity).toLowerCase()] || 1,
-        count: x.count || 1, image: x.image,
+                count: x.count || 1, image: x.image ? API_URL + x.image : "",
       }));
     } catch (e) {
       items = [];
