@@ -1,4 +1,5 @@
 import os
+import re
 import random
 import logging
 from collections import Counter
@@ -10,141 +11,216 @@ from telegram.ext import (
     InlineQueryHandler, ContextTypes, filters,
 )
 
+# Xatolarni ko'rish uchun jurnal
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
+# Termux uchun DNS sozlamasi
 resolver = dns.asyncresolver.Resolver(configure=False)
 resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
 dns.asyncresolver.default_resolver = resolver
 
-ADMIN_ID = 8288620037  # o'zingizning ID raqamingiz
-SPAWN_EVERY = 10  # nechta xabardan keyin personaj chiqadi
+# ---------- Sozlamalar ----------
+ADMIN_ID =   # o'zingizning Telegram ID raqamingiz
+CHIQISH_ORALIGI = 10  # nechta xabardan keyin personaj chiqadi
 
-client = AsyncMongoClient(os.environ["MONGO_URI"])
-db = client["waifu"]
-users = db["users"]
-chars = db["characters"]
-spawns = db["spawns"]
-collection = db["collection"]
-counters = {}
+# kalit: (ko'rinadigan nom, chiqish ehtimoli)
+NODIRLIK = {
+    "common": ("☀️ Yaxshi", 60),
+    "rare": ("✨ Ajoyib", 25),
+    "epic": ("🏆 Super", 10),
+    "legendary": ("👑 Mega", 5),
+}
+
+# /yuklash da yoziladigan nomlar
+NODIRLIK_NOMLARI = {
+    "oddiy": "common",
+    "nodir": "rare",
+    "epik": "epic",
+    "afsonaviy": "legendary",
+}
+
+# ---------- Baza ----------
+mijoz = AsyncMongoClient(os.environ["MONGO_URI"])
+baza = mijoz["waifu"]
+foydalanuvchilar = baza["users"]
+personajlar = baza["characters"]
+chiqqanlar = baza["spawns"]
+kolleksiya = baza["collection"]
+hisoblagich = {}
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    u = update.effective_user
-    await users.update_one(
-        {"_id": u.id}, {"$set": {"name": u.first_name}}, upsert=True
+# ---------- Yordamchi funksiyalar ----------
+def nodirlik_kaliti(matn):
+    matn = matn.lower().strip()
+    matn = NODIRLIK_NOMLARI.get(matn, matn)
+    return matn if matn in NODIRLIK else None
+
+
+def nodirlik_belgisi(p):
+    kalit = p["rarity"].lower()
+    return NODIRLIK[kalit][0] if kalit in NODIRLIK else p["rarity"]
+
+
+async def tasodifiy_personaj():
+    kalitlar = list(NODIRLIK)
+    ehtimollar = [NODIRLIK[k][1] for k in kalitlar]
+    for _ in range(10):
+        kalit = random.choices(kalitlar, ehtimollar)[0]
+        shart = {"rarity": {"$in": [kalit, kalit.capitalize()]}}
+        soni = await personajlar.count_documents(shart)
+        if soni:
+            return await personajlar.find_one(
+                shart, skip=random.randrange(soni)
+            )
+    jami = await personajlar.count_documents({})
+    if jami == 0:
+        return None
+    return await personajlar.find_one({}, skip=random.randrange(jami))
+
+
+# ---------- Buyruqlar ----------
+async def boshlash(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    f = update.effective_user
+    await foydalanuvchilar.update_one(
+        {"_id": f.id}, {"$set": {"name": f.first_name}}, upsert=True
     )
-    total = await users.count_documents({})
+    jami = await foydalanuvchilar.count_documents({})
     await update.message.reply_text(
-        f"Salom, {u.first_name}! Botda {total} ta foydalanuvchi bor 🌸"
+        f"Salom, {f.first_name}! Botda {jami} ta foydalanuvchi bor 🌸"
     )
 
 
-async def upload(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg = update.message
+async def id_korsat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(f"Sizning ID: {update.effective_user.id}")
+
+
+async def yuklash(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    xabar = update.message
     if update.effective_user.id != ADMIN_ID:
         return
-    text = (msg.caption or "").replace("/upload", "", 1).strip()
-    parts = [p.strip() for p in text.split("|")]
-    if len(parts) != 3 or not all(parts):
-        await msg.reply_text(
-            "Rasm yuboring, izohga yozing:\n/upload Ism | Anime | Nodirlik"
+    matn = re.sub(r"^/\w+(@\w+)?", "", xabar.caption or "").strip()
+    qismlar = [q.strip() for q in matn.split("|")]
+    if len(qismlar) != 3 or not all(qismlar):
+        await xabar.reply_text(
+            "Rasm yuboring, izohga yozing:\n"
+            "/yuklash Ism | Anime | Nodirlik\n"
+            "Nodirlik: Oddiy, Nodir, Epik yoki Afsonaviy"
         )
         return
-    name, anime, rarity = parts
-    await chars.insert_one({
-        "name": name, "anime": anime, "rarity": rarity,
-        "file_id": msg.photo[-1].file_id,
+    ism, anime, nodirlik = qismlar
+    kalit = nodirlik_kaliti(nodirlik)
+    if not kalit:
+        await xabar.reply_text(
+            "Nodirlik: Oddiy, Nodir, Epik yoki Afsonaviy bo'lishi kerak."
+        )
+        return
+    await personajlar.insert_one({
+        "name": ism, "anime": anime, "rarity": kalit,
+        "file_id": xabar.photo[-1].file_id,
     })
-    total = await chars.count_documents({})
-    await msg.reply_text(f"✅ {name} qo'shildi. Jami personaj: {total}")
+    jami = await personajlar.count_documents({})
+    await xabar.reply_text(
+        f"✅ {ism} ({NODIRLIK[kalit][0]}) qo'shildi. Jami: {jami}"
+    )
 
 
-async def count_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
-    counters[chat_id] = counters.get(chat_id, 0) + 1
-    if counters[chat_id] < SPAWN_EVERY:
+    hisoblagich[chat_id] = hisoblagich.get(chat_id, 0) + 1
+    if hisoblagich[chat_id] < CHIQISH_ORALIGI:
         return
-    counters[chat_id] = 0
-    total = await chars.count_documents({})
-    if total == 0:
+    hisoblagich[chat_id] = 0
+    p = await tasodifiy_personaj()
+    if not p:
         return
-    c = await chars.find_one({}, skip=random.randrange(total))
-    await spawns.update_one(
-        {"_id": chat_id}, {"$set": {"char_id": c["_id"]}}, upsert=True
+    await chiqqanlar.update_one(
+        {"_id": chat_id}, {"$set": {"char_id": p["_id"]}}, upsert=True
     )
     await context.bot.send_photo(
-        chat_id, c["file_id"],
-        caption="🌸 Yangi personaj chiqdi!\nIsmini topish uchun: /guess ism",
+        chat_id, p["file_id"],
+        caption="🌸 Yangi personaj chiqdi!\nIsmini topish uchun: /topish ism",
     )
 
 
-async def guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     if not context.args:
-        await update.message.reply_text("Ism yozing: /guess ism")
+        await update.message.reply_text("Ism yozing: /topish ism")
         return
-    sp = await spawns.find_one({"_id": chat_id})
-    if not sp:
+    chiqqan = await chiqqanlar.find_one({"_id": chat_id})
+    if not chiqqan:
         await update.message.reply_text("Hozir topiladigan personaj yo'q.")
         return
-    c = await chars.find_one({"_id": sp["char_id"]})
-    answer = " ".join(context.args).lower().strip()
-    full = c["name"].lower()
-    if answer == full or answer in full.split():
-        await spawns.delete_one({"_id": chat_id})
-        u = update.effective_user
-        await collection.insert_one({"user_id": u.id, "char_id": c["_id"]})
+    p = await personajlar.find_one({"_id": chiqqan["char_id"]})
+    javob = " ".join(context.args).lower().strip()
+    toliq_ism = p["name"].lower()
+    if javob == toliq_ism or javob in toliq_ism.split():
+        await chiqqanlar.delete_one({"_id": chat_id})
+        f = update.effective_user
+        await kolleksiya.insert_one({"user_id": f.id, "char_id": p["_id"]})
         await update.message.reply_text(
-            f"✅ To'g'ri! {u.first_name}, {c['name']} ({c['anime']}) "
-            f"kolleksiyangizga qo'shildi."
+            f"✅ To'g'ri! {f.first_name}, {p['name']} ({p['anime']})\n"
+            f"Nodirlik: {nodirlik_belgisi(p)}\n"
+            f"Kolleksiyangizga qo'shildi."
         )
     else:
         await update.message.reply_text("❌ Noto'g'ri, qayta urinib ko'ring.")
 
 
-async def harem(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    u = update.effective_user
-    ids = [d["char_id"] async for d in collection.find({"user_id": u.id})]
-    if not ids:
+async def kolleksiyam(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    f = update.effective_user
+    idlar = [d["char_id"] async for d in kolleksiya.find({"user_id": f.id})]
+    if not idlar:
         await update.message.reply_text("Kolleksiyangiz hozircha bo'sh.")
         return
-    lines = []
-    for cid, n in list(Counter(ids).items())[:50]:
-        c = await chars.find_one({"_id": cid})
-        lines.append(f"• {c['name']} ({c['anime']}) x{n}")
+    qatorlar = []
+    for pid, soni in list(Counter(idlar).items())[:50]:
+        p = await personajlar.find_one({"_id": pid})
+        qatorlar.append(
+            f"• {p['name']} ({p['anime']}) {nodirlik_belgisi(p)} x{soni}"
+        )
     await update.message.reply_text(
-        f"🌸 {u.first_name} kolleksiyasi:\n" + "\n".join(lines)
+        f"🌸 {f.first_name} kolleksiyasi:\n" + "\n".join(qatorlar)
     )
 
-async def inline(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    q = update.inline_query
-    text = q.query.strip().lower()
-    ids = [d["char_id"] async for d in collection.find({"user_id": q.from_user.id})]
-    results = []
-    async for c in chars.find({"_id": {"$in": list(set(ids))}}):
-        if text and text not in c["name"].lower():
+
+async def inline_qidiruv(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    so_rov = update.inline_query
+    matn = so_rov.query.strip().lower()
+    idlar = [
+        d["char_id"]
+        async for d in kolleksiya.find({"user_id": so_rov.from_user.id})
+    ]
+    natijalar = []
+    async for p in personajlar.find({"_id": {"$in": list(set(idlar))}}):
+        if matn and matn not in p["name"].lower():
             continue
-        results.append(
+        natijalar.append(
             InlineQueryResultCachedPhoto(
-                id=str(c["_id"]),
-                photo_file_id=c["file_id"],
-                caption=f"🌸 {c['name']}\n{c['anime']} | {c['rarity']}",
+                id=str(p["_id"]),
+                photo_file_id=p["file_id"],
+                caption=f"🌸 {p['name']}\n{p['anime']} | {nodirlik_belgisi(p)}",
             )
         )
-        if len(results) >= 50:
+        if len(natijalar) >= 50:
             break
-    await q.answer(results, cache_time=5, is_personal=True)
+    await so_rov.answer(natijalar, cache_time=5, is_personal=True)
 
-app = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("guess", guess))
-app.add_handler(CommandHandler("harem", harem))
-app.add_handler(
-    MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/upload"), upload)
+
+# ---------- Botni ishga tushirish ----------
+ilova = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).build()
+ilova.add_handler(CommandHandler("start", boshlash))
+ilova.add_handler(CommandHandler("id", id_korsat))
+ilova.add_handler(CommandHandler(["topish", "guess"], topish))
+ilova.add_handler(CommandHandler(["kolleksiya", "harem"], kolleksiyam))
+ilova.add_handler(
+    MessageHandler(
+        filters.PHOTO & filters.CaptionRegex(r"^/(yuklash|upload)"), yuklash
+    )
 )
-app.add_handler(
-    MessageHandler(filters.ChatType.GROUPS & ~filters.COMMAND, count_messages)
+ilova.add_handler(
+    MessageHandler(filters.ChatType.GROUPS & ~filters.COMMAND, xabarlarni_sanash)
 )
-app.add_handler(InlineQueryHandler(inline))
-app.run_polling()
+ilova.add_handler(InlineQueryHandler(inline_qidiruv))
+ilova.run_polling()
