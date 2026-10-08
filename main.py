@@ -111,6 +111,24 @@ async def harem(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🌸 {u.first_name} kolleksiyasi:\n" + "\n".join(lines)
     )
 
+async def inline(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.inline_query
+    text = q.query.strip().lower()
+    ids = [d["char_id"] async for d in collection.find({"user_id": q.from_user.id})]
+    results = []
+    async for c in chars.find({"_id": {"$in": list(set(ids))}}):
+        if text and text not in c["name"].lower():
+            continue
+        results.append(
+            InlineQueryResultCachedPhoto(
+                id=str(c["_id"]),
+                photo_file_id=c["file_id"],
+                caption=f"🌸 {c['name']}\n{c['anime']} | {c['rarity']}",
+            )
+        )
+        if len(results) >= 50:
+            break
+    await q.answer(results, cache_time=5, is_personal=True)
 
 app = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).build()
 app.add_handler(CommandHandler("start", start))
