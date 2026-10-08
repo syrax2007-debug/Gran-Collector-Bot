@@ -472,13 +472,7 @@ $("board").addEventListener("click", async (e) => {
   }
 });
 /* ---------- Yuklash ---------- */
-async function load() {
-  const u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
-  if (u) {
-    $("uname").textContent = u.first_name || "FOYDALANUVCHI";
-    $("avatar").textContent = (u.first_name || "🌸").charAt(0).toUpperCase();
-    $("handle").textContent = u.username ? "@" + u.username : "";
-  }
+async function loadCollection() {
   if (API_URL && tg && tg.initData) {
     try {
       const res = await fetch(API_URL + "/api/collection", {
@@ -488,7 +482,7 @@ async function load() {
       items = data.map((x) => ({
         name: x.name, anime: x.anime,
         r: RMAP[String(x.rarity).toLowerCase()] || 1,
-                count: x.count || 1, image: x.image ? API_URL + x.image : "",
+        count: x.count || 1, image: x.image ? API_URL + x.image : "",
       }));
     } catch (e) {
       items = [];
@@ -496,9 +490,32 @@ async function load() {
   } else {
     items = DEMO;
   }
-  stats(); chips(); render(); shop(); newGame();
+  stats(); render();
+}
+
+async function loadMe() {
+  if (!(API_URL && tg && tg.initData)) return;
+  try {
+    const res = await fetch(API_URL + "/api/me", {
+      headers: { "X-Init-Data": tg.initData },
+    });
+    const d = await res.json();
+    coins = d.coins;
+    freePlay = d.free;
+    replayCost = d.replay_cost;
+    stats(); gameInfo();
+  } catch (e) {}
+}
+
+async function load() {
+  const u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+  if (u) {
+    $("uname").textContent = u.first_name || "FOYDALANUVCHI";
+    $("avatar").textContent = (u.first_name || "🌸").charAt(0).toUpperCase();
+    $("handle").textContent = u.username ? "@" + u.username : "";
+  }
+  chips(); shop(); newGame();
+  await loadCollection();
+  await loadMe();
 }
 load();
-</script>
-</body>
-    </html>
