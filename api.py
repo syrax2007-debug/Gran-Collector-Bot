@@ -54,7 +54,7 @@ async def cors(request, handler):
             javob = xato
     javob.headers["Access-Control-Allow-Origin"] = RUXSAT_ETILGAN
     javob.headers["Access-Control-Allow-Headers"] = "X-Init-Data, Content-Type"
-    javob.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        javob.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return javob
 
 
