@@ -318,7 +318,7 @@ let coins = 0; // keyinchalik API'dan olinadi
 /* ---------- Kolleksiya ---------- */
 function cardHTML(it, i) {
   const rr = RAR[it.r] || RAR[1];
-  const stars = "★".repeat(it.r) + "☆".repeat(4 - it.r);
+  const stars = it.r === 5 ? "✨ MAXSUS ✨" : "★".repeat(it.r) + "☆".repeat(5 - it.r);
   const img = it.image ? `<img src="${esc(it.image)}" alt="">` : esc(it.emoji || "🌸");
   return `
     <div class="card r${it.r}" data-i="${i}">
