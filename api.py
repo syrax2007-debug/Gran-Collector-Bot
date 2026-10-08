@@ -110,6 +110,17 @@ async def tozalash(app):
     await app["sess"].close()
     await app["mijoz"].close()
 
+async def bot_yoqish(app):
+    await telegram_bot.initialize()
+    await telegram_bot.start()
+    await telegram_bot.updater.start_polling()
+
+
+async def bot_ochirish(app):
+    await telegram_bot.updater.stop()
+    await telegram_bot.stop()
+    await telegram_bot.shutdown()
+
 
 app = web.Application(middlewares=[cors])
 app.on_startup.append(ishga_tushish)
