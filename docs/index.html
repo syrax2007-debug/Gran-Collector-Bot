@@ -7,64 +7,108 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{
-  --bg:#0f0c1d; --card:#1a1530; --line:#2a2348;
-  --text:#f4f0ff; --muted:#9a93b8;
+  --bg:#05050a; --text:#f4f0ff; --muted:#8f89ad;
+  --glass:rgba(255,255,255,.06); --glass2:rgba(255,255,255,.1);
+  --line:rgba(255,255,255,.12);
   --c1:#4ade80; --c2:#5aa9ff; --c3:#b57bff; --c4:#ff7a45;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{
-  background:radial-gradient(circle at 50% -10%,#2b1f5c 0%,var(--bg) 55%);
+  background:var(--bg);
+  background-image:
+    radial-gradient(circle at 15% 0%,rgba(120,70,255,.18),transparent 45%),
+    radial-gradient(circle at 90% 100%,rgba(255,80,140,.12),transparent 45%);
+  background-attachment:fixed;
   color:var(--text);
   font-family:-apple-system,"Segoe UI",Roboto,sans-serif;
   min-height:100vh;
-  padding:16px 14px calc(24px + env(safe-area-inset-bottom));
+  padding:16px 14px calc(96px + env(safe-area-inset-bottom));
   text-transform:uppercase;
 }
-.top{text-align:center;margin-bottom:14px}
-.top h1{font-size:20px;letter-spacing:2px}
-.top p{color:var(--muted);font-size:12px;margin-top:4px}
-.stats{display:flex;gap:8px;margin:14px 0}
-.stat{
-  flex:1;background:var(--card);border:1px solid var(--line);
-  border-radius:14px;padding:10px 6px;text-align:center;
+.glass{
+  background:var(--glass);border:1px solid var(--line);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-radius:18px;
 }
-.stat b{display:block;font-size:20px}
+.pad{padding:16px}
+.center{text-align:center}
+.tab{display:none}
+.tab.on{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+h2{font-size:18px;letter-spacing:1.5px;margin-bottom:6px}
+p.sub{color:var(--muted);font-size:11px;letter-spacing:1px}
+
+/* Pastki navigatsiya */
+.nav{
+  position:fixed;left:10px;right:10px;
+  bottom:calc(10px + env(safe-area-inset-bottom));
+  display:flex;gap:4px;padding:6px;z-index:5;
+  background:rgba(10,10,18,.72);border:1px solid var(--line);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border-radius:22px;
+}
+.nav button{
+  flex:1;background:none;border:0;color:var(--muted);
+  padding:8px 2px;border-radius:16px;font-size:9px;font-weight:800;
+  letter-spacing:.5px;display:flex;flex-direction:column;gap:3px;align-items:center;
+}
+.nav button span{font-size:20px}
+.nav button.on{background:var(--glass2);color:#fff}
+
+/* Profil */
+.avatar{
+  width:84px;height:84px;border-radius:50%;margin:0 auto 10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;font-weight:900;
+  background:linear-gradient(135deg,#7b4dff,#ff5a9d);
+  box-shadow:0 0 28px rgba(150,90,255,.45);
+}
+.uname{font-size:20px;font-weight:900;letter-spacing:1px}
+.handle{color:var(--muted);font-size:12px;margin-top:2px;text-transform:none}
+.coinbox{
+  margin:14px 0;padding:14px;display:flex;align-items:center;
+  justify-content:center;gap:10px;font-size:26px;font-weight:900;
+}
+.coinbox small{font-size:11px;color:var(--muted);letter-spacing:1px;display:block;font-weight:700}
+.stats{display:flex;gap:8px}
+.stat{flex:1;padding:12px 6px;text-align:center}
+.stat b{display:block;font-size:22px}
 .stat span{font-size:10px;color:var(--muted);letter-spacing:1px}
+.btn{
+  width:100%;margin-top:12px;padding:13px;border:0;border-radius:14px;
+  background:linear-gradient(135deg,#7b4dff,#ff5a9d);color:#fff;
+  font-size:13px;font-weight:900;letter-spacing:1px;
+}
+.btn.dis{background:var(--glass2);color:var(--muted)}
+
+/* Kolleksiya */
 .search{
-  width:100%;padding:12px 14px;border-radius:12px;
-  border:1px solid var(--line);background:var(--card);
-  color:var(--text);font-size:14px;outline:none;
-  text-transform:uppercase;
+  width:100%;padding:12px 14px;border-radius:14px;margin-top:12px;
+  border:1px solid var(--line);background:var(--glass);
+  color:var(--text);font-size:14px;outline:none;text-transform:uppercase;
 }
 .chips{display:flex;gap:8px;overflow-x:auto;padding:12px 0;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{
-  flex:none;padding:8px 14px;border-radius:20px;
-  background:var(--card);border:1px solid var(--line);
-  color:var(--text);font-size:12px;font-weight:700;
+  flex:none;padding:8px 14px;border-radius:20px;background:var(--glass);
+  border:1px solid var(--line);color:var(--text);font-size:12px;font-weight:700;
 }
 .chip.on{background:#fff;color:#111;border-color:#fff}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .card{
-  position:relative;background:var(--card);
-  border-radius:16px;overflow:hidden;
-  border:2px solid var(--line);
+  position:relative;background:rgba(255,255,255,.05);
+  border-radius:16px;overflow:hidden;border:2px solid var(--line);
 }
 .card .img{
   aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;
-  font-size:56px;background:linear-gradient(160deg,#2a2348,#14102a);
+  font-size:56px;background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(0,0,0,.4));
 }
 .card .img img{width:100%;height:100%;object-fit:cover}
-.badge{
-  position:absolute;top:8px;left:8px;
-  background:rgba(0,0,0,.65);padding:4px 8px;
-  border-radius:10px;font-size:10px;font-weight:800;
+.badge,.cnt{
+  position:absolute;top:8px;background:rgba(0,0,0,.7);
+  padding:4px 8px;border-radius:10px;font-size:10px;font-weight:800;
 }
-.cnt{
-  position:absolute;top:8px;right:8px;
-  background:rgba(0,0,0,.65);padding:4px 8px;
-  border-radius:10px;font-size:11px;font-weight:800;
-}
+.badge{left:8px}.cnt{right:8px}
 .info{padding:10px}
 .name{font-size:14px;font-weight:800}
 .anime{font-size:10px;color:var(--muted);margin-top:2px}
@@ -79,33 +123,134 @@ body{
   50%{box-shadow:0 0 20px rgba(255,122,69,.85)}
 }
 .empty{text-align:center;color:var(--muted);padding:40px 10px;grid-column:1/-1}
+
+/* Do'kon */
+.shop{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.item{display:flex;align-items:center;gap:12px;padding:12px}
+.item .ic{font-size:30px}
+.item .tx{flex:1}
+.item .tx b{display:block;font-size:14px}
+.item .tx span{font-size:11px;color:var(--muted)}
+.buy{
+  border:0;border-radius:12px;padding:10px 12px;font-size:12px;font-weight:900;
+  background:linear-gradient(135deg,#7b4dff,#ff5a9d);color:#fff;
+}
+.note{
+  margin-top:14px;padding:10px;font-size:11px;color:var(--muted);
+  text-align:center;letter-spacing:.5px;
+}
+
+/* Referal */
+.soon{
+  display:inline-block;margin:12px 0;padding:8px 16px;border-radius:20px;
+  background:var(--glass2);font-size:12px;font-weight:900;letter-spacing:1px;
+}
+
+/* O'yin */
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.gc{
+  aspect-ratio:3/4;border-radius:16px;border:1px solid var(--line);
+  background:linear-gradient(160deg,rgba(123,77,255,.35),rgba(255,90,157,.25));
+  color:#fff;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:6px;font-size:34px;transition:.25s;
+}
+.gc small{font-size:10px;font-weight:900;letter-spacing:.5px}
+.gc.open{background:var(--glass);transform:scale(.97)}
+.gc.prize{border-color:var(--c4);background:rgba(255,122,69,.18);animation:glow 1.6s infinite}
+.gc.picked{outline:3px solid #fff}
+.gmsg{
+  margin-top:14px;padding:12px;text-align:center;
+  font-size:13px;font-weight:900;letter-spacing:.5px;
+}
+
+/* Oyna va xabar */
 .modal{
-  position:fixed;inset:0;background:rgba(5,3,15,.85);
-  display:none;align-items:center;justify-content:center;
-  padding:24px;z-index:10;
+  position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;
+  align-items:center;justify-content:center;padding:24px;z-index:20;
 }
 .modal.show{display:flex}
 .modal .card{width:100%;max-width:320px}
 .modal .name{font-size:18px}
 .modal .anime{font-size:12px}
 .modal .stars{font-size:16px}
-.hint{text-align:center;color:var(--muted);font-size:11px;margin-top:12px}
+.toast{
+  position:fixed;left:50%;top:18px;transform:translateX(-50%) translateY(-80px);
+  background:#fff;color:#111;padding:10px 16px;border-radius:14px;
+  font-size:12px;font-weight:900;z-index:30;transition:.3s;max-width:90%;text-align:center;
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
-<div class="top">
-  <h1>🌸 <span id="user">KOLLEKSIYA</span> 🌸</h1>
-  <p>SIZNING PERSONAJLARINGIZ</p>
-</div>
-<div class="stats">
-  <div class="stat"><b id="sJami">0</b><span>JAMI</span></div>
-  <div class="stat"><b id="sXil">0</b><span>TURLI</span></div>
-  <div class="stat"><b id="sMega">0</b><span>🔥 MEGA</span></div>
-</div>
-<input class="search" id="q" placeholder="🔍 ISM YOKI ANIME QIDIRISH">
-<div class="chips" id="chips"></div>
-<div class="grid" id="grid"></div>
+
+<!-- 1. PROFIL -->
+<section class="tab on" id="tab-profil">
+  <div class="glass pad center">
+    <div class="avatar" id="avatar">🌸</div>
+    <div class="uname" id="uname">FOYDALANUVCHI</div>
+    <div class="handle" id="handle"></div>
+  </div>
+  <div class="glass coinbox">
+    <span>🪙</span>
+    <div><b id="coins">0</b><small>TANGALAR</small></div>
+  </div>
+  <div class="stats">
+    <div class="glass stat"><b id="sJami">0</b><span>JAMI</span></div>
+    <div class="glass stat"><b id="sXil">0</b><span>TURLI</span></div>
+    <div class="glass stat"><b id="sMega">0</b><span>🔥 MEGA</span></div>
+  </div>
+  <button class="btn" onclick="show('kol')">🎴 KOLLEKSIYANI KO'RISH</button>
+</section>
+
+<!-- 2. KOLLEKSIYA -->
+<section class="tab" id="tab-kol">
+  <h2>🎴 KOLLEKSIYA</h2>
+  <p class="sub">SIZNING PERSONAJLARINGIZ</p>
+  <input class="search" id="q" placeholder="🔍 ISM YOKI ANIME QIDIRISH">
+  <div class="chips" id="chips"></div>
+  <div class="grid" id="grid"></div>
+</section>
+
+<!-- 3. DO'KON -->
+<section class="tab" id="tab-dokon">
+  <h2>🛒 DO'KON</h2>
+  <p class="sub">TANGAGA PERSONAJ SOTIB OLING</p>
+  <div class="shop" id="shop"></div>
+  <div class="glass note">⏳ TANGA TIZIMI TEZ ORADA ISHGA TUSHADI. NARXLAR NAMUNA.</div>
+</section>
+
+<!-- 4. REFERAL -->
+<section class="tab" id="tab-ref">
+  <div class="glass pad center">
+    <div style="font-size:54px">🤝</div>
+    <h2>REFERAL</h2>
+    <p class="sub">DO'STLARINGIZNI TAKLIF QILING VA MUKOFOT OLING</p>
+    <div class="soon">⏳ TEZ ORADA</div>
+    <button class="btn dis" onclick="toast('REFERAL TEZ ORADA ISHGA TUSHADI')">🔗 HAVOLANI NUSXALASH</button>
+  </div>
+</section>
+
+<!-- 5. O'YIN -->
+<section class="tab" id="tab-oyin">
+  <h2>🎲 TASODIFIY O'YIN</h2>
+  <p class="sub">9 TA KARTADAN BITTASIDA NODIR PERSONAJ YASHIRIN</p>
+  <div class="board" id="board"></div>
+  <div class="glass gmsg" id="gmsg">BITTA KARTANI TANLANG</div>
+  <button class="btn" id="again" style="display:none" onclick="newGame()">🔁 QAYTA O'YNASH</button>
+  <div class="glass note">DEMO REJIM: YUTUQLAR HALI SAQLANMAYDI.</div>
+</section>
+
+<!-- Pastki panel -->
+<nav class="nav" id="nav">
+  <button class="on" data-t="profil"><span>👤</span>PROFIL</button>
+  <button data-t="kol"><span>🎴</span>KOLLEKSIYA</button>
+  <button data-t="dokon"><span>🛒</span>DO'KON</button>
+  <button data-t="ref"><span>🤝</span>REFERAL</button>
+  <button data-t="oyin"><span>🎲</span>O'YIN</button>
+</nav>
+
 <div class="modal" id="modal"></div>
+<div class="toast" id="toast"></div>
 
 <script>
 // ---- Sozlama: B bosqichda API manzilini shu yerga yozamiz ----
@@ -115,9 +260,35 @@ const tg = window.Telegram && window.Telegram.WebApp;
 if (tg) {
   tg.ready();
   tg.expand();
-  try { tg.setHeaderColor("#0f0c1d"); tg.setBackgroundColor("#0f0c1d"); } catch (e) {}
+  try { tg.setHeaderColor("#05050a"); tg.setBackgroundColor("#05050a"); } catch (e) {}
 }
 
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => (
+  { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+));
+const buzz = () => { if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light"); };
+
+function toast(t) {
+  const el = $("toast");
+  el.textContent = t;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2200);
+}
+
+/* ---------- Bo'limlar ---------- */
+function show(t) {
+  document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x.id === "tab-" + t));
+  document.querySelectorAll(".nav button").forEach((x) => x.classList.toggle("on", x.dataset.t === t));
+  window.scrollTo(0, 0);
+  buzz();
+}
+$("nav").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (b) show(b.dataset.t);
+});
+
+/* ---------- Ma'lumotlar ---------- */
 const RAR = {
   1: { n: "YAXSHI", e: "✨" },
   2: { n: "AJOYIB", e: "💎" },
@@ -126,7 +297,6 @@ const RAR = {
 };
 const RMAP = { common: 1, rare: 2, epic: 3, legendary: 4 };
 
-// Namuna ma'lumot (API ulanmaguncha ko'rinadi)
 const DEMO = [
   { name: "Rem", anime: "Re:Zero", r: 2, count: 1, emoji: "💙" },
   { name: "Zero Two", anime: "Darling in the Franxx", r: 4, count: 1, emoji: "💗" },
@@ -141,18 +311,13 @@ const DEMO = [
 let items = [];
 let filter = 0;
 let query = "";
+let coins = 0; // keyinchalik API'dan olinadi
 
-const $ = (id) => document.getElementById(id);
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => (
-  { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
-));
-
+/* ---------- Kolleksiya ---------- */
 function cardHTML(it, i) {
   const rr = RAR[it.r] || RAR[1];
   const stars = "★".repeat(it.r) + "☆".repeat(4 - it.r);
-  const img = it.image
-    ? `<img src="${esc(it.image)}" alt="">`
-    : esc(it.emoji || "🌸");
+  const img = it.image ? `<img src="${esc(it.image)}" alt="">` : esc(it.emoji || "🌸");
   return `
     <div class="card r${it.r}" data-i="${i}">
       <div class="img">${img}</div>
@@ -181,12 +346,11 @@ function stats() {
   $("sJami").textContent = items.reduce((a, b) => a + b.count, 0);
   $("sXil").textContent = items.length;
   $("sMega").textContent = items.filter((x) => x.r === 4).length;
+  $("coins").textContent = coins;
 }
 
 function chips() {
-  const all = [[0, "HAMMASI"]].concat(
-    [1, 2, 3, 4].map((k) => [k, RAR[k].e + " " + RAR[k].n])
-  );
+  const all = [[0, "HAMMASI"]].concat([1, 2, 3, 4].map((k) => [k, RAR[k].e + " " + RAR[k].n]));
   $("chips").innerHTML = all
     .map(([k, t]) => `<button class="chip ${k === filter ? "on" : ""}" data-k="${k}">${t}</button>`)
     .join("");
@@ -196,8 +360,7 @@ $("chips").addEventListener("click", (e) => {
   const b = e.target.closest(".chip");
   if (!b) return;
   filter = Number(b.dataset.k);
-  chips();
-  render();
+  chips(); render(); buzz();
 });
 $("q").addEventListener("input", (e) => {
   query = e.target.value.trim().toLowerCase();
@@ -208,14 +371,71 @@ $("grid").addEventListener("click", (e) => {
   if (!c) return;
   $("modal").innerHTML = cardHTML(items[Number(c.dataset.i)], c.dataset.i);
   $("modal").classList.add("show");
-  if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+  buzz();
 });
 $("modal").addEventListener("click", () => $("modal").classList.remove("show"));
 
+/* ---------- Do'kon ---------- */
+const SHOP = [
+  { r: 1, price: 100 },
+  { r: 2, price: 300 },
+  { r: 3, price: 800 },
+  { r: 4, price: 2000 },
+];
+function shop() {
+  $("shop").innerHTML = SHOP.map((s) => `
+    <div class="glass item">
+      <div class="ic">${RAR[s.r].e}</div>
+      <div class="tx"><b>${RAR[s.r].n} PERSONAJ</b><span>TASODIFIY ${RAR[s.r].n} DARAJALI</span></div>
+      <button class="buy" data-r="${s.r}">🪙 ${s.price}</button>
+    </div>`).join("");
+}
+$("shop").addEventListener("click", (e) => {
+  if (e.target.closest(".buy")) toast("TANGA TIZIMI TEZ ORADA ISHGA TUSHADI");
+});
+
+/* ---------- O'yin ---------- */
+let gameDone = false, prizeIdx = 0, coinVals = [];
+function newGame() {
+  gameDone = false;
+  prizeIdx = Math.floor(Math.random() * 9);
+  const opts = [5, 10, 15, 20, 25, 50];
+  coinVals = Array.from({ length: 9 }, () => opts[Math.floor(Math.random() * opts.length)]);
+  $("gmsg").textContent = "BITTA KARTANI TANLANG";
+  $("again").style.display = "none";
+  $("board").innerHTML = Array.from({ length: 9 }, (_, i) =>
+    `<button class="gc" data-i="${i}"><span>❓</span></button>`).join("");
+}
+$("board").addEventListener("click", (e) => {
+  const b = e.target.closest(".gc");
+  if (!b || gameDone) return;
+  gameDone = true;
+  const pick = Number(b.dataset.i);
+  document.querySelectorAll(".gc").forEach((el, i) => {
+    el.classList.add("open");
+    if (i === prizeIdx) {
+      el.classList.add("prize");
+      el.innerHTML = "<span>🎁</span><small>NODIR PERSONAJ</small>";
+    } else {
+      el.innerHTML = `<span>🪙</span><small>+${coinVals[i]}</small>`;
+    }
+    if (i === pick) el.classList.add("picked");
+  });
+  $("gmsg").textContent = pick === prizeIdx
+    ? "🎉 TABRIKLAYMAN! NODIR PERSONAJ YUTDINGIZ!"
+    : `🪙 +${coinVals[pick]} TANGA (HISOBGA QO'SHISH TEZ ORADA)`;
+  $("again").style.display = "block";
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred(pick === prizeIdx ? "success" : "warning");
+});
+
+/* ---------- Yuklash ---------- */
 async function load() {
   const u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
-  if (u && u.first_name) $("user").textContent = u.first_name + " KOLLEKSIYASI";
-
+  if (u) {
+    $("uname").textContent = u.first_name || "FOYDALANUVCHI";
+    $("avatar").textContent = (u.first_name || "🌸").charAt(0).toUpperCase();
+    $("handle").textContent = u.username ? "@" + u.username : "";
+  }
   if (API_URL && tg && tg.initData) {
     try {
       const res = await fetch(API_URL + "/api/collection", {
@@ -233,9 +453,9 @@ async function load() {
   } else {
     items = DEMO;
   }
-  stats(); chips(); render();
+  stats(); chips(); render(); shop(); newGame();
 }
 load();
 </script>
 </body>
-  </html>
+    </html>
