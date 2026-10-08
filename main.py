@@ -1,13 +1,7 @@
-import os
-import random
-import logging
-from collections import Counter
-import dns.asyncresolver
-from pymongo import AsyncMongoClient
-from telegram import Update
+from telegram import Update, InlineQueryResultCachedPhoto
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
-    ContextTypes, filters,
+    InlineQueryHandler, ContextTypes, filters,
 )
 
 logging.basicConfig(level=logging.INFO)
