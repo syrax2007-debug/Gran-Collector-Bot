@@ -125,6 +125,8 @@ async def bot_ochirish(app):
 app = web.Application(middlewares=[cors])
 app.on_startup.append(ishga_tushish)
 app.on_cleanup.append(tozalash)
+app.on_startup.append(bot_yoqish)
+app.on_cleanup.append(bot_ochirish)
 app.router.add_get("/", bosh)
 app.router.add_get("/api/collection", kolleksiya_api)
 app.router.add_get("/api/photo/{pid}", rasm)
