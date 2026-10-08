@@ -19,7 +19,7 @@ from telegram.ext import (
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
-# Termux uchun DNS sozlamasi
+# DNS sozlamasi
 resolver = dns.asyncresolver.Resolver(configure=False)
 resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
 dns.asyncresolver.default_resolver = resolver
@@ -33,12 +33,13 @@ YUQORI = "╔══════════════╗"
 PASTKI = "╚══════════════╝"
 
 # kalit: (ko'rinadigan nom, chiqish ehtimoli)
-# Kalitlar bazadagi eski personajlar bilan mos qolishi uchun o'zgarmadi
+# MAXSUS ehtimoli 2. Chiqmasin desangiz 0 qiling
 NODIRLIK = {
     "common": ("✨ YAXSHI", 60),
     "rare": ("💎 AJOYIB", 25),
-    "epic": ("🏆 SUPER", 10),
+    "epic": ("🔥 SUPER", 10),
     "legendary": ("👑 MEGA", 5),
+    "special": ("💠 MAXSUS", 2),
 }
 
 # /yuklash da yoziladigan nomlar (eski nomlar ham ishlaydi)
@@ -47,6 +48,7 @@ NODIRLIK_NOMLARI = {
     "ajoyib": "rare",
     "super": "epic",
     "mega": "legendary",
+    "maxsus": "special",
     "oddiy": "common",
     "nodir": "rare",
     "epik": "epic",
@@ -59,9 +61,10 @@ SARLAVHA = {
     "rare": "💎 AJOYIB PERSONAJ CHIQDI! 💎",
     "epic": "⚡ SUPER PERSONAJ CHIQDI! ⚡",
     "legendary": "🔥👑 MEGA PERSONAJ CHIQDI! 👑🔥",
+    "special": "💠✨ MAXSUS PERSONAJ CHIQDI! ✨💠",
 }
 
-# Daraja yulduzlari
+# Daraja yulduzlari (5 tadan). MAXSUS yulduzsiz
 YULDUZ = {"common": 1, "rare": 2, "epic": 3, "legendary": 4}
 
 # ---------- Baza ----------
@@ -98,17 +101,20 @@ def nodirlik_belgisi(p):
 
 def kartochka(p, sarlavha):
     kalit = p["rarity"].lower()
-    soni = YULDUZ.get(kalit, 1)
-    yulduz = "★" * soni + "☆" * (4 - soni)
+    if kalit == "special":
+        daraja = "✨ MAXSUS ✨"
+    else:
+        soni = YULDUZ.get(kalit, 1)
+        daraja = "★" * soni + "☆" * (5 - soni)
     kod = str(p["_id"])[-4:].upper()
     return (
         f"{sarlavha}\n"
         f"{YUQORI}\n"
         f"<blockquote>"
         f"👤 <b>ISM:</b> {K(p['name'])}\n"
-        f"📺 <b>ANIME:</b> <i>{K(p['anime'])}</i>\n"
+        f"🔖 <b>MANBA:</b> <i>{K(p['anime'])}</i>\n"
         f"💎 <b>NODIRLIK:</b> {nodirlik_belgisi(p)}\n"
-        f"🌟 <b>DARAJA:</b> {yulduz}\n"
+        f"🌟 <b>DARAJA:</b> {daraja}\n"
         f"🆔 <b>KOD:</b> <code>#{kod}</code>"
         f"</blockquote>\n"
         f"{PASTKI}"
@@ -200,19 +206,19 @@ async def yuklash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(qismlar) != 3 or not all(qismlar):
         await xabar.reply_text(
             "RASM YUBORING, IZOHGA YOZING:\n"
-            "/yuklash Ism | Anime | Nodirlik\n"
-            "NODIRLIK: YAXSHI, AJOYIB, SUPER YOKI MEGA"
+            "/yuklash Ism | Manba | Nodirlik\n"
+            "NODIRLIK: YAXSHI, AJOYIB, SUPER, MEGA YOKI MAXSUS"
         )
         return
-    ism, anime, nodirlik = qismlar
+    ism, manba, nodirlik = qismlar
     kalit = nodirlik_kaliti(nodirlik)
     if not kalit:
         await xabar.reply_text(
-            "NODIRLIK: YAXSHI, AJOYIB, SUPER YOKI MEGA BO'LISHI KERAK."
+            "NODIRLIK: YAXSHI, AJOYIB, SUPER, MEGA YOKI MAXSUS BO'LISHI KERAK."
         )
         return
     await personajlar.insert_one({
-        "name": ism, "anime": anime, "rarity": kalit,
+        "name": ism, "anime": manba, "rarity": kalit,
         "file_id": xabar.photo[-1].file_id,
     })
     jami = await personajlar.count_documents({})
@@ -307,7 +313,7 @@ async def kolleksiyam(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sanash = {}
     for pid in idlar:
         sanash[pid] = sanash.get(pid, 0) + 1
-    tartib = list(NODIRLIK)[::-1]  # Megadan boshlab
+    tartib = list(NODIRLIK)[::-1]  # Maxsusdan boshlab
     royxat = [
         p async for p in personajlar.find({"_id": {"$in": list(sanash)}})
     ]
@@ -474,5 +480,6 @@ ilova.add_handler(
     MessageHandler(filters.ChatType.GROUPS & ~filters.COMMAND, xabarlarni_sanash)
 )
 ilova.add_handler(InlineQueryHandler(inline_qidiruv))
+
 if __name__ == "__main__":
     ilova.run_polling()
