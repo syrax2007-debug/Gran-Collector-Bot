@@ -1,5 +1,7 @@
 import os
+import random
 import logging
+from collections import Counter
 import dns.asyncresolver
 from pymongo import AsyncMongoClient
 from telegram import Update
@@ -15,12 +17,16 @@ resolver = dns.asyncresolver.Resolver(configure=False)
 resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
 dns.asyncresolver.default_resolver = resolver
 
-ADMIN_ID = 8288620037  # 2-qadamda o'zingizning ID'ingizni yozasiz
+ADMIN_ID = 8288620037  # o'zingizning ID raqamingiz
+SPAWN_EVERY = 10  # nechta xabardan keyin personaj chiqadi
 
 client = AsyncMongoClient(os.environ["MONGO_URI"])
 db = client["waifu"]
 users = db["users"]
 chars = db["characters"]
+spawns = db["spawns"]
+collection = db["collection"]
+counters = {}
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -32,10 +38,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"Salom, {u.first_name}! Botda {total} ta foydalanuvchi bor 🌸"
     )
-
-
-async def my_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"Sizning ID: {update.effective_user.id}")
 
 
 async def upload(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -58,10 +60,72 @@ async def upload(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await msg.reply_text(f"✅ {name} qo'shildi. Jami personaj: {total}")
 
 
+async def count_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    counters[chat_id] = counters.get(chat_id, 0) + 1
+    if counters[chat_id] < SPAWN_EVERY:
+        return
+    counters[chat_id] = 0
+    total = await chars.count_documents({})
+    if total == 0:
+        return
+    c = await chars.find_one({}, skip=random.randrange(total))
+    await spawns.update_one(
+        {"_id": chat_id}, {"$set": {"char_id": c["_id"]}}, upsert=True
+    )
+    await context.bot.send_photo(
+        chat_id, c["file_id"],
+        caption="🌸 Yangi personaj chiqdi!\nIsmini topish uchun: /guess ism",
+    )
+
+
+async def guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    if not context.args:
+        await update.message.reply_text("Ism yozing: /guess ism")
+        return
+    sp = await spawns.find_one({"_id": chat_id})
+    if not sp:
+        await update.message.reply_text("Hozir topiladigan personaj yo'q.")
+        return
+    c = await chars.find_one({"_id": sp["char_id"]})
+    answer = " ".join(context.args).lower().strip()
+    full = c["name"].lower()
+    if answer == full or answer in full.split():
+        await spawns.delete_one({"_id": chat_id})
+        u = update.effective_user
+        await collection.insert_one({"user_id": u.id, "char_id": c["_id"]})
+        await update.message.reply_text(
+            f"✅ To'g'ri! {u.first_name}, {c['name']} ({c['anime']}) "
+            f"kolleksiyangizga qo'shildi."
+        )
+    else:
+        await update.message.reply_text("❌ Noto'g'ri, qayta urinib ko'ring.")
+
+
+async def harem(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    u = update.effective_user
+    ids = [d["char_id"] async for d in collection.find({"user_id": u.id})]
+    if not ids:
+        await update.message.reply_text("Kolleksiyangiz hozircha bo'sh.")
+        return
+    lines = []
+    for cid, n in list(Counter(ids).items())[:50]:
+        c = await chars.find_one({"_id": cid})
+        lines.append(f"• {c['name']} ({c['anime']}) x{n}")
+    await update.message.reply_text(
+        f"🌸 {u.first_name} kolleksiyasi:\n" + "\n".join(lines)
+    )
+
+
 app = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).build()
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("id", my_id))
+app.add_handler(CommandHandler("guess", guess))
+app.add_handler(CommandHandler("harem", harem))
 app.add_handler(
     MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/upload"), upload)
+)
+app.add_handler(
+    MessageHandler(filters.ChatType.GROUPS & ~filters.COMMAND, count_messages)
 )
 app.run_polling()
