@@ -15,7 +15,7 @@ resolver = dns.asyncresolver.Resolver(configure=False)
 resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
 dns.asyncresolver.default_resolver = resolver
 
-ADMIN_ID = 0  # 2-qadamda o'zingizning ID'ingizni yozasiz
+ADMIN_ID = 8288620037  # 2-qadamda o'zingizning ID'ingizni yozasiz
 
 client = AsyncMongoClient(os.environ["MONGO_URI"])
 db = client["waifu"]
