@@ -474,4 +474,5 @@ ilova.add_handler(
     MessageHandler(filters.ChatType.GROUPS & ~filters.COMMAND, xabarlarni_sanash)
 )
 ilova.add_handler(InlineQueryHandler(inline_qidiruv))
-ilova.run_polling()
+if __name__ == "__main__":
+    ilova.run_polling()
