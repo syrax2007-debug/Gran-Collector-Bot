@@ -227,6 +227,8 @@ app.on_cleanup.append(bot_ochirish)
 app.router.add_get("/", bosh)
 app.router.add_get("/api/collection", kolleksiya_api)
 app.router.add_get("/api/photo/{pid}", rasm)
+app.router.add_get("/api/me", me_api)
+app.router.add_post("/api/game/play", oyin_api)
 
 if __name__ == "__main__":
     web.run_app(app, host="0.0.0.0", port=int(os.environ.get("PORT", "8080")))
