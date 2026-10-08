@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Waifu Kolleksiya</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --bg:#0f0c1d; --card:#1a1530; --line:#2a2348;
+  --text:#f4f0ff; --muted:#9a93b8;
+  --c1:#4ade80; --c2:#5aa9ff; --c3:#b57bff; --c4:#ff7a45;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  background:radial-gradient(circle at 50% -10%,#2b1f5c 0%,var(--bg) 55%);
+  color:var(--text);
+  font-family:-apple-system,"Segoe UI",Roboto,sans-serif;
+  min-height:100vh;
+  padding:16px 14px calc(24px + env(safe-area-inset-bottom));
+  text-transform:uppercase;
+}
+.top{text-align:center;margin-bottom:14px}
+.top h1{font-size:20px;letter-spacing:2px}
+.top p{color:var(--muted);font-size:12px;margin-top:4px}
+.stats{display:flex;gap:8px;margin:14px 0}
+.stat{
+  flex:1;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;padding:10px 6px;text-align:center;
+}
+.stat b{display:block;font-size:20px}
+.stat span{font-size:10px;color:var(--muted);letter-spacing:1px}
+.search{
+  width:100%;padding:12px 14px;border-radius:12px;
+  border:1px solid var(--line);background:var(--card);
+  color:var(--text);font-size:14px;outline:none;
+  text-transform:uppercase;
+}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 0;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:none;padding:8px 14px;border-radius:20px;
+  background:var(--card);border:1px solid var(--line);
+  color:var(--text);font-size:12px;font-weight:700;
+}
+.chip.on{background:#fff;color:#111;border-color:#fff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{
+  position:relative;background:var(--card);
+  border-radius:16px;overflow:hidden;
+  border:2px solid var(--line);
+}
+.card .img{
+  aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;
+  font-size:56px;background:linear-gradient(160deg,#2a2348,#14102a);
+}
+.card .img img{width:100%;height:100%;object-fit:cover}
+.badge{
+  position:absolute;top:8px;left:8px;
+  background:rgba(0,0,0,.65);padding:4px 8px;
+  border-radius:10px;font-size:10px;font-weight:800;
+}
+.cnt{
+  position:absolute;top:8px;right:8px;
+  background:rgba(0,0,0,.65);padding:4px 8px;
+  border-radius:10px;font-size:11px;font-weight:800;
+}
+.info{padding:10px}
+.name{font-size:14px;font-weight:800}
+.anime{font-size:10px;color:var(--muted);margin-top:2px}
+.stars{font-size:12px;margin-top:6px;letter-spacing:2px}
+.r1{border-color:var(--c1)} .r1 .stars{color:var(--c1)}
+.r2{border-color:var(--c2)} .r2 .stars{color:var(--c2)}
+.r3{border-color:var(--c3)} .r3 .stars{color:var(--c3)}
+.r4{border-color:var(--c4);animation:glow 2s ease-in-out infinite}
+.r4 .stars{color:var(--c4)}
+@keyframes glow{
+  0%,100%{box-shadow:0 0 6px rgba(255,122,69,.35)}
+  50%{box-shadow:0 0 20px rgba(255,122,69,.85)}
+}
+.empty{text-align:center;color:var(--muted);padding:40px 10px;grid-column:1/-1}
+.modal{
+  position:fixed;inset:0;background:rgba(5,3,15,.85);
+  display:none;align-items:center;justify-content:center;
+  padding:24px;z-index:10;
+}
+.modal.show{display:flex}
+.modal .card{width:100%;max-width:320px}
+.modal .name{font-size:18px}
+.modal .anime{font-size:12px}
+.modal .stars{font-size:16px}
+.hint{text-align:center;color:var(--muted);font-size:11px;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>🌸 <span id="user">KOLLEKSIYA</span> 🌸</h1>
+  <p>SIZNING PERSONAJLARINGIZ</p>
+</div>
+<div class="stats">
+  <div class="stat"><b id="sJami">0</b><span>JAMI</span></div>
+  <div class="stat"><b id="sXil">0</b><span>TURLI</span></div>
+  <div class="stat"><b id="sMega">0</b><span>🔥 MEGA</span></div>
+</div>
+<input class="search" id="q" placeholder="🔍 ISM YOKI ANIME QIDIRISH">
+<div class="chips" id="chips"></div>
+<div class="grid" id="grid"></div>
+<div class="modal" id="modal"></div>
+
+<script>
+// ---- Sozlama: B bosqichda API manzilini shu yerga yozamiz ----
+const API_URL = "";
+
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  try { tg.setHeaderColor("#0f0c1d"); tg.setBackgroundColor("#0f0c1d"); } catch (e) {}
+}
+
+const RAR = {
+  1: { n: "YAXSHI", e: "🟢" },
+  2: { n: "AJOYIB", e: "🔵" },
+  3: { n: "SUPER", e: "🟣" },
+  4: { n: "MEGA", e: "🔥" },
+};
+const RMAP = { common: 1, rare: 2, epic: 3, legendary: 4 };
+
+// Namuna ma'lumot (API ulanmaguncha ko'rinadi)
+const DEMO = [
+  { name: "Rem", anime: "Re:Zero", r: 2, count: 1, emoji: "💙" },
+  { name: "Zero Two", anime: "Darling in the Franxx", r: 4, count: 1, emoji: "💗" },
+  { name: "Mikasa", anime: "Attack on Titan", r: 3, count: 2, emoji: "🧣" },
+  { name: "Hinata", anime: "Naruto", r: 1, count: 3, emoji: "🌙" },
+  { name: "Asuna", anime: "Sword Art Online", r: 3, count: 1, emoji: "⚔️" },
+  { name: "Nezuko", anime: "Demon Slayer", r: 4, count: 1, emoji: "🎋" },
+  { name: "Emilia", anime: "Re:Zero", r: 2, count: 1, emoji: "❄️" },
+  { name: "Sakura", anime: "Naruto", r: 1, count: 4, emoji: "🌸" },
+];
+
+let items = [];
+let filter = 0;
+let query = "";
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => (
+  { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+));
+
+function cardHTML(it, i) {
+  const rr = RAR[it.r] || RAR[1];
+  const stars = "★".repeat(it.r) + "☆".repeat(4 - it.r);
+  const img = it.image
+    ? `<img src="${esc(it.image)}" alt="">`
+    : esc(it.emoji || "🌸");
+  return `
+    <div class="card r${it.r}" data-i="${i}">
+      <div class="img">${img}</div>
+      <span class="badge">${rr.e} ${rr.n}</span>
+      ${it.count > 1 ? `<span class="cnt">×${it.count}</span>` : ""}
+      <div class="info">
+        <div class="name">${esc(it.name)}</div>
+        <div class="anime">${esc(it.anime)}</div>
+        <div class="stars">${stars}</div>
+      </div>
+    </div>`;
+}
+
+function render() {
+  const list = items.filter((it) => {
+    if (filter && it.r !== filter) return false;
+    const t = (it.name + " " + it.anime).toLowerCase();
+    return !query || t.includes(query);
+  });
+  $("grid").innerHTML = list.length
+    ? list.map((it) => cardHTML(it, items.indexOf(it))).join("")
+    : `<div class="empty">📭 PERSONAJ TOPILMADI</div>`;
+}
+
+function stats() {
+  $("sJami").textContent = items.reduce((a, b) => a + b.count, 0);
+  $("sXil").textContent = items.length;
+  $("sMega").textContent = items.filter((x) => x.r === 4).length;
+}
+
+function chips() {
+  const all = [[0, "HAMMASI"]].concat(
+    [1, 2, 3, 4].map((k) => [k, RAR[k].e + " " + RAR[k].n])
+  );
+  $("chips").innerHTML = all
+    .map(([k, t]) => `<button class="chip ${k === filter ? "on" : ""}" data-k="${k}">${t}</button>`)
+    .join("");
+}
+
+$("chips").addEventListener("click", (e) => {
+  const b = e.target.closest(".chip");
+  if (!b) return;
+  filter = Number(b.dataset.k);
+  chips();
+  render();
+});
+$("q").addEventListener("input", (e) => {
+  query = e.target.value.trim().toLowerCase();
+  render();
+});
+$("grid").addEventListener("click", (e) => {
+  const c = e.target.closest(".card");
+  if (!c) return;
+  $("modal").innerHTML = cardHTML(items[Number(c.dataset.i)], c.dataset.i);
+  $("modal").classList.add("show");
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+});
+$("modal").addEventListener("click", () => $("modal").classList.remove("show"));
+
+async function load() {
+  const u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+  if (u && u.first_name) $("user").textContent = u.first_name + " KOLLEKSIYASI";
+
+  if (API_URL && tg && tg.initData) {
+    try {
+      const res = await fetch(API_URL + "/api/collection", {
+        headers: { "X-Init-Data": tg.initData },
+      });
+      const data = await res.json();
+      items = data.map((x) => ({
+        name: x.name, anime: x.anime,
+        r: RMAP[String(x.rarity).toLowerCase()] || 1,
+        count: x.count || 1, image: x.image,
+      }));
+    } catch (e) {
+      items = [];
+    }
+  } else {
+    items = DEMO;
+  }
+  stats(); chips(); render();
+}
+load();
+</script>
+</body>
+  </html>
