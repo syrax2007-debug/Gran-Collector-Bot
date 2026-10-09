@@ -995,34 +995,34 @@ async def inline_qidiruv(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------- Botni ishga tushirish --------
 
-ilova = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).build()
-ilova.add_handler(CommandHandler("start", boshlash))
-ilova.add_handler(CommandHandler("id", id_korsat))
-ilova.add_handler(CommandHandler("balans", balans))
-ilova.add_handler(CommandHandler("bonus", bonus))
-ilova.add_handler(CommandHandler("kunlik", kunlik))
-ilova.add_handler(CommandHandler(["ruletka", "slot"], ruletka))
-ilova.add_handler(CommandHandler("ruxsat", ruxsat))
-ilova.add_handler(CommandHandler("ruxsat_ochir", ruxsat_ochir))
-ilova.add_handler(CommandHandler(["topish", "guess"], topish))
-ilova.add_handler(CommandHandler(["kolleksiya", "harem"], kolleksiyam))
-ilova.add_handler(CommandHandler(["sovga", "gift"], sovga))
-ilova.add_handler(CallbackQueryHandler(sovga_tugma, pattern=r"^(sh|sb):"))
-ilova.add_handler(
-    MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, xush_kelibsiz)
-)
-ilova.add_handler(
-    MessageHandler(
-        filters.PHOTO & filters.CaptionRegex(r"^/(yuklash|upload)"), yuklash
+    ilova = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).build()
+    ilova.add_handler(CommandHandler("start", boshlash))
+    ilova.add_handler(CommandHandler("id", id_korsat))
+    ilova.add_handler(CommandHandler("balans", balans))
+    ilova.add_handler(CommandHandler("bonus", bonus))
+    ilova.add_handler(CommandHandler("kunlik", kunlik))
+    ilova.add_handler(CommandHandler(["ruletka", "slot"], ruletka))
+    ilova.add_handler(CommandHandler("ruxsat", ruxsat))
+    ilova.add_handler(CommandHandler("ruxsat_ochir", ruxsat_ochir))
+    ilova.add_handler(CommandHandler(["topish", "guess"], topish))
+    ilova.add_handler(CommandHandler(["kolleksiya", "harem"], kolleksiyam))
+    ilova.add_handler(CommandHandler(["sovga", "gift"], sovga))
+    ilova.add_handler(CallbackQueryHandler(sovga_tugma, pattern=r"^(sh|sb):"))
+    ilova.add_handler(
+        MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, xush_kelibsiz)
     )
-)
-ilova.add_handler(
-    MessageHandler(
-        filters.ChatType.GROUPS & ~filters.COMMAND & ~filters.StatusUpdate.ALL,
-        xabarlarni_sanash,
+    ilova.add_handler(
+        MessageHandler(
+            filters.PHOTO & filters.CaptionRegex(r"^/(yuklash|upload)"), yuklash
+        )
     )
-)
-ilova.add_handler(InlineQueryHandler(inline_qidiruv))
+    ilova.add_handler(
+        MessageHandler(
+            filters.ChatType.GROUPS & ~filters.COMMAND & ~filters.StatusUpdate.ALL,
+            xabarlarni_sanash,
+        )
+    )
+    ilova.add_handler(InlineQueryHandler(inline_qidiruv))
 
-if __name__ == "__main__":
-    ilova.run_polling() 
+    if __name__ == "__main__":
+        ilova.run_polling() 
