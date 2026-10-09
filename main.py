@@ -549,6 +549,8 @@ async def inline_qidiruv(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ilova = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).build()
 ilova.add_handler(CommandHandler("start", boshlash))
 ilova.add_handler(CommandHandler("id", id_korsat))
+ilova.add_handler(CommandHandler("balans", balans))
+ilova.add_handler(CallbackQueryHandler(bonus_tugma, pattern=r"^bonus$"))
 ilova.add_handler(CommandHandler(["topish", "guess"], topish))
 ilova.add_handler(CommandHandler(["kolleksiya", "harem"], kolleksiyam))
 ilova.add_handler(CommandHandler(["sovga", "gift"], sovga))
