@@ -172,6 +172,7 @@ async def tasodifiy_personaj():
 
 
 # ---------- Buyruqlar ----------
+
 async def boshlash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     f = update.effective_user
     await foydalanuvchilar.update_one(
@@ -188,15 +189,25 @@ async def boshlash(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🔹 <code>/topish ism</code> — PERSONAJNI TOPISH\n"
         f"🔹 /kolleksiya — MENING KOLLEKSIYAM\n"
         f"🔹 <code>/sovga ism</code> — SOVGA QILISH (JAVOB BERIB)\n"
+        f"🔹 /balans — MENING TANGALARIM\n"
         f"🔹 /id — TELEGRAM ID RAQAMIM\n\n"
+        f"🎁 <b>BONUS:</b> KANAL VA GURUHGA QO'SHILING, TANGA OLING!\n"
         f"🎴 BOTNI GURUHGA QO'SHING VA PERSONAJLARNI YIG'ING!"
     )
     shaxsiy = update.effective_chat.type == "private"
-    tugma = InlineKeyboardMarkup([[mini_app_tugmasi()]]) if shaxsiy else None
+    tugma = None
+    if shaxsiy:
+        tugma = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("📢 KANAL", url=KANAL_URL),
+                InlineKeyboardButton("💬 GURUH", url=GURUH_URL),
+            ],
+            [InlineKeyboardButton("🎁 BONUS OLISH", callback_data="bonus")],
+            [mini_app_tugmasi()],
+        ])
     await update.message.reply_text(
         matn, parse_mode="HTML", reply_markup=tugma
     )
-
 
 async def id_korsat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
