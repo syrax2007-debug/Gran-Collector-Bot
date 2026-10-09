@@ -777,7 +777,7 @@ async def inline_qidiruv(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineQueryResultCachedPhoto(
                 id=str(p["_id"]),
                 photo_file_id=p["file_id"],
-                caption=kartochka(p, "🌸 <b>PERSONAJ</b> 🌸"),
+                                caption=stil(kartochka(p, "🌸 <b>PERSONAJ</b> 🌸")),
                 parse_mode="HTML",
             )
         )
