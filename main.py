@@ -32,6 +32,14 @@ CIZIQ = "━━━━━━━━━━━━━━"
 YUQORI = "╔══════════════╗"
 PASTKI = "╚══════════════╝"
 
+# Kanal va guruh (yumshoq obuna: bonus beriladi, majburiy emas)
+KANAL = "@Grab_Collector"
+GURUH = "@Grab_Collector_Chat"
+KANAL_URL = "https://t.me/Grab_Collector"
+GURUH_URL = "https://t.me/Grab_Collector_Chat"
+KANAL_BONUS = 100  # tanga
+GURUH_BONUS = 50  # tanga
+
 # kalit: (ko'rinadigan nom, chiqish ehtimoli)
 # MAXSUS ehtimoli 2. Chiqmasin desangiz 0 qiling
 NODIRLIK = {
