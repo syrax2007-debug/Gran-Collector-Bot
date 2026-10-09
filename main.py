@@ -993,8 +993,8 @@ async def inline_qidiruv(update: Update, context: ContextTypes.DEFAULT_TYPE):
             break
     await so_rov.answer(natijalar, cache_time=5, is_personal=True)
 
+# ---------- Botni ishga tushirish --------
 
-# ---------- Botni ishga tushirish ----------
 ilova = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).build()
 ilova.add_handler(CommandHandler("start", boshlash))
 ilova.add_handler(CommandHandler("id", id_korsat))
