@@ -577,7 +577,6 @@ async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML",
     )
 
-
 async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     if not context.args:
@@ -585,4 +584,445 @@ async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     chiqqan = await chiqqanlar.find_one({"_id": chat_id})
     if not chiqqan:
-        await update.message.reply_text("🔍 HOZIR TOPILADIGAN PERSO
+        await update.message.reply_text("🔍 HOZIR TOPILADIGAN PERSONAJ YO'Q.")
+        return
+    p = await personajlar.find_one({"_id": chiqqan["char_id"]})
+    javob = " ".join(context.args).lower().strip()
+    toliq_ism = p["name"].lower()
+    if javob == toliq_ism or javob in toliq_ism.split():
+        await chiqqanlar.delete_one({"_id": chat_id})
+        f = update.effective_user
+        await kolleksiya.insert_one({"user_id": f.id, "char_id": p["_id"]})
+        matn = (
+            kartochka(p, "🎉 <b>TABRIKLAYMAN!</b> 🎉")
+            + f"\n✅ <b>{K(f.first_name)}</b>, "
+            f"PERSONAJ KOLLEKSIYANGIZGA QO'SHILDI!"
+        )
+        await update.message.reply_photo(
+            p["file_id"], caption=matn, parse_mode="HTML",
+            reply_markup=kolleksiya_tugmasi(
+                f, update.effective_chat.type == "private"
+            ),
+        )
+    else:
+        await update.message.reply_text(
+            "❌ <b>NOTO'G'RI!</b> QAYTA URINIB KO'RING 🔁",
+            parse_mode="HTML",
+        )
+
+
+async def kolleksiyam(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    xabar = update.message
+    f = update.effective_user
+    javob = xabar.reply_to_message
+    # Biror odamning xabariga javob bo'lsa, o'sha odamning kolleksiyasi
+    if javob and javob.from_user and not javob.from_user.is_bot:
+        f = javob.from_user
+    ozi = f.id == update.effective_user.id
+
+    idlar = [d["char_id"] async for d in kolleksiya.find({"user_id": f.id})]
+    if not idlar:
+        if ozi:
+            matn = (
+                "📭 KOLLEKSIYANGIZ HOZIRCHA BO'SH.\n"
+                "GURUHDA PERSONAJNI TOPIB, KOLLEKSIYANI BOSHLANG!"
+            )
+        else:
+            matn = f"📭 {K(f.first_name)} KOLLEKSIYASI HOZIRCHA BO'SH."
+        await xabar.reply_text(matn, parse_mode="HTML")
+        return
+
+    sanash = {}
+    for pid in idlar:
+        sanash[pid] = sanash.get(pid, 0) + 1
+    tartib = list(NODIRLIK)[::-1]  # Maxsusdan boshlab
+    royxat = [
+        p async for p in personajlar.find({"_id": {"$in": list(sanash)}})
+    ]
+    royxat.sort(
+        key=lambda p: tartib.index(p["rarity"].lower())
+        if p["rarity"].lower() in tartib else 99
+    )
+    qatorlar = []
+    for i, p in enumerate(royxat[:40], 1):
+        belgi = nodirlik_belgisi(p).split()[0]
+        qatorlar.append(
+            f"{i}. {belgi} <b>{K(p['name'])}</b> "
+            f"<i>({K(p['anime'])})</i> ×{sanash[p['_id']]}"
+        )
+    matn = (
+        f"📚 <b>{K(f.first_name)} KOLLEKSIYASI</b>\n"
+        f"{CIZIQ}\n"
+        f"🎴 JAMI: <b>{len(idlar)}</b> TA | "
+        f"TURLI: <b>{len(royxat)}</b> XIL\n"
+        f"{CIZIQ}\n"
+        + "\n".join(qatorlar)
+    )
+    shaxsiy = update.effective_chat.type == "private" and ozi
+    await xabar.reply_text(
+        matn, parse_mode="HTML",
+        reply_markup=kolleksiya_tugmasi(f, shaxsiy),
+    )
+
+
+# ---------- Sovga ----------
+async def sovga(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    xabar = update.message
+    yuboruvchi = update.effective_user
+    yordam = (
+        "🎁 <b>SOVGA QILISH:</b>\n"
+        "ODAMNING XABARIGA JAVOB BERIB YOZING:\n"
+        "<code>/sovga ism</code> YOKI <code>/sovga #KOD</code>"
+    )
+    javob = xabar.reply_to_message
+    if not javob or not javob.from_user or not context.args:
+        await xabar.reply_text(yordam, parse_mode="HTML")
+        return
+    oluvchi = javob.from_user
+    if oluvchi.is_bot or oluvchi.id == yuboruvchi.id:
+        await xabar.reply_text("❌ BU ODAMGA SOVGA QILIB BO'LMAYDI.")
+        return
+
+    so_z = " ".join(context.args).strip().lstrip("#").lower()
+    idlar = {
+        d["char_id"] async for d in kolleksiya.find({"user_id": yuboruvchi.id})
+    }
+    royxat = [
+        p async for p in personajlar.find({"_id": {"$in": list(idlar)}})
+    ]
+    # Avval kod bo'yicha, keyin ism bo'yicha qidiramiz
+    tanlangan = None
+    for p in royxat:
+        if str(p["_id"])[-4:].lower() == so_z:
+            tanlangan = p
+            break
+    if not tanlangan:
+        for p in royxat:
+            ism = p["name"].lower()
+            if so_z == ism or so_z in ism.split():
+                tanlangan = p
+                break
+    if not tanlangan:
+        await xabar.reply_text("🔍 BUNDAY PERSONAJ KOLLEKSIYANGIZDA YO'Q.")
+        return
+
+    tugmalar = InlineKeyboardMarkup([[
+        InlineKeyboardButton(
+            "✅ YUBORISH",
+            callback_data=f"sh:{yuboruvchi.id}:{oluvchi.id}:{tanlangan['_id']}",
+        ),
+        InlineKeyboardButton("❌ BEKOR", callback_data=f"sb:{yuboruvchi.id}"),
+    ]])
+    await xabar.reply_text(
+        f"🎁 <b>SOVGA</b>\n"
+        f"{CIZIQ}\n"
+        f"{eslatma(yuboruvchi)} → {eslatma(oluvchi)}\n"
+        f"💎 {K(tanlangan['name'])} ({nodirlik_belgisi(tanlangan)})\n"
+        f"{CIZIQ}\n"
+        f"TASDIQLAYSIZMI?",
+        parse_mode="HTML",
+        reply_markup=tugmalar,
+    )
+
+
+async def sovga_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    qismlar = q.data.split(":")
+    # Tugmani faqat sovga qilayotgan odam bosa oladi
+    if int(qismlar[1]) != q.from_user.id:
+        await q.answer("BU SIZNING SOVG'ANGIZ EMAS", show_alert=True)
+        return
+    if qismlar[0] == "sb":
+        await q.edit_message_text("❌ SOVGA BEKOR QILINDI.")
+        await q.answer()
+        return
+
+    yuboruvchi_id = int(qismlar[1])
+    oluvchi_id = int(qismlar[2])
+    pid = ObjectId(qismlar[3])
+    # Personajni yuboruvchidan olib tashlaymiz (bir marta, xavfsiz)
+    olindi = await kolleksiya.find_one_and_delete(
+        {"user_id": yuboruvchi_id, "char_id": pid}
+    )
+    if not olindi:
+        await q.edit_message_text("❌ BU PERSONAJ ENDI SIZDA YO'Q.")
+        await q.answer()
+        return
+    await kolleksiya.insert_one({"user_id": oluvchi_id, "char_id": pid})
+
+    qatorlar = q.message.text_html.split("\n")
+    qatorlar[0] = "🎁 <b>SOVGA YUBORILDI!</b>"
+    qatorlar[-1] = "✅ PERSONAJ OLUVCHINING KOLLEKSIYASIGA QO'SHILDI."
+    await q.edit_message_text("\n".join(qatorlar), parse_mode="HTML")
+    await q.answer("🎁 YUBORILDI!")
+
+
+# ---------- Inline ----------
+async def inline_qidiruv(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    so_rov = update.inline_query
+    matn = so_rov.query.strip().lower()
+    egasi_id = so_rov.from_user.id
+    # "u12345" ko'rinishidagi so'rov: boshqa odamning kolleksiyasi
+    m = re.match(r"^u(\d+)\s*(.*)$", matn)
+    if m:
+        egasi_id = int(m.group(1))
+        matn = m.group(2).strip()
+    idlar = [d["char_id"] async for d in kolleksiya.find({"user_id": egasi_id})]
+    natijalar = []
+    async for p in personajlar.find({"_id": {"$in": list(set(idlar))}}):
+        if matn and matn not in p["name"].lower():
+            continue
+        natijalar.append(
+            InlineQueryResultCachedPhoto(
+                id=str(p["_id"]),
+                photo_file_id=p["file_id"],
+                caption=kartochka(p, "🌸 <b>PERSONAJ</b> 🌸"),
+                parse_mode="HTML",
+            )
+        )
+        if len(natijalar) >= 50:
+            break
+    await so_rov.answer(natijalar, cache_time=5, is_personal=True)
+
+
+# ---------- Botni ishga tushirish ----------
+     async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    if not context.args:
+        await update.message.reply_text("💬 ISM YOZING: /topish ism")
+        return
+    chiqqan = await chiqqanlar.find_one({"_id": chat_id})
+    if not chiqqan:
+        await update.message.reply_text("🔍 HOZIR TOPILADIGAN PERSONAJ YO'Q.")
+        return
+    p = await personajlar.find_one({"_id": chiqqan["char_id"]})
+    javob = " ".join(context.args).lower().strip()
+    toliq_ism = p["name"].lower()
+    if javob == toliq_ism or javob in toliq_ism.split():
+        await chiqqanlar.delete_one({"_id": chat_id})
+        f = update.effective_user
+        await kolleksiya.insert_one({"user_id": f.id, "char_id": p["_id"]})
+        matn = (
+            kartochka(p, "🎉 <b>TABRIKLAYMAN!</b> 🎉")
+            + f"\n✅ <b>{K(f.first_name)}</b>, "
+            f"PERSONAJ KOLLEKSIYANGIZGA QO'SHILDI!"
+        )
+        await update.message.reply_photo(
+            p["file_id"], caption=matn, parse_mode="HTML",
+            reply_markup=kolleksiya_tugmasi(
+                f, update.effective_chat.type == "private"
+            ),
+        )
+    else:
+        await update.message.reply_text(
+            "❌ <b>NOTO'G'RI!</b> QAYTA URINIB KO'RING 🔁",
+            parse_mode="HTML",
+        )
+
+
+async def kolleksiyam(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    xabar = update.message
+    f = update.effective_user
+    javob = xabar.reply_to_message
+    # Biror odamning xabariga javob bo'lsa, o'sha odamning kolleksiyasi
+    if javob and javob.from_user and not javob.from_user.is_bot:
+        f = javob.from_user
+    ozi = f.id == update.effective_user.id
+
+    idlar = [d["char_id"] async for d in kolleksiya.find({"user_id": f.id})]
+    if not idlar:
+        if ozi:
+            matn = (
+                "📭 KOLLEKSIYANGIZ HOZIRCHA BO'SH.\n"
+                "GURUHDA PERSONAJNI TOPIB, KOLLEKSIYANI BOSHLANG!"
+            )
+        else:
+            matn = f"📭 {K(f.first_name)} KOLLEKSIYASI HOZIRCHA BO'SH."
+        await xabar.reply_text(matn, parse_mode="HTML")
+        return
+
+    sanash = {}
+    for pid in idlar:
+        sanash[pid] = sanash.get(pid, 0) + 1
+    tartib = list(NODIRLIK)[::-1]  # Maxsusdan boshlab
+    royxat = [
+        p async for p in personajlar.find({"_id": {"$in": list(sanash)}})
+    ]
+    royxat.sort(
+        key=lambda p: tartib.index(p["rarity"].lower())
+        if p["rarity"].lower() in tartib else 99
+    )
+    qatorlar = []
+    for i, p in enumerate(royxat[:40], 1):
+        belgi = nodirlik_belgisi(p).split()[0]
+        qatorlar.append(
+            f"{i}. {belgi} <b>{K(p['name'])}</b> "
+            f"<i>({K(p['anime'])})</i> ×{sanash[p['_id']]}"
+        )
+    matn = (
+        f"📚 <b>{K(f.first_name)} KOLLEKSIYASI</b>\n"
+        f"{CIZIQ}\n"
+        f"🎴 JAMI: <b>{len(idlar)}</b> TA | "
+        f"TURLI: <b>{len(royxat)}</b> XIL\n"
+        f"{CIZIQ}\n"
+        + "\n".join(qatorlar)
+    )
+    shaxsiy = update.effective_chat.type == "private" and ozi
+    await xabar.reply_text(
+        matn, parse_mode="HTML",
+        reply_markup=kolleksiya_tugmasi(f, shaxsiy),
+    )
+
+
+# ---------- Sovga ----------
+async def sovga(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    xabar = update.message
+    yuboruvchi = update.effective_user
+    yordam = (
+        "🎁 <b>SOVGA QILISH:</b>\n"
+        "ODAMNING XABARIGA JAVOB BERIB YOZING:\n"
+        "<code>/sovga ism</code> YOKI <code>/sovga #KOD</code>"
+    )
+    javob = xabar.reply_to_message
+    if not javob or not javob.from_user or not context.args:
+        await xabar.reply_text(yordam, parse_mode="HTML")
+        return
+    oluvchi = javob.from_user
+    if oluvchi.is_bot or oluvchi.id == yuboruvchi.id:
+        await xabar.reply_text("❌ BU ODAMGA SOVGA QILIB BO'LMAYDI.")
+        return
+
+    so_z = " ".join(context.args).strip().lstrip("#").lower()
+    idlar = {
+        d["char_id"] async for d in kolleksiya.find({"user_id": yuboruvchi.id})
+    }
+    royxat = [
+        p async for p in personajlar.find({"_id": {"$in": list(idlar)}})
+    ]
+    # Avval kod bo'yicha, keyin ism bo'yicha qidiramiz
+    tanlangan = None
+    for p in royxat:
+        if str(p["_id"])[-4:].lower() == so_z:
+            tanlangan = p
+            break
+    if not tanlangan:
+        for p in royxat:
+            ism = p["name"].lower()
+            if so_z == ism or so_z in ism.split():
+                tanlangan = p
+                break
+    if not tanlangan:
+        await xabar.reply_text("🔍 BUNDAY PERSONAJ KOLLEKSIYANGIZDA YO'Q.")
+        return
+
+    tugmalar = InlineKeyboardMarkup([[
+        InlineKeyboardButton(
+            "✅ YUBORISH",
+            callback_data=f"sh:{yuboruvchi.id}:{oluvchi.id}:{tanlangan['_id']}",
+        ),
+        InlineKeyboardButton("❌ BEKOR", callback_data=f"sb:{yuboruvchi.id}"),
+    ]])
+    await xabar.reply_text(
+        f"🎁 <b>SOVGA</b>\n"
+        f"{CIZIQ}\n"
+        f"{eslatma(yuboruvchi)} → {eslatma(oluvchi)}\n"
+        f"💎 {K(tanlangan['name'])} ({nodirlik_belgisi(tanlangan)})\n"
+        f"{CIZIQ}\n"
+        f"TASDIQLAYSIZMI?",
+        parse_mode="HTML",
+        reply_markup=tugmalar,
+    )
+
+
+async def sovga_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    qismlar = q.data.split(":")
+    # Tugmani faqat sovga qilayotgan odam bosa oladi
+    if int(qismlar[1]) != q.from_user.id:
+        await q.answer("BU SIZNING SOVG'ANGIZ EMAS", show_alert=True)
+        return
+    if qismlar[0] == "sb":
+        await q.edit_message_text("❌ SOVGA BEKOR QILINDI.")
+        await q.answer()
+        return
+
+    yuboruvchi_id = int(qismlar[1])
+    oluvchi_id = int(qismlar[2])
+    pid = ObjectId(qismlar[3])
+    # Personajni yuboruvchidan olib tashlaymiz (bir marta, xavfsiz)
+    olindi = await kolleksiya.find_one_and_delete(
+        {"user_id": yuboruvchi_id, "char_id": pid}
+    )
+    if not olindi:
+        await q.edit_message_text("❌ BU PERSONAJ ENDI SIZDA YO'Q.")
+        await q.answer()
+        return
+    await kolleksiya.insert_one({"user_id": oluvchi_id, "char_id": pid})
+
+    qatorlar = q.message.text_html.split("\n")
+    qatorlar[0] = "🎁 <b>SOVGA YUBORILDI!</b>"
+    qatorlar[-1] = "✅ PERSONAJ OLUVCHINING KOLLEKSIYASIGA QO'SHILDI."
+    await q.edit_message_text("\n".join(qatorlar), parse_mode="HTML")
+    await q.answer("🎁 YUBORILDI!")
+
+
+# ---------- Inline ----------
+async def inline_qidiruv(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    so_rov = update.inline_query
+    matn = so_rov.query.strip().lower()
+    egasi_id = so_rov.from_user.id
+    # "u12345" ko'rinishidagi so'rov: boshqa odamning kolleksiyasi
+    m = re.match(r"^u(\d+)\s*(.*)$", matn)
+    if m:
+        egasi_id = int(m.group(1))
+        matn = m.group(2).strip()
+    idlar = [d["char_id"] async for d in kolleksiya.find({"user_id": egasi_id})]
+    natijalar = []
+    async for p in personajlar.find({"_id": {"$in": list(set(idlar))}}):
+        if matn and matn not in p["name"].lower():
+            continue
+        natijalar.append(
+            InlineQueryResultCachedPhoto(
+                id=str(p["_id"]),
+                photo_file_id=p["file_id"],
+                caption=kartochka(p, "🌸 <b>PERSONAJ</b> 🌸"),
+                parse_mode="HTML",
+            )
+        )
+        if len(natijalar) >= 50:
+            break
+    await so_rov.answer(natijalar, cache_time=5, is_personal=True)
+
+
+# ---------- Botni ishga tushirish ----------
+ilova = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).build()
+ilova.add_handler(CommandHandler("start", boshlash))
+ilova.add_handler(CommandHandler("id", id_korsat))
+ilova.add_handler(CommandHandler("balans", balans))
+ilova.add_handler(CommandHandler("bonus", bonus))
+ilova.add_handler(CommandHandler("kunlik", kunlik))
+ilova.add_handler(CommandHandler(["ruletka", "slot"], ruletka))
+ilova.add_handler(CommandHandler("ruxsat", ruxsat))
+ilova.add_handler(CommandHandler("ruxsat_ochir", ruxsat_ochir))
+ilova.add_handler(CommandHandler(["topish", "guess"], topish))
+ilova.add_handler(CommandHandler(["kolleksiya", "harem"], kolleksiyam))
+ilova.add_handler(CommandHandler(["sovga", "gift"], sovga))
+ilova.add_handler(CallbackQueryHandler(sovga_tugma, pattern=r"^(sh|sb):"))
+ilova.add_handler(
+    MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, xush_kelibsiz)
+)
+ilova.add_handler(
+    MessageHandler(
+        filters.PHOTO & filters.CaptionRegex(r"^/(yuklash|upload)"), yuklash
+    )
+)
+ilova.add_handler(
+    MessageHandler(
+        filters.ChatType.GROUPS & ~filters.COMMAND & ~filters.StatusUpdate.ALL,
+        xabarlarni_sanash,
+    )
+)
+ilova.add_handler(InlineQueryHandler(inline_qidiruv))
+
+if __name__ == "__main__":
+    ilova.run_polling() 
