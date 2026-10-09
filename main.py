@@ -576,7 +576,8 @@ async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ),
         parse_mode="HTML",
 )
-    async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    
+async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     if not context.args:
         await update.message.reply_text("💬 ISM YOZING: /topish ism")
