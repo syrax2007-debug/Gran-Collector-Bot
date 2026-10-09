@@ -215,6 +215,69 @@ async def id_korsat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML",
     )
 
+async def balans(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    f = update.effective_user
+    u = await foydalanuvchilar.find_one({"_id": f.id}) or {}
+    await update.message.reply_text(
+        f"🪙 <b>TANGALARINGIZ:</b> {u.get('coins', 0)}",
+        parse_mode="HTML",
+    )
+
+
+async def a_zomi(bot, chat, user_id):
+    # True: a'zo, False: a'zo emas, None: tekshirib bo'lmadi
+    try:
+        m = await bot.get_chat_member(chat, user_id)
+    except Exception as xato:
+        logging.warning("A'zolikni tekshirib bo'lmadi (%s): %s", chat, xato)
+        return None
+    if m.status == "restricted":
+        return bool(getattr(m, "is_member", False))
+    return m.status in ("member", "administrator", "creator")
+
+
+async def bonus_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    f = q.from_user
+    kanalda = await a_zomi(context.bot, KANAL, f.id)
+    guruhda = await a_zomi(context.bot, GURUH, f.id)
+    if kanalda is None and guruhda is None:
+        await q.answer("⚠️ HOZIR TEKSHIRIB BO'LMADI. KEYINROQ URINING.", show_alert=True)
+        return
+
+    await foydalanuvchilar.update_one(
+        {"_id": f.id}, {"$set": {"name": f.first_name}}, upsert=True
+    )
+    yangi = 0
+    if kanalda:
+        r = await foydalanuvchilar.update_one(
+            {"_id": f.id, "kanal_bonus": {"$ne": True}},
+            {"$set": {"kanal_bonus": True}, "$inc": {"coins": KANAL_BONUS}},
+        )
+        if r.modified_count:
+            yangi += KANAL_BONUS
+    if guruhda:
+        r = await foydalanuvchilar.update_one(
+            {"_id": f.id, "guruh_bonus": {"$ne": True}},
+            {"$set": {"guruh_bonus": True}, "$inc": {"coins": GURUH_BONUS}},
+        )
+        if r.modified_count:
+            yangi += GURUH_BONUS
+
+    qolgan = []
+    if kanalda is False:
+        qolgan.append("📢 KANALGA")
+    if guruhda is False:
+        qolgan.append("💬 GURUHGA")
+    if yangi:
+        matn = f"🎁 +{yangi} 🪙 TANGA OLDINGIZ!"
+        if qolgan:
+            matn += "\n" + " VA ".join(qolgan) + " HAM QO'SHILING."
+    elif qolgan:
+        matn = " VA ".join(qolgan) + " QO'SHILING, KEYIN BONUS OLING."
+    else:
+        matn = "✅ BONUSLARNI ALLAQACHON OLGANSIZ."
+    await q.answer(matn, show_alert=True)
 
 async def yuklash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     xabar = update.message
