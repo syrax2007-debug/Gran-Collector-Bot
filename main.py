@@ -787,7 +787,7 @@ async def inline_qidiruv(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ---------- Botni ishga tushirish ----------
-ilova = ApplicationBuilder().token(os.environ["BOT_TOKEN"]).build()
+ilova = ApplicationBuilder().bot(StilBot(os.environ["BOT_TOKEN"])).build()
 ilova.add_handler(CommandHandler("start", boshlash))
 ilova.add_handler(CommandHandler("id", id_korsat))
 ilova.add_handler(CommandHandler("balans", balans))
