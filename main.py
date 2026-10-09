@@ -259,24 +259,12 @@ async def boshlash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await foydalanuvchilar.update_one(
         {"_id": f.id}, {"$set": {"name": f.first_name}}, upsert=True
     )
-    jami = await foydalanuvchilar.count_documents({})
     matn = (
-        f"✨{CIZIQ}✨\n"
-        f"🌸 <b>WAIFU BOTGA XUSH KELIBSIZ!</b> 🌸\n"
-        f"✨{CIZIQ}✨\n\n"
-        f"👋 SALOM, <b>{K(f.first_name)}</b>!\n"
-        f"👥 BOTDA <b>{jami}</b> TA FOYDALANUVCHI BOR\n\n"
-        f"📜 <b>BUYRUQLAR:</b>\n"
-        f"🔹 <code>/topish ism</code> — PERSONAJNI TOPISH\n"
-        f"🔹 /kolleksiya — MENING KOLLEKSIYAM\n"
-        f"🔹 <code>/sovga ism</code> — SOVGA QILISH (JAVOB BERIB)\n"
-        f"🔹 /balans — MENING TANGALARIM\n"
-        f"🔹 /id — TELEGRAM ID RAQAMIM\n\n"
-        f"🎁 <b>RASMIY GURUHDA:</b>\n"
-        f"🔸 /bonus — SUPER PERSONAJ + {XUSH_BONUS_TANGA} 🪙 (BIR MARTA)\n"
-        f"🔸 /kunlik — HAR KUNGI TANGA\n"
-        f"🔸 /ruletka — 🎰 OMAD SINOVI\n\n"
-        f"🎴 BOTNI GURUHGA QO'SHING VA PERSONAJLARNI YIG'ING!"
+        "✨━ ━━━━━━━━━━━━ ━✨\n"
+        "💎 WAIFU BOTGA XUSH KELIBSIZ! ✊\n\n"
+        f"👋 SALOM, {K(f.first_name)}!\n\n"
+        "🌟 BOTNI GURUHGA QO'SHING VA PERSONAJLARNI YIG'ING!\n"
+        "✨━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ✨"
     )
     shaxsiy = update.effective_chat.type == "private"
     tugma = None
