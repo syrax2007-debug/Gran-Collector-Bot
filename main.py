@@ -541,6 +541,14 @@ async def yuklash(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ---------- Guruh o'yini ----------
+def yulduz_matni(p):
+    kalit = p["rarity"].lower()
+    if kalit == "special":
+        return "✨ MAXSUS ✨"
+    soni = YULDUZ.get(kalit, 1)
+    return "★" * soni + "☆" * (5 - soni)
+
+
 async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     hisoblagich[chat_id] = hisoblagich.get(chat_id, 0) + 1
@@ -553,18 +561,16 @@ async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await chiqqanlar.update_one(
         {"_id": chat_id}, {"$set": {"char_id": p["_id"]}}, upsert=True
     )
-    sarlavha = SARLAVHA.get(p["rarity"].lower(), "🌸 YANGI PERSONAJ CHIQDI! 🌸")
     await context.bot.send_photo(
         chat_id, p["file_id"],
         caption=(
-            f"✨{CIZIQ}✨\n"
-            f"<b>{sarlavha}</b>\n"
-            f"✨{CIZIQ}✨\n\n"
-            f"💬 ISMINI TOPING:\n"
-            f"👉 <code>/topish ism</code>"
+            "✨━ ━━━━━━━━━ ━✨\n"
+            " 💫YANGI PERSONAJ CHIQDI!\n"
+            f"🎗️ RANK : {yulduz_matni(p)}\n\n"
+            "🐾   <code>/topish ism</code> 🇺🇿"
         ),
         parse_mode="HTML",
-)
+    )
     
 async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
