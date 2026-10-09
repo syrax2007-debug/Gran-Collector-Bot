@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 import dns.asyncresolver
 from bson import ObjectId
 from pymongo import AsyncMongoClient
+from stil import stil, StilBot
 from telegram import (
     Update, InlineQueryResultCachedPhoto,
     InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo,
