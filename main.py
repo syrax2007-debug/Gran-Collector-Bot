@@ -572,6 +572,15 @@ async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML",
     )
     
+# ---------- Topish ----------
+def yulduz_matni(p):
+    kalit = p["rarity"].lower()
+    if kalit == "special":
+        return "✨ MAXSUS ✨"
+    soni = YULDUZ.get(kalit, 1)
+    return "★" * soni + "☆" * (5 - soni)
+
+
 async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     if not context.args:
@@ -588,14 +597,14 @@ async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await chiqqanlar.delete_one({"_id": chat_id})
         f = update.effective_user
         await kolleksiya.insert_one({"user_id": f.id, "char_id": p["_id"]})
-                matn = (
+        matn = (
             f"🫧 {K(f.first_name)} waifuni topdi !\n\n"
             f"🗽 Ismi : {K(p['name'])}\n"
             f"🎗️ RANK : {yulduz_matni(p)}\n"
             f"👀 Manba : {K(p['anime'])}\n"
             "Kolleksiyangizga Qo'shildi !🤙\n\n"
             "🫶 Waifularni koring  /kolleksiya!"
-                )
+        )
         await update.message.reply_photo(
             p["file_id"], caption=matn, parse_mode="HTML",
             reply_markup=kolleksiya_tugmasi(
@@ -606,7 +615,7 @@ async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "❌ <b>NOTO'G'RI!</b> QAYTA URINIB KO'RING 🔁",
             parse_mode="HTML",
-        )
+    )
 
 
 async def kolleksiyam(update: Update, context: ContextTypes.DEFAULT_TYPE):
