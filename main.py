@@ -588,11 +588,14 @@ async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await chiqqanlar.delete_one({"_id": chat_id})
         f = update.effective_user
         await kolleksiya.insert_one({"user_id": f.id, "char_id": p["_id"]})
-        matn = (
-            kartochka(p, "🎉 <b>TABRIKLAYMAN!</b> 🎉")
-            + f"\n✅ <b>{K(f.first_name)}</b>, "
-            f"PERSONAJ KOLLEKSIYANGIZGA QO'SHILDI!"
-        )
+                matn = (
+            f"🫧 {K(f.first_name)} waifuni topdi !\n\n"
+            f"🗽 Ismi : {K(p['name'])}\n"
+            f"🎗️ RANK : {yulduz_matni(p)}\n"
+            f"👀 Manba : {K(p['anime'])}\n"
+            "Kolleksiyangizga Qo'shildi !🤙\n\n"
+            "🫶 Waifularni koring  /kolleksiya!"
+                )
         await update.message.reply_photo(
             p["file_id"], caption=matn, parse_mode="HTML",
             reply_markup=kolleksiya_tugmasi(
