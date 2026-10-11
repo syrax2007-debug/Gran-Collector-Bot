@@ -859,7 +859,7 @@ ilova.add_handler(CommandHandler(["ruletka", "slot"], ruletka))
 ilova.add_handler(CommandHandler("ruxsat", ruxsat))
 ilova.add_handler(CommandHandler("ruxsat_ochir", ruxsat_ochir))
 ilova.add_handler(CommandHandler(["topish", "guess"], topish))
-ilova.add_handler(CommandHandler(["kolleksiya", "harem"], kolleksiyam))
+ilova.add_handler(CommandHandler(["kolleksiya", "harem"], kolleksiyam_yangi))
 ilova.add_handler(CommandHandler(["sovga", "gift"], sovga))
 ilova.add_handler(CallbackQueryHandler(sovga_tugma, pattern=r"^(sh|sb):"))
 ilova.add_handler(
