@@ -1,6 +1,6 @@
 import asyncio
 import html
-from pymongo import ReturnDocument
+import random
 
 # Daraja emojilari (xohlagancha almashtiring)
 DARAJA_EMOJI = {
@@ -11,6 +11,8 @@ DARAJA_EMOJI = {
     "special": "💠",
 }
 MAKS_XABAR = 6  # kolleksiya ko'pi bilan shuncha xabarga bo'linadi
+RAQAM_MIN = 100
+RAQAM_MAX = 9999
 
 _qulf = asyncio.Lock()
 
@@ -21,32 +23,50 @@ def manba_kalit(s):
 
 
 async def keyingi_raqam(baza):
-    d = await baza["counters"].find_one_and_update(
-        {"_id": "personaj"},
-        {"$inc": {"n": 1}},
-        upsert=True,
-        return_document=ReturnDocument.AFTER,
-    )
-    return d["n"]
+    # 100 dan 9999 gacha tasodifiy, band bo'lmagan raqam
+    personajlar = baza["characters"]
+    for _ in range(100):
+        n = random.randint(RAQAM_MIN, RAQAM_MAX)
+        if await personajlar.find_one({"raqam": n}, {"_id": 1}) is None:
+            return n
+    # Deyarli to'lgan bo'lsa: bo'sh raqamlarni topamiz
+    band = {
+        d["raqam"]
+        async for d in personajlar.find(
+            {"raqam": {"$gte": RAQAM_MIN, "$lte": RAQAM_MAX}}, {"raqam": 1}
+        )
+    }
+    bosh = [x for x in range(RAQAM_MIN, RAQAM_MAX + 1) if x not in band]
+    if bosh:
+        return random.choice(bosh)
+    # Hammasi band bo'lsa, oxirgisidan davom etamiz
+    oxirgi = await personajlar.find_one({}, sort=[("raqam", -1)])
+    if oxirgi and "raqam" in oxirgi:
+        return oxirgi["raqam"] + 1
+    return RAQAM_MAX + 1
 
 
 async def raqam_tuzat(baza):
-    # Raqami yo'q personajlarga yuklangan tartibida raqam beradi
+    # Raqami yo'q yoki 100 dan kichik (eski ketma-ket) personajlarga
+    # tasodifiy raqam beradi
     personajlar = baza["characters"]
-    if await personajlar.find_one({"raqam": {"$exists": False}}) is None:
+    shart = {
+        "$or": [
+            {"raqam": {"$exists": False}},
+            {"raqam": {"$lt": RAQAM_MIN}},
+        ]
+    }
+    if await personajlar.find_one(shart, {"_id": 1}) is None:
         return
     async with _qulf:
         yetishmaydi = [
             p["_id"]
-            async for p in personajlar.find(
-                {"raqam": {"$exists": False}}, {"_id": 1}
-            ).sort("_id", 1)
+            async for p in personajlar.find(shart, {"_id": 1}).sort("_id", 1)
         ]
         for pid in yetishmaydi:
             n = await keyingi_raqam(baza)
             await personajlar.update_one(
-                {"_id": pid, "raqam": {"$exists": False}},
-                {"$set": {"raqam": n}},
+                {"_id": pid}, {"$set": {"raqam": n}}
             )
 
 
