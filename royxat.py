@@ -123,3 +123,39 @@ def qismlarga_bol(guruhlar, maks=3500):
     if joriy:
         qismlar.append(joriy.rstrip())
     return qismlar
+
+#yangi joy
+async def kolleksiya_malumot(baza, user_id, maks=800):
+    # Foydalanuvchi kolleksiyasini sahifalarga bo'lib beradi
+    idlar = [
+        d["char_id"]
+        async for d in baza["collection"].find({"user_id": user_id})
+    ]
+    if not idlar:
+        return None
+    await raqam_tuzat(baza)
+    sanash = {}
+    for pid in idlar:
+        sanash[pid] = sanash.get(pid, 0) + 1
+    royxat = [
+        p
+        async for p in baza["characters"].find({"_id": {"$in": list(sanash)}})
+    ]
+    guruhlar = await guruhlar_tuz(baza, sanash, royxat)
+    return {
+        "jami": len(idlar),
+        "royxat": royxat,
+        "qismlar": qismlarga_bol(guruhlar, maks),
+    }
+
+
+def kolleksiya_izohi(ism, jami, qismlar, sahifa):
+    # Rasm izohi: sarlavha + sahifa matni + sahifa raqami
+    matn = (
+        "✨━ ━━━━━━━━ ━✨\n"
+        f"🫧 {html.escape(ism)} kolleksiyasi |🧧 Jami : {jami} ta Waifu!\n\n"
+        + qismlar[sahifa]
+    )
+    if len(qismlar) > 1:
+        matn += f"\n\n📄 {sahifa + 1}/{len(qismlar)}"
+    return matn
