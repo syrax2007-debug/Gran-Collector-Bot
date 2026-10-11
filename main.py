@@ -10,8 +10,7 @@ from bson import ObjectId
 from pymongo import AsyncMongoClient
 from stil import stil, StilBot
 from royxat import (
-    raqam_tuzat, keyingi_raqam, guruhlar_tuz, qismlarga_bol, MAKS_XABAR,
-    kolleksiya_malumot, kolleksiya_izohi,
+    raqam_tuzat, keyingi_raqam, kolleksiya_malumot, kolleksiya_izohi,
 )
 from telegram import (
     Update, InlineQueryResultCachedPhoto,
@@ -32,12 +31,10 @@ resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
 dns.asyncresolver.default_resolver = resolver
 
 # ---------- Sozlamalar ----------
-ADMIN_ID = 8288620037  # o'zingizning Telegram ID raqamingiz
+ADMIN_ID = 0  # o'zingizning Telegram ID raqamingiz
 MINI_APP_URL = "https://syrax2007-debug.github.io/Gran-Collector-Bot/"
 CHIQISH_ORALIGI = 50  # nechta xabardan keyin personaj chiqadi
-CIZIQ = "━━━━━━━━━━━━━━"
-YUQORI = "╔══════════════╗"
-PASTKI = "╚══════════════╝"
+RAMKA = "✨━ ━━━━━━━━━ ━✨"
 TOSHKENT = timezone(timedelta(hours=5))
 
 # Kanal va rasmiy guruh
@@ -59,10 +56,10 @@ RULETKA_IKKITA = 15  # ikkita bir xil
 
 # kalit: (ko'rinadigan nom, chiqish ehtimoli)
 NODIRLIK = {
-    "common": ("✨ YAXSHI", 60),
-    "rare": ("💎 AJOYIB", 25),
-    "epic": ("🔥 SUPER", 10),
-    "legendary": ("👑 MEGA", 5),
+    "common": ("🟢 YAXSHI", 60),
+    "rare": ("🔵 AJOYIB", 25),
+    "epic": ("🟣 SUPER", 10),
+    "legendary": ("🔥 MEGA", 5),
     "special": ("💠 MAXSUS", 2),
 }
 
@@ -77,15 +74,6 @@ NODIRLIK_NOMLARI = {
     "nodir": "rare",
     "epik": "epic",
     "afsonaviy": "legendary",
-}
-
-# Guruhda chiqqanda ko'rinadigan sarlavhalar
-SARLAVHA = {
-    "common": "🌸 YANGI PERSONAJ CHIQDI! 🌸",
-    "rare": "💎 AJOYIB PERSONAJ CHIQDI! 💎",
-    "epic": "⚡ SUPER PERSONAJ CHIQDI! ⚡",
-    "legendary": "🔥👑 MEGA PERSONAJ CHIQDI! 👑🔥",
-    "special": "💠✨ MAXSUS PERSONAJ CHIQDI! ✨💠",
 }
 
 # Daraja yulduzlari (5 tadan). MAXSUS yulduzsiz
@@ -104,8 +92,8 @@ hisoblagich = {}
 
 # ---------- Yordamchi funksiyalar ----------
 def K(matn):
-    # Katta harfga o'tkazib, HTML uchun xavfsiz qilish
-    return html.escape(str(matn).upper())
+    # HTML uchun xavfsiz qilish (uslubni stil.py o'zi beradi)
+    return html.escape(str(matn))
 
 
 def eslatma(f):
@@ -132,45 +120,42 @@ def nodirlik_belgisi(p):
     return NODIRLIK[kalit][0] if kalit in NODIRLIK else p["rarity"].upper()
 
 
-def kartochka(p, sarlavha):
+def yulduz_matni(p):
     kalit = p["rarity"].lower()
     if kalit == "special":
-        daraja = "✨ MAXSUS ✨"
-    else:
-        soni = YULDUZ.get(kalit, 1)
-        daraja = "★" * soni + "☆" * (5 - soni)
+        return "✨ MAXSUS ✨"
+    soni = YULDUZ.get(kalit, 1)
+    return "★" * soni + "☆" * (5 - soni)
+
+
+def kartochka(p):
+    # Inline natijalar uchun qisqa kartochka
     kod = str(p["_id"])[-4:].upper()
     return (
-        f"{sarlavha}\n"
-        f"{YUQORI}\n"
-        f"<blockquote>"
-        f"👤 <b>ISM:</b> {K(p['name'])}\n"
-        f"🔖 <b>MANBA:</b> <i>{K(p['anime'])}</i>\n"
-        f"💎 <b>NODIRLIK:</b> {nodirlik_belgisi(p)}\n"
-        f"🌟 <b>DARAJA:</b> {daraja}\n"
-        f"🆔 <b>KOD:</b> <code>#{kod}</code>"
-        f"</blockquote>\n"
-        f"{PASTKI}"
+        f"🗽 Ismi : {K(p['name'])}\n"
+        f"🎗️ RANK : {yulduz_matni(p)}\n"
+        f"👀 Manba : {K(p['anime'])}\n"
+        f"🔢 Raqam : {p.get('raqam', '?')} | 🆔 <code>#{kod}</code>"
     )
 
 
 def mini_app_tugmasi():
     return InlineKeyboardButton(
-        "🌐 MINI APP", web_app=WebAppInfo(url=MINI_APP_URL)
+        stil("🌐 Mini App"), web_app=WebAppInfo(url=MINI_APP_URL)
     )
 
 
 def kolleksiya_tugmasi(egasi, shaxsiy=False):
     # 1-tugma: bosgan odam O'Z kolleksiyasini ko'radi
     # 2-tugma: boshqalar kolleksiya EGASINING kolleksiyasini ko'radi
-    nom = egasi.first_name.upper()[:16]
+    nom = egasi.first_name[:16]
     qatorlar = [
         [InlineKeyboardButton(
-            "🖼 MENING KOLLEKSIYAM",
+            stil("🖼 Mening kolleksiyam"),
             switch_inline_query_current_chat="",
         )],
         [InlineKeyboardButton(
-            f"👁 {nom} KOLLEKSIYASI",
+            stil(f"👁 {nom} kolleksiyasi"),
             switch_inline_query_current_chat=f"u{egasi.id}",
         )],
     ]
@@ -222,12 +207,9 @@ async def guruh_tekshir(update: Update):
     if await ruxsatli_guruhmi(update.effective_chat):
         return True
     await update.message.reply_text(
-        f"🚫 <b>BU BUYRUQ FAQAT BOTGA ISHONILGAN GURUHLARDA ISHLAYDI.</b>\n"
-        f"{CIZIQ}\n"
-        f"✅ RASMIY GURUHGA QO'SHILING VA BONUSLARDAN FOYDALANING!",
-        parse_mode="HTML",
+        f"{RAMKA}\n🚫 Bu buyruq faqat rasmiy guruhda ishlaydi !",
         reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("💬 RASMIY GURUH", url=GURUH_URL)
+            InlineKeyboardButton(stil("💬 Rasmiy guruh"), url=GURUH_URL)
         ]]),
     )
     return False
@@ -238,26 +220,22 @@ async def ruxsat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     c = update.effective_chat
     if c.type not in ("group", "supergroup"):
-        await update.message.reply_text("❌ BU BUYRUQ FAQAT GURUHDA ISHLAYDI.")
+        await update.message.reply_text("❌ Bu buyruq faqat guruhda ishlaydi !")
         return
     await ruxsatlilar.update_one(
         {"_id": c.id}, {"$set": {"title": c.title}}, upsert=True
     )
-    await update.message.reply_text(
-        f"✅ <b>GURUH TASDIQLANDI!</b>\n"
-        f"🎁 /bonus  📅 /kunlik  🎰 /ruletka ENDI SHU YERDA ISHLAYDI.",
-        parse_mode="HTML",
-    )
+    await update.message.reply_text("✅ Guruh tasdiqlandi !")
 
 
 async def ruxsat_ochir(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
     await ruxsatlilar.delete_one({"_id": update.effective_chat.id})
-    await update.message.reply_text("🛑 GURUH TASDIG'I BEKOR QILINDI.")
+    await update.message.reply_text("🛑 Guruh tasdig'i bekor qilindi !")
 
 
-# ---------- Buyruqlar ----------
+# ---------- Oddiy buyruqlar ----------
 async def boshlash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     f = update.effective_user
     await foydalanuvchilar.update_one(
@@ -270,13 +248,12 @@ async def boshlash(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🌟 BOTNI GURUHGA QO'SHING VA PERSONAJLARNI YIG'ING!\n"
         "✨━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ✨"
     )
-    shaxsiy = update.effective_chat.type == "private"
     tugma = None
-    if shaxsiy:
+    if update.effective_chat.type == "private":
         tugma = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton("📢 KANAL", url=KANAL_URL),
-                InlineKeyboardButton("💬 GURUH", url=GURUH_URL),
+                InlineKeyboardButton(stil("📢 Kanal"), url=KANAL_URL),
+                InlineKeyboardButton(stil("💬 Guruh"), url=GURUH_URL),
             ],
             [mini_app_tugmasi()],
         ])
@@ -287,7 +264,7 @@ async def boshlash(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def id_korsat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        f"🆔 SIZNING ID: <code>{update.effective_user.id}</code>",
+        f"🆔 ID : <code>{update.effective_user.id}</code>",
         parse_mode="HTML",
     )
 
@@ -296,10 +273,7 @@ async def balans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     f = update.effective_user
     u = await foydalanuvchilar.find_one({"_id": f.id}) or {}
     await update.message.reply_text(
-        f"💰✨{CIZIQ}✨💰\n"
-        f"👤 <b>{K(f.first_name)}</b>\n"
-        f"🪙 <b>TANGALARINGIZ:</b> {u.get('coins', 0)}\n"
-        f"💰✨{CIZIQ}✨💰",
+        f"👛 {K(f.first_name)} : {u.get('coins', 0)} tanga",
         parse_mode="HTML",
     )
 
@@ -314,19 +288,12 @@ async def bonus(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     u = await foydalanuvchilar.find_one({"_id": f.id}) or {}
     if u.get("xush_bonus"):
-        await update.message.reply_text(
-            f"✅ <b>SIZ BONUSNI ALLAQACHON OLGANSIZ!</b>\n"
-            f"{CIZIQ}\n"
-            f"🎴 /kolleksiya — PERSONAJINGIZNI KO'RING\n"
-            f"📅 /kunlik — HAR KUNGI TANGA\n"
-            f"🎰 /ruletka — OMADINGIZNI SINANG",
-            parse_mode="HTML",
-        )
+        await update.message.reply_text("🎁 Bonusni allaqachon olgansiz !")
         return
     p = await bonus_personaji()
     if not p:
         await update.message.reply_text(
-            "⚠️ HOZIRCHA BONUS PERSONAJI YO'Q. ADMINGA XABAR BERING."
+            "⚠️ Hozircha bonus waifusi yo'q. Adminga xabar bering."
         )
         return
     r = await foydalanuvchilar.update_one(
@@ -334,13 +301,18 @@ async def bonus(update: Update, context: ContextTypes.DEFAULT_TYPE):
         {"$set": {"xush_bonus": True}, "$inc": {"coins": XUSH_BONUS_TANGA}},
     )
     if r.modified_count == 0:
-        await update.message.reply_text("✅ BONUS ALLAQACHON OLINGAN.")
+        await update.message.reply_text("🎁 Bonusni allaqachon olgansiz !")
         return
     await kolleksiya.insert_one({"user_id": f.id, "char_id": p["_id"]})
     matn = (
-        kartochka(p, "🎁✨ <b>XUSH KELIBSIZ BONUSI!</b> ✨🎁")
-        + f"\n🪙 <b>+{XUSH_BONUS_TANGA} TANGA</b>\n"
-        f"🎉 <b>{K(f.first_name)}</b>, SOVG'ALARINGIZ MUBORAK BO'LSIN!"
+        f"{RAMKA}\n"
+        "🎁 Xush kelibsiz bonusi !\n\n"
+        f"🫧 {K(f.first_name)} sovg'a oldi !\n"
+        f"🗽 Ismi : {K(p['name'])}\n"
+        f"🎗️ RANK : {yulduz_matni(p)}\n"
+        f"👀 Manba : {K(p['anime'])}\n"
+        f"💰 Tanga : +{XUSH_BONUS_TANGA}\n\n"
+        "🫶 Waifularni koring  /kolleksiya!"
     )
     await update.message.reply_photo(
         p["file_id"], caption=matn, parse_mode="HTML",
@@ -359,10 +331,7 @@ async def kunlik(update: Update, context: ContextTypes.DEFAULT_TYPE):
     b = bugun()
     if u.get("kunlik_sana") == b:
         await update.message.reply_text(
-            f"⏳ <b>BUGUNGI BONUSNI ALLAQACHON OLGANSIZ!</b>\n"
-            f"{CIZIQ}\n"
-            f"🌙 ERTAGA QAYTING, YANA KO'PROQ TANGA KUTMOQDA!",
-            parse_mode="HTML",
+            "⏳ Bugungi bonusni olgansiz. Ertaga qayting !"
         )
         return
     seriya = (u.get("kunlik_seriya", 0) + 1) if u.get("kunlik_sana") == kecha() else 1
@@ -377,19 +346,19 @@ async def kunlik(update: Update, context: ContextTypes.DEFAULT_TYPE):
         },
     )
     if r.modified_count == 0:
-        await update.message.reply_text("⏳ BUGUNGI BONUS ALLAQACHON OLINGAN.")
+        await update.message.reply_text(
+            "⏳ Bugungi bonusni olgansiz. Ertaga qayting !"
+        )
         return
     u = await foydalanuvchilar.find_one({"_id": f.id}) or {}
     await update.message.reply_text(
-        f"📅✨{CIZIQ}✨📅\n"
-        f"🎁 <b>KUNLIK BONUS!</b> 🎁\n"
-        f"{CIZIQ}\n"
-        f"👤 <b>{K(f.first_name)}</b>\n"
-        f"🔥 <b>SERIYA:</b> {seriya} KUN\n"
-        f"🪙 <b>+{miqdor} TANGA</b>\n"
-        f"💰 <b>JAMI:</b> {u.get('coins', 0)}\n"
-        f"{CIZIQ}\n"
-        f"🌟 HAR KUNI KELING, BONUS O'SIB BORADI!",
+        f"{RAMKA}\n"
+        "📅 Kunlik bonus !\n\n"
+        f"🫧 {K(f.first_name)}\n"
+        f"🔥 Seriya : {seriya} kun\n"
+        f"💰 Tanga : +{miqdor}\n"
+        f"👛 Jami : {u.get('coins', 0)}\n\n"
+        "🌙 Ertaga qayting, bonus oshadi !",
         parse_mode="HTML",
     )
 
@@ -400,11 +369,11 @@ def ruletka_hisobla(qiymat):
     g = [v % 4, (v // 4) % 4, v // 16]
     if g[0] == g[1] == g[2]:
         if g[0] == 3:
-            return RULETKA_JEKPOT, "👑 <b>JEKPOT! 7️⃣7️⃣7️⃣</b> 👑"
-        return RULETKA_UCHTA, "🎉 <b>UCHTA BIR XIL!</b> 🎉"
+            return RULETKA_JEKPOT, "Jekpot ! 7️⃣7️⃣7️⃣"
+        return RULETKA_UCHTA, "Uchta bir xil !"
     if len(set(g)) == 2:
-        return RULETKA_IKKITA, "✨ <b>IKKITA BIR XIL!</b> ✨"
-    return 0, "😔 <b>BU SAFAR OMAD KELMADI</b>"
+        return RULETKA_IKKITA, "Ikkita bir xil !"
+    return 0, "Bu safar omad kelmadi"
 
 
 async def ruletka(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -427,32 +396,26 @@ async def ruletka(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     if r.modified_count == 0:
         await update.message.reply_text(
-            f"⏳ <b>BUGUNGI {RULETKA_LIMIT} TA URINISH TUGADI!</b>\n"
-            f"{CIZIQ}\n"
-            f"🌙 ERTAGA YANA OMADINGIZNI SINANG 🎰",
-            parse_mode="HTML",
+            "⏳ Bugungi urinishlar tugadi. Ertaga qayting !"
         )
         return
     qolgan = RULETKA_LIMIT - (ishlatilgan + 1)
 
     dice = await update.message.reply_dice(emoji="🎰")
     await asyncio.sleep(3)  # animatsiya tugashini kutamiz
-    miqdor, nom = ruletka_hisobla(dice.dice.value)
+    miqdor, natija = ruletka_hisobla(dice.dice.value)
     if miqdor:
         await foydalanuvchilar.update_one(
             {"_id": f.id}, {"$inc": {"coins": miqdor}}
         )
     u = await foydalanuvchilar.find_one({"_id": f.id}) or {}
-    yutuq = f"🪙 <b>+{miqdor} TANGA</b>" if miqdor else "🪙 <b>+0 TANGA</b>"
     await dice.reply_text(
-        f"🎰✨{CIZIQ}✨🎰\n"
-        f"{nom}\n"
-        f"{CIZIQ}\n"
-        f"👤 <b>{K(f.first_name)}</b>\n"
-        f"{yutuq}\n"
-        f"💰 <b>JAMI:</b> {u.get('coins', 0)}\n"
-        f"🎟 <b>QOLGAN URINISH:</b> {qolgan}\n"
-        f"{CIZIQ}",
+        f"{RAMKA}\n"
+        f"🎰 {natija}\n\n"
+        f"🫧 {K(f.first_name)}\n"
+        f"💰 Tanga : +{miqdor}\n"
+        f"👛 Jami : {u.get('coins', 0)}\n"
+        f"🎟 Qolgan urinish : {qolgan}",
         parse_mode="HTML",
     )
 
@@ -466,20 +429,13 @@ async def xush_kelibsiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Botning o'zi guruhga qo'shilganda
     if any(m.id == context.bot.id for m in yangilar):
         await xabar.reply_text(
-            f"🌸✨{CIZIQ}✨🌸\n"
-            f"💖 <b>SALOM, GURUH A'ZOLARI!</b> 💖\n"
-            f"🌸✨{CIZIQ}✨🌸\n\n"
-            f"🤗 MENI BU YERGA QO'SHGANINGIZ UCHUN RAHMAT!\n"
-            f"🎴 MEN PERSONAJ YIG'ISH O'YINI BOTIMAN.\n\n"
-            f"🔹 GURUHDA YOZISHAVERING, PERSONAJLAR CHIQADI\n"
-            f"🔹 ISMINI <code>/topish ism</code> BILAN TOPING\n"
-            f"🔹 /kolleksiya — YIG'GANLARINGIZNI KO'RING\n\n"
-            f"🎁 BONUS, KUNLIK VA RULETKA UCHUN GURUH TASDIQLANISHI KERAK. "
-            f"RASMIY GURUHDA BARCHASI TAYYOR!",
+            f"{RAMKA}\n"
+            "💫 Salom, guruh a'zolari !\n\n"
+            "🫶 Meni qo'shganingiz uchun rahmat !\n"
+            "🐾 Yozishaveringiz, waifular chiqadi\n"
+            "🗽 /topish ism — Waifuni topish\n"
+            "🎴 /kolleksiya — Waifularingiz",
             parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("💬 RASMIY GURUH", url=GURUH_URL)
-            ]]),
         )
         return
 
@@ -490,24 +446,19 @@ async def xush_kelibsiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     nomlar = ", ".join(eslatma(m) for m in odamlar)
     await xabar.reply_text(
-        f"🌸✨{CIZIQ}✨🌸\n"
-        f"💖 <b>XUSH KELIBSIZ, {nomlar}!</b> 💖\n"
-        f"🌸✨{CIZIQ}✨🌸\n\n"
-        f"🤗 SIZNI BU YERDA KO'RIB JUDA XURSANDMIZ!\n"
-        f"🎴 SIZ ENDI PERSONAJ YIG'UVCHILAR OILASIDASIZ.\n\n"
-        f"🎁 <b>BOSHLANG'ICH SOVG'A:</b>\n"
-        f"👉 /bonus — SUPER PERSONAJ + {XUSH_BONUS_TANGA} 🪙 (BIR MARTA)\n"
-        f"📅 /kunlik — HAR KUNGI TANGA\n"
-        f"🎰 /ruletka — OMADINGIZNI SINANG\n"
-        f"💬 PERSONAJ CHIQSA: <code>/topish ism</code>\n\n"
-        f"🌟 <b>OMAD YOR BO'LSIN!</b> 🌟",
+        f"{RAMKA}\n"
+        f"💫 Xush kelibsiz, {nomlar} !\n\n"
+        "🫶 Sizni ko'rib xursandmiz !\n"
+        f"🎁 /bonus — Super waifu + {XUSH_BONUS_TANGA} tanga\n"
+        "📅 /kunlik — Kunlik tanga\n"
+        "🎰 /ruletka — Omadni sinang\n"
+        "🐾 /topish ism — Waifuni topish\n\n"
+        "🌟 Omad yor bo'lsin !",
         parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("📢 KANAL", url=KANAL_URL),
-                InlineKeyboardButton("🤖 BOT", url=context.bot.link),
-            ],
-        ]),
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton(stil("📢 Kanal"), url=KANAL_URL),
+            InlineKeyboardButton(stil("🤖 Bot"), url=context.bot.link),
+        ]]),
     )
 
 
@@ -520,39 +471,33 @@ async def yuklash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     qismlar = [q.strip() for q in matn.split("|")]
     if len(qismlar) != 3 or not all(qismlar):
         await xabar.reply_text(
-            "RASM YUBORING, IZOHGA YOZING:\n"
+            "Rasm yuboring, izohga yozing:\n"
             "/yuklash Ism | Manba | Nodirlik\n"
-            "NODIRLIK: YAXSHI, AJOYIB, SUPER, MEGA YOKI MAXSUS"
+            "Nodirlik: Yaxshi, Ajoyib, Super, Mega yoki Maxsus"
         )
         return
     ism, manba, nodirlik = qismlar
     kalit = nodirlik_kaliti(nodirlik)
     if not kalit:
         await xabar.reply_text(
-            "NODIRLIK: YAXSHI, AJOYIB, SUPER, MEGA YOKI MAXSUS BO'LISHI KERAK."
+            "Nodirlik: Yaxshi, Ajoyib, Super, Mega yoki Maxsus bo'lishi kerak."
         )
         return
+    await raqam_tuzat(baza)
+    raqam = await keyingi_raqam(baza)
     await personajlar.insert_one({
         "name": ism, "anime": manba, "rarity": kalit,
-        "file_id": xabar.photo[-1].file_id,
+        "file_id": xabar.photo[-1].file_id, "raqam": raqam,
     })
     jami = await personajlar.count_documents({})
     await xabar.reply_text(
-        f"✅ <b>{K(ism)}</b> ({NODIRLIK[kalit][0]}) QO'SHILDI!\n"
-        f"🎴 JAMI PERSONAJ: <b>{jami}</b>",
+        f"✅ {K(ism)} ({NODIRLIK[kalit][0]}) qo'shildi !\n"
+        f"🔢 Raqam : {raqam} | 🎴 Jami : {jami}",
         parse_mode="HTML",
     )
 
 
 # ---------- Guruh o'yini ----------
-def yulduz_matni(p):
-    kalit = p["rarity"].lower()
-    if kalit == "special":
-        return "✨ MAXSUS ✨"
-    soni = YULDUZ.get(kalit, 1)
-    return "★" * soni + "☆" * (5 - soni)
-
-
 async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     hisoblagich[chat_id] = hisoblagich.get(chat_id, 0) + 1
@@ -574,366 +519,4 @@ async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🐾   <code>/topish ism</code> 🇺🇿"
         ),
         parse_mode="HTML",
-    )
-    
-# ---------- Topish ----------
-def yulduz_matni(p):
-    kalit = p["rarity"].lower()
-    if kalit == "special":
-        return "✨ MAXSUS ✨"
-    soni = YULDUZ.get(kalit, 1)
-    return "★" * soni + "☆" * (5 - soni)
-
-
-async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    if not context.args:
-        await update.message.reply_text("💬 ISM YOZING: /topish ism")
-        return
-    chiqqan = await chiqqanlar.find_one({"_id": chat_id})
-    if not chiqqan:
-        await update.message.reply_text("🔍 HOZIR TOPILADIGAN PERSONAJ YO'Q.")
-        return
-    p = await personajlar.find_one({"_id": chiqqan["char_id"]})
-    javob = " ".join(context.args).lower().strip()
-    toliq_ism = p["name"].lower()
-    if javob == toliq_ism or javob in toliq_ism.split():
-        await chiqqanlar.delete_one({"_id": chat_id})
-        f = update.effective_user
-        await kolleksiya.insert_one({"user_id": f.id, "char_id": p["_id"]})
-        matn = (
-            f"🫧 {K(f.first_name)} waifuni topdi !\n\n"
-            f"🗽 Ismi : {K(p['name'])}\n"
-            f"🎗️ RANK : {yulduz_matni(p)}\n"
-            f"👀 Manba : {K(p['anime'])}\n"
-            "Kolleksiyangizga Qo'shildi !🤙\n\n"
-            "🫶 Waifularni koring  /kolleksiya!"
-        )
-        await update.message.reply_photo(
-            p["file_id"], caption=matn, parse_mode="HTML",
-            reply_markup=kolleksiya_tugmasi(
-                f, update.effective_chat.type == "private"
-            ),
-        )
-    else:
-        await update.message.reply_text(
-            "❌ <b>NOTO'G'RI!</b> QAYTA URINIB KO'RING 🔁",
-            parse_mode="HTML",
-    )
-
-
-async def kolleksiyam(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    xabar = update.message
-    f = update.effective_user
-    javob = xabar.reply_to_message
-    # Biror odamning xabariga javob bo'lsa, o'sha odamning kolleksiyasi
-    if javob and javob.from_user and not javob.from_user.is_bot:
-        f = javob.from_user
-    ozi = f.id == update.effective_user.id
-
-    idlar = [d["char_id"] async for d in kolleksiya.find({"user_id": f.id})]
-    if not idlar:
-        if ozi:
-            matn = (
-                "📭 KOLLEKSIYANGIZ HOZIRCHA BO'SH.\n"
-                "GURUHDA PERSONAJNI TOPIB, KOLLEKSIYANI BOSHLANG!"
-            )
-        else:
-            matn = f"📭 {K(f.first_name)} KOLLEKSIYASI HOZIRCHA BO'SH."
-        await xabar.reply_text(matn, parse_mode="HTML")
-        return
-
-    sanash = {}
-    for pid in idlar:
-        sanash[pid] = sanash.get(pid, 0) + 1
-    tartib = list(NODIRLIK)[::-1]  # Maxsusdan boshlab
-    royxat = [
-        p async for p in personajlar.find({"_id": {"$in": list(sanash)}})
-    ]
-    royxat.sort(
-        key=lambda p: tartib.index(p["rarity"].lower())
-        if p["rarity"].lower() in tartib else 99
-    )
-    qatorlar = []
-    for i, p in enumerate(royxat[:40], 1):
-        belgi = nodirlik_belgisi(p).split()[0]
-        qatorlar.append(
-            f"{i}. {belgi} <b>{K(p['name'])}</b> "
-            f"<i>({K(p['anime'])})</i> ×{sanash[p['_id']]}"
-        )
-    matn = (
-        f"📚 <b>{K(f.first_name)} KOLLEKSIYASI</b>\n"
-        f"{CIZIQ}\n"
-        f"🎴 JAMI: <b>{len(idlar)}</b> TA | "
-        f"TURLI: <b>{len(royxat)}</b> XIL\n"
-        f"{CIZIQ}\n"
-        + "\n".join(qatorlar)
-    )
-    shaxsiy = update.effective_chat.type == "private" and ozi
-    await xabar.reply_text(
-        matn, parse_mode="HTML",
-        reply_markup=kolleksiya_tugmasi(f, shaxsiy),
-    )
-
-
-# ---------- Sovga ----------
-async def sovga(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    xabar = update.message
-    yuboruvchi = update.effective_user
-    yordam = (
-        "🎁 <b>SOVGA QILISH:</b>\n"
-        "ODAMNING XABARIGA JAVOB BERIB YOZING:\n"
-        "<code>/sovga ism</code> YOKI <code>/sovga #KOD</code>"
-    )
-    javob = xabar.reply_to_message
-    if not javob or not javob.from_user or not context.args:
-        await xabar.reply_text(yordam, parse_mode="HTML")
-        return
-    oluvchi = javob.from_user
-    if oluvchi.is_bot or oluvchi.id == yuboruvchi.id:
-        await xabar.reply_text("❌ BU ODAMGA SOVGA QILIB BO'LMAYDI.")
-        return
-
-    so_z = " ".join(context.args).strip().lstrip("#").lower()
-    idlar = {
-        d["char_id"] async for d in kolleksiya.find({"user_id": yuboruvchi.id})
-    }
-    royxat = [
-        p async for p in personajlar.find({"_id": {"$in": list(idlar)}})
-    ]
-    # Avval kod bo'yicha, keyin ism bo'yicha qidiramiz
-    tanlangan = None
-    for p in royxat:
-        if str(p["_id"])[-4:].lower() == so_z:
-            tanlangan = p
-            break
-    if not tanlangan:
-        for p in royxat:
-            ism = p["name"].lower()
-            if so_z == ism or so_z in ism.split():
-                tanlangan = p
-                break
-    if not tanlangan:
-        await xabar.reply_text("🔍 BUNDAY PERSONAJ KOLLEKSIYANGIZDA YO'Q.")
-        return
-
-    tugmalar = InlineKeyboardMarkup([[
-        InlineKeyboardButton(
-            "✅ YUBORISH",
-            callback_data=f"sh:{yuboruvchi.id}:{oluvchi.id}:{tanlangan['_id']}",
-        ),
-        InlineKeyboardButton("❌ BEKOR", callback_data=f"sb:{yuboruvchi.id}"),
-    ]])
-    await xabar.reply_text(
-        f"🎁 <b>SOVGA</b>\n"
-        f"{CIZIQ}\n"
-        f"{eslatma(yuboruvchi)} → {eslatma(oluvchi)}\n"
-        f"💎 {K(tanlangan['name'])} ({nodirlik_belgisi(tanlangan)})\n"
-        f"{CIZIQ}\n"
-        f"TASDIQLAYSIZMI?",
-        parse_mode="HTML",
-        reply_markup=tugmalar,
-    )
-
-
-async def sovga_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    q = update.callback_query
-    qismlar = q.data.split(":")
-    # Tugmani faqat sovga qilayotgan odam bosa oladi
-    if int(qismlar[1]) != q.from_user.id:
-        await q.answer("BU SIZNING SOVG'ANGIZ EMAS", show_alert=True)
-        return
-    if qismlar[0] == "sb":
-        await q.edit_message_text("❌ SOVGA BEKOR QILINDI.")
-        await q.answer()
-        return
-
-    yuboruvchi_id = int(qismlar[1])
-    oluvchi_id = int(qismlar[2])
-    pid = ObjectId(qismlar[3])
-    # Personajni yuboruvchidan olib tashlaymiz (bir marta, xavfsiz)
-    olindi = await kolleksiya.find_one_and_delete(
-        {"user_id": yuboruvchi_id, "char_id": pid}
-    )
-    if not olindi:
-        await q.edit_message_text("❌ BU PERSONAJ ENDI SIZDA YO'Q.")
-        await q.answer()
-        return
-    await kolleksiya.insert_one({"user_id": oluvchi_id, "char_id": pid})
-
-    qatorlar = q.message.text_html.split("\n")
-    qatorlar[0] = "🎁 <b>SOVGA YUBORILDI!</b>"
-    qatorlar[-1] = "✅ PERSONAJ OLUVCHINING KOLLEKSIYASIGA QO'SHILDI."
-    await q.edit_message_text("\n".join(qatorlar), parse_mode="HTML")
-    await q.answer("🎁 YUBORILDI!")
-
-
-# ---------- Inline ----------
-async def inline_qidiruv(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    so_rov = update.inline_query
-    matn = so_rov.query.strip().lower()
-    egasi_id = so_rov.from_user.id
-    # "u12345" ko'rinishidagi so'rov: boshqa odamning kolleksiyasi
-    m = re.match(r"^u(\d+)\s*(.*)$", matn)
-    if m:
-        egasi_id = int(m.group(1))
-        matn = m.group(2).strip()
-    idlar = [d["char_id"] async for d in kolleksiya.find({"user_id": egasi_id})]
-    natijalar = []
-    async for p in personajlar.find({"_id": {"$in": list(set(idlar))}}):
-        if matn and matn not in p["name"].lower():
-            continue
-        natijalar.append(
-            InlineQueryResultCachedPhoto(
-                id=str(p["_id"]),
-                photo_file_id=p["file_id"],
-                                caption=stil(kartochka(p, "🌸 <b>PERSONAJ</b> 🌸")),
-                parse_mode="HTML",
-            )
-        )
-        if len(natijalar) >= 50:
-            break
-    await so_rov.answer(natijalar, cache_time=5, is_personal=True)
-
-# ---------- Yangi kolleksiya (izohda, sahifalar bilan) ----------
-def sahifa_qatori(egasi_id, kim_id, sahifa, jami):
-    return [
-        InlineKeyboardButton(
-            "◀️",
-            callback_data=f"kp:{egasi_id}:{kim_id}:{(sahifa - 1) % jami}",
-        ),
-        InlineKeyboardButton(f"{sahifa + 1}/{jami}", callback_data="kn"),
-        InlineKeyboardButton(
-            "▶️",
-            callback_data=f"kp:{egasi_id}:{kim_id}:{(sahifa + 1) % jami}",
-        ),
-    ]
-
-
-async def kolleksiyam_yangi(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    xabar = update.message
-    f = update.effective_user
-    javob = xabar.reply_to_message
-    # Biror odamning xabariga javob bo'lsa, o'sha odamning kolleksiyasi
-    if javob and javob.from_user and not javob.from_user.is_bot:
-        f = javob.from_user
-    ozi = f.id == update.effective_user.id
-
-    malumot = await kolleksiya_malumot(baza, f.id)
-    if not malumot:
-        if ozi:
-            matn = (
-                "📭 KOLLEKSIYANGIZ HOZIRCHA BO'SH.\n"
-                "GURUHDA PERSONAJNI TOPIB, KOLLEKSIYANI BOSHLANG!"
-            )
-        else:
-            matn = f"📭 {K(f.first_name)} KOLLEKSIYASI HOZIRCHA BO'SH."
-        await xabar.reply_text(matn, parse_mode="HTML")
-        return
-
-    qismlar = malumot["qismlar"]
-    izoh = kolleksiya_izohi(f.first_name, malumot["jami"], qismlar, 0)
-    shaxsiy = update.effective_chat.type == "private" and ozi
-    qatorlar = [
-        list(r) for r in kolleksiya_tugmasi(f, shaxsiy).inline_keyboard
-    ]
-    if len(qismlar) > 1:
-        qatorlar.insert(
-            0, sahifa_qatori(f.id, update.effective_user.id, 0, len(qismlar))
-        )
-    klaviatura = InlineKeyboardMarkup(qatorlar)
-
-    tasodifiy = random.choice(malumot["royxat"])
-    try:
-        await xabar.reply_photo(
-            tasodifiy["file_id"], caption=izoh, parse_mode="HTML",
-            reply_markup=klaviatura,
-        )
-    except Exception:
-        await xabar.reply_text(
-            izoh, parse_mode="HTML", reply_markup=klaviatura
-        )
-
-
-async def kolleksiya_sahifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    q = update.callback_query
-    qism = q.data.split(":")
-    egasi_id, kim_id, sahifa = int(qism[1]), int(qism[2]), int(qism[3])
-    if q.from_user.id != kim_id:
-        await q.answer("BU SIZNING SO'ROVINGIZ EMAS. /kolleksiya YOZING", show_alert=True)
-        return
-    malumot = await kolleksiya_malumot(baza, egasi_id)
-    if not malumot:
-        await q.answer("KOLLEKSIYA BO'SH", show_alert=True)
-        return
-    qismlar = malumot["qismlar"]
-    sahifa = sahifa % len(qismlar)
-
-    rasmli = bool(q.message.photo)
-    eski = (q.message.caption_html if rasmli else q.message.text_html) or ""
-    sarlavha = "\n".join(eski.split("\n")[:2])
-    yangi = sarlavha + "\n\n" + qismlar[sahifa]
-    if len(qismlar) > 1:
-        yangi += f"\n\n📄 {sahifa + 1}/{len(qismlar)}"
-
-    qatorlar = []
-    if q.message.reply_markup:
-        qatorlar = [list(r) for r in q.message.reply_markup.inline_keyboard]
-    if qatorlar and qatorlar[0] and str(
-        qatorlar[0][0].callback_data or ""
-    ).startswith("kp:"):
-        qatorlar.pop(0)
-    if len(qismlar) > 1:
-        qatorlar.insert(0, sahifa_qatori(egasi_id, kim_id, sahifa, len(qismlar)))
-    klaviatura = InlineKeyboardMarkup(qatorlar)
-
-    try:
-        if rasmli:
-            await q.edit_message_caption(
-                caption=yangi, parse_mode="HTML", reply_markup=klaviatura
-            )
-        else:
-            await q.edit_message_text(
-                yangi, parse_mode="HTML", reply_markup=klaviatura
-            )
-    except Exception:
-        pass
-    await q.answer()
-
-
-async def bosh_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.answer()
-# ---------- Botni ishga tushirish ----------
-ilova = ApplicationBuilder().bot(StilBot(os.environ["BOT_TOKEN"])).build()
-ilova.add_handler(CommandHandler("start", boshlash))
-ilova.add_handler(CommandHandler("id", id_korsat))
-ilova.add_handler(CommandHandler("balans", balans))
-ilova.add_handler(CommandHandler("bonus", bonus))
-ilova.add_handler(CommandHandler("kunlik", kunlik))
-ilova.add_handler(CommandHandler(["ruletka", "slot"], ruletka))
-ilova.add_handler(CommandHandler("ruxsat", ruxsat))
-ilova.add_handler(CommandHandler("ruxsat_ochir", ruxsat_ochir))
-ilova.add_handler(CommandHandler(["topish", "guess"], topish))
-ilova.add_handler(CommandHandler(["kolleksiya", "harem"], kolleksiyam_yangi))
-ilova.add_handler(CommandHandler(["sovga", "gift"], sovga))
-ilova.add_handler(CallbackQueryHandler(sovga_tugma, pattern=r"^(sh|sb):"))
-ilova.add_handler(CallbackQueryHandler(kolleksiya_sahifa, pattern=r"^kp:"))
-ilova.add_handler(CallbackQueryHandler(bosh_tugma, pattern=r"^kn$"))
-ilova.add_handler(
-    MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, xush_kelibsiz)
 )
-ilova.add_handler(
-    MessageHandler(
-        filters.PHOTO & filters.CaptionRegex(r"^/(yuklash|upload)"), yuklash
-    )
-)
-ilova.add_handler(
-    MessageHandler(
-        filters.ChatType.GROUPS & ~filters.COMMAND & ~filters.StatusUpdate.ALL,
-        xabarlarni_sanash,
-    )
-)
-ilova.add_handler(InlineQueryHandler(inline_qidiruv))
-
-if __name__ == "__main__":
-    ilova.run_polling()
