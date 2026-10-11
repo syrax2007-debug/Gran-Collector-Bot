@@ -795,7 +795,21 @@ async def inline_qidiruv(update: Update, context: ContextTypes.DEFAULT_TYPE):
             break
     await so_rov.answer(natijalar, cache_time=5, is_personal=True)
 
-# ---------- Yangi kolleksiya ----------
+# ---------- Yangi kolleksiya (izohda, sahifalar bilan) ----------
+def sahifa_qatori(egasi_id, kim_id, sahifa, jami):
+    return [
+        InlineKeyboardButton(
+            "◀️",
+            callback_data=f"kp:{egasi_id}:{kim_id}:{(sahifa - 1) % jami}",
+        ),
+        InlineKeyboardButton(f"{sahifa + 1}/{jami}", callback_data="kn"),
+        InlineKeyboardButton(
+            "▶️",
+            callback_data=f"kp:{egasi_id}:{kim_id}:{(sahifa + 1) % jami}",
+        ),
+    ]
+
+
 async def kolleksiyam_yangi(update: Update, context: ContextTypes.DEFAULT_TYPE):
     xabar = update.message
     f = update.effective_user
@@ -805,8 +819,8 @@ async def kolleksiyam_yangi(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f = javob.from_user
     ozi = f.id == update.effective_user.id
 
-    idlar = [d["char_id"] async for d in kolleksiya.find({"user_id": f.id})]
-    if not idlar:
+    malumot = await kolleksiya_malumot(baza, f.id)
+    if not malumot:
         if ozi:
             matn = (
                 "📭 KOLLEKSIYANGIZ HOZIRCHA BO'SH.\n"
@@ -817,38 +831,78 @@ async def kolleksiyam_yangi(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await xabar.reply_text(matn, parse_mode="HTML")
         return
 
-    await raqam_tuzat(baza)
-    sanash = {}
-    for pid in idlar:
-        sanash[pid] = sanash.get(pid, 0) + 1
-    royxat = [
-        p async for p in personajlar.find({"_id": {"$in": list(sanash)}})
-    ]
-    guruhlar = await guruhlar_tuz(baza, sanash, royxat)
-    qismlar = qismlarga_bol(guruhlar)
-    if len(qismlar) > MAKS_XABAR:
-        qismlar = qismlar[:MAKS_XABAR]
-        qismlar[-1] += "\n\n… Qolgan waifularni Mini Appda ko'ring (botga /start)."
-
+    qismlar = malumot["qismlar"]
+    izoh = kolleksiya_izohi(f.first_name, malumot["jami"], qismlar, 0)
     shaxsiy = update.effective_chat.type == "private" and ozi
-    tugma = kolleksiya_tugmasi(f, shaxsiy)
-    sarlavha = (
-        "✨━ ━━━━━━━━ ━✨\n"
-        f"🫧 {html.escape(f.first_name)} kolleksiyasi "
-        f"|🧧 Jami : {len(idlar)} ta Waifu!"
-    )
-    tasodifiy = random.choice(royxat)
+    qatorlar = [
+        list(r) for r in kolleksiya_tugmasi(f, shaxsiy).inline_keyboard
+    ]
+    if len(qismlar) > 1:
+        qatorlar.insert(
+            0, sahifa_qatori(f.id, update.effective_user.id, 0, len(qismlar))
+        )
+    klaviatura = InlineKeyboardMarkup(qatorlar)
+
+    tasodifiy = random.choice(malumot["royxat"])
     try:
         await xabar.reply_photo(
-            tasodifiy["file_id"], caption=sarlavha, parse_mode="HTML"
+            tasodifiy["file_id"], caption=izoh, parse_mode="HTML",
+            reply_markup=klaviatura,
         )
     except Exception:
-        await xabar.reply_text(sarlavha, parse_mode="HTML")
-    for i, qism in enumerate(qismlar):
-        oxirgi = i == len(qismlar) - 1
         await xabar.reply_text(
-            qism, parse_mode="HTML", reply_markup=tugma if oxirgi else None
-    )
+            izoh, parse_mode="HTML", reply_markup=klaviatura
+        )
+
+
+async def kolleksiya_sahifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    qism = q.data.split(":")
+    egasi_id, kim_id, sahifa = int(qism[1]), int(qism[2]), int(qism[3])
+    if q.from_user.id != kim_id:
+        await q.answer("BU SIZNING SO'ROVINGIZ EMAS. /kolleksiya YOZING", show_alert=True)
+        return
+    malumot = await kolleksiya_malumot(baza, egasi_id)
+    if not malumot:
+        await q.answer("KOLLEKSIYA BO'SH", show_alert=True)
+        return
+    qismlar = malumot["qismlar"]
+    sahifa = sahifa % len(qismlar)
+
+    rasmli = bool(q.message.photo)
+    eski = (q.message.caption_html if rasmli else q.message.text_html) or ""
+    sarlavha = "\n".join(eski.split("\n")[:2])
+    yangi = sarlavha + "\n\n" + qismlar[sahifa]
+    if len(qismlar) > 1:
+        yangi += f"\n\n📄 {sahifa + 1}/{len(qismlar)}"
+
+    qatorlar = []
+    if q.message.reply_markup:
+        qatorlar = [list(r) for r in q.message.reply_markup.inline_keyboard]
+    if qatorlar and qatorlar[0] and str(
+        qatorlar[0][0].callback_data or ""
+    ).startswith("kp:"):
+        qatorlar.pop(0)
+    if len(qismlar) > 1:
+        qatorlar.insert(0, sahifa_qatori(egasi_id, kim_id, sahifa, len(qismlar)))
+    klaviatura = InlineKeyboardMarkup(qatorlar)
+
+    try:
+        if rasmli:
+            await q.edit_message_caption(
+                caption=yangi, parse_mode="HTML", reply_markup=klaviatura
+            )
+        else:
+            await q.edit_message_text(
+                yangi, parse_mode="HTML", reply_markup=klaviatura
+            )
+    except Exception:
+        pass
+    await q.answer()
+
+
+async def bosh_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.callback_query.answer()
 # ---------- Botni ishga tushirish ----------
 ilova = ApplicationBuilder().bot(StilBot(os.environ["BOT_TOKEN"])).build()
 ilova.add_handler(CommandHandler("start", boshlash))
