@@ -60,3 +60,7 @@ class StilBot(ExtBot):
     async def answer_callback_query(self, *args, **kwargs):
         self._kw(kwargs, "text")
         return await super().answer_callback_query(*args, **kwargs)
+
+    async def edit_message_caption(self, *args, **kwargs):
+        self._kw(kwargs, "caption")
+        return await super().edit_message_caption(*args, **kwargs)
