@@ -917,6 +917,8 @@ ilova.add_handler(CommandHandler(["topish", "guess"], topish))
 ilova.add_handler(CommandHandler(["kolleksiya", "harem"], kolleksiyam_yangi))
 ilova.add_handler(CommandHandler(["sovga", "gift"], sovga))
 ilova.add_handler(CallbackQueryHandler(sovga_tugma, pattern=r"^(sh|sb):"))
+ilova.add_handler(CallbackQueryHandler(kolleksiya_sahifa, pattern=r"^kp:"))
+ilova.add_handler(CallbackQueryHandler(bosh_tugma, pattern=r"^kn$"))
 ilova.add_handler(
     MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, xush_kelibsiz)
 )
