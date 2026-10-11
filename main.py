@@ -11,6 +11,7 @@ from pymongo import AsyncMongoClient
 from stil import stil, StilBot
 from royxat import (
     raqam_tuzat, keyingi_raqam, guruhlar_tuz, qismlarga_bol, MAKS_XABAR,
+    kolleksiya_malumot, kolleksiya_izohi,
 )
 from telegram import (
     Update, InlineQueryResultCachedPhoto,
