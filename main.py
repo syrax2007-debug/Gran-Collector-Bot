@@ -9,6 +9,9 @@ import dns.asyncresolver
 from bson import ObjectId
 from pymongo import AsyncMongoClient
 from stil import stil, StilBot
+from royxat import (
+    raqam_tuzat, keyingi_raqam, guruhlar_tuz, qismlarga_bol, MAKS_XABAR,
+)
 from telegram import (
     Update, InlineQueryResultCachedPhoto,
     InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo,
