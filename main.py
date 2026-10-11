@@ -794,7 +794,60 @@ async def inline_qidiruv(update: Update, context: ContextTypes.DEFAULT_TYPE):
             break
     await so_rov.answer(natijalar, cache_time=5, is_personal=True)
 
+# ---------- Yangi kolleksiya ----------
+async def kolleksiyam_yangi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    xabar = update.message
+    f = update.effective_user
+    javob = xabar.reply_to_message
+    # Biror odamning xabariga javob bo'lsa, o'sha odamning kolleksiyasi
+    if javob and javob.from_user and not javob.from_user.is_bot:
+        f = javob.from_user
+    ozi = f.id == update.effective_user.id
 
+    idlar = [d["char_id"] async for d in kolleksiya.find({"user_id": f.id})]
+    if not idlar:
+        if ozi:
+            matn = (
+                "📭 KOLLEKSIYANGIZ HOZIRCHA BO'SH.\n"
+                "GURUHDA PERSONAJNI TOPIB, KOLLEKSIYANI BOSHLANG!"
+            )
+        else:
+            matn = f"📭 {K(f.first_name)} KOLLEKSIYASI HOZIRCHA BO'SH."
+        await xabar.reply_text(matn, parse_mode="HTML")
+        return
+
+    await raqam_tuzat(baza)
+    sanash = {}
+    for pid in idlar:
+        sanash[pid] = sanash.get(pid, 0) + 1
+    royxat = [
+        p async for p in personajlar.find({"_id": {"$in": list(sanash)}})
+    ]
+    guruhlar = await guruhlar_tuz(baza, sanash, royxat)
+    qismlar = qismlarga_bol(guruhlar)
+    if len(qismlar) > MAKS_XABAR:
+        qismlar = qismlar[:MAKS_XABAR]
+        qismlar[-1] += "\n\n… Qolgan waifularni Mini Appda ko'ring (botga /start)."
+
+    shaxsiy = update.effective_chat.type == "private" and ozi
+    tugma = kolleksiya_tugmasi(f, shaxsiy)
+    sarlavha = (
+        "✨━ ━━━━━━━━ ━✨\n"
+        f"🫧 {html.escape(f.first_name)} kolleksiyasi "
+        f"|🧧 Jami : {len(idlar)} ta Waifu!"
+    )
+    tasodifiy = random.choice(royxat)
+    try:
+        await xabar.reply_photo(
+            tasodifiy["file_id"], caption=sarlavha, parse_mode="HTML"
+        )
+    except Exception:
+        await xabar.reply_text(sarlavha, parse_mode="HTML")
+    for i, qism in enumerate(qismlar):
+        oxirgi = i == len(qismlar) - 1
+        await xabar.reply_text(
+            qism, parse_mode="HTML", reply_markup=tugma if oxirgi else None
+    )
 # ---------- Botni ishga tushirish ----------
 ilova = ApplicationBuilder().bot(StilBot(os.environ["BOT_TOKEN"])).build()
 ilova.add_handler(CommandHandler("start", boshlash))
