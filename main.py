@@ -33,7 +33,7 @@ dns.asyncresolver.default_resolver = resolver
 # ---------- Sozlamalar ----------
 ADMIN_ID = 8288620037  # o'zingizning Telegram ID raqamingiz
 MINI_APP_URL = "https://syrax2007-debug.github.io/Gran-Collector-Bot/"
-CHIQISH_ORALIGI = 50  # nechta xabardan keyin personaj chiqadi
+CHIQISH_ORALIGI = 70  # nechta xabardan keyin personaj chiqadi
 RAMKA = "✨━ ━━━━━━━━━ ━✨"
 TOSHKENT = timezone(timedelta(hours=5))
 
