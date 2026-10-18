@@ -13,6 +13,7 @@ from royxat import (
     raqam_tuzat, keyingi_raqam, kolleksiya_malumot, kolleksiya_izohi,
 )
 import admin_vositalar
+import referal
 from telegram import (
     Update, InlineQueryResultCachedPhoto,
     InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo,
@@ -813,6 +814,7 @@ ilova.add_handler(
 )
 ilova.add_handler(InlineQueryHandler(inline_qidiruv))
 admin_vositalar.ulash(ilova, baza, ADMIN_ID, nodirlik_kaliti, NODIRLIK)
+referal.ulash(ilova, baza)
 
 if __name__ == "__main__":
     ilova.run_polling()
