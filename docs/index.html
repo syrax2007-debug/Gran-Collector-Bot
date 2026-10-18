@@ -1,524 +1,240 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="uz">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Waifu Kolleksiya</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Waifu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{
-  --bg:#05050a; --text:#f4f0ff; --muted:#8f89ad;
-  --glass:rgba(255,255,255,.06); --glass2:rgba(255,255,255,.1);
-  --line:rgba(255,255,255,.12);
-  --c1:#4ade80; --c2:#5aa9ff; --c3:#b57bff; --c4:#ff7a45;
+  --neon:#ff1f3d; --neon2:#ff4d63; --neon3:#a3101f;
+  --dark:#0b080b; --glass:rgba(8,4,8,.55); --glass2:rgba(0,0,0,.45);
+  --text:#fff; --muted:#c79aa3; --gold:#ffd24a;
+  --c1:#3ddc84; --c2:#3aa0ff; --c3:#b45cff; --c4:#ff9a1a; --c5:#22e6e0;
+  --glow:0 0 6px #ff1f3d,0 0 16px #ff1f3d,0 0 30px rgba(255,31,61,.55);
+  --head:"Orbitron","Segoe UI",Arial,sans-serif; --body:"Rajdhani","Segoe UI",Arial,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
 body{
-  background:var(--bg);
-  background-image:
-    radial-gradient(circle at 15% 0%,rgba(120,70,255,.18),transparent 45%),
-    radial-gradient(circle at 90% 100%,rgba(255,80,140,.12),transparent 45%);
-  background-attachment:fixed;
-  color:var(--text);
-  font-family:-apple-system,"Segoe UI",Roboto,sans-serif;
-  min-height:100vh;
-  padding:16px 14px calc(96px + env(safe-area-inset-bottom));
-  text-transform:uppercase;
+  font-family:var(--body);font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.08em;font-size:14px;
+  background:
+    radial-gradient(120% 60% at 50% 0%,rgba(255,31,61,.14),transparent 60%),
+    radial-gradient(100% 50% at 50% 100%,rgba(255,31,61,.10),transparent 60%),
+    linear-gradient(180deg,#0e0a10,#0a0709 50%,#120609) fixed;
+  background-color:#0a0709;min-height:100vh;padding:12px 12px 124px;
 }
-.glass{
-  background:var(--glass);border:1px solid var(--line);
-  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  border-radius:18px;
-}
-.pad{padding:16px}
-.center{text-align:center}
-.tab{display:none}
-.tab.on{display:block;animation:fade .25s ease}
-@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-h2{font-size:18px;letter-spacing:1.5px;margin-bottom:6px}
-p.sub{color:var(--muted);font-size:11px;letter-spacing:1px}
+.wrap{max-width:520px;margin:0 auto}
 
-/* Pastki navigatsiya */
-.nav{
-  position:fixed;left:10px;right:10px;
-  bottom:calc(10px + env(safe-area-inset-bottom));
-  display:flex;gap:4px;padding:6px;z-index:5;
-  background:rgba(10,10,18,.72);border:1px solid var(--line);
-  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-  border-radius:22px;
-}
-.nav button{
-  flex:1;background:none;border:0;color:var(--muted);
-  padding:8px 2px;border-radius:16px;font-size:9px;font-weight:800;
-  letter-spacing:.5px;display:flex;flex-direction:column;gap:3px;align-items:center;
-}
-.nav button span{font-size:20px}
-.nav button.on{background:var(--glass2);color:#fff}
+/* PLITA (kesilgan burchakli neon ramka) */
+.bev{--c:10px;background:var(--neon);padding:1.5px;
+  clip-path:polygon(var(--c) 0,calc(100% - var(--c)) 0,100% var(--c),100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,var(--c) 100%,0 calc(100% - var(--c)),0 var(--c))}
+.bev>.in{background:linear-gradient(180deg,#171116,var(--dark));height:100%;
+  clip-path:polygon(calc(var(--c) - .9px) 0,calc(100% - var(--c) + .9px) 0,100% calc(var(--c) - .9px),100% calc(100% - var(--c) + .9px),calc(100% - var(--c) + .9px) 100%,calc(var(--c) - .9px) 100%,0 calc(100% - var(--c) + .9px),0 calc(var(--c) - .9px))}
 
-/* Profil */
-.avatar{
-  width:84px;height:84px;border-radius:50%;margin:0 auto 10px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:36px;font-weight:900;
-  background:linear-gradient(135deg,#7b4dff,#ff5a9d);
-  box-shadow:0 0 28px rgba(150,90,255,.45);
-}
-.uname{font-size:20px;font-weight:900;letter-spacing:1px}
-.handle{color:var(--muted);font-size:12px;margin-top:2px;text-transform:none}
-.coinbox{
-  margin:14px 0;padding:14px;display:flex;align-items:center;
-  justify-content:center;gap:10px;font-size:26px;font-weight:900;
-}
-.coinbox small{font-size:11px;color:var(--muted);letter-spacing:1px;display:block;font-weight:700}
-.stats{display:flex;gap:8px}
-.stat{flex:1;padding:12px 6px;text-align:center}
-.stat b{display:block;font-size:22px}
-.stat span{font-size:10px;color:var(--muted);letter-spacing:1px}
-.btn{
-  width:100%;margin-top:12px;padding:13px;border:0;border-radius:14px;
-  background:linear-gradient(135deg,#7b4dff,#ff5a9d);color:#fff;
-  font-size:13px;font-weight:900;letter-spacing:1px;
-}
-.btn.dis{background:var(--glass2);color:var(--muted)}
+/* TEPA */
+.header{display:grid;grid-template-columns:1fr 1.7fr 1fr;gap:6px;align-items:center;margin-bottom:14px}
+.slot{height:36px;background:linear-gradient(180deg,#171116,var(--dark));border-top:2px solid var(--neon);border-bottom:1px solid var(--neon3);
+  display:flex;flex-direction:column;justify-content:center;align-items:center;font-size:9px;color:var(--muted);letter-spacing:.14em;
+  box-shadow:0 0 10px rgba(255,31,61,.35)}
+.slot b{font-family:var(--head);font-size:12px;color:var(--neon2);text-shadow:0 0 8px var(--neon)}
+.slot.l{clip-path:polygon(0 0,100% 0,88% 100%,0 100%)}
+.slot.r{clip-path:polygon(12% 0,100% 0,100% 100%,0 100%)}
+.nameplate{--c:12px}
+.nameplate .in{padding:9px 6px;text-align:center}
+#uname{font-family:var(--head);font-weight:900;font-size:14px;letter-spacing:.14em;color:var(--neon2);text-shadow:var(--glow);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 
-/* Kolleksiya */
-.search{
-  width:100%;padding:12px 14px;border-radius:14px;margin-top:12px;
-  border:1px solid var(--line);background:var(--glass);
-  color:var(--text);font-size:14px;outline:none;text-transform:uppercase;
-}
-.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 0;scrollbar-width:none}
-.chips::-webkit-scrollbar{display:none}
-.chip{
-  flex:none;padding:8px 14px;border-radius:20px;background:var(--glass);
-  border:1px solid var(--line);color:var(--text);font-size:12px;font-weight:700;
-}
-.chip.on{background:#fff;color:#111;border-color:#fff}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.card{
-  position:relative;background:rgba(255,255,255,.05);
-  border-radius:16px;overflow:hidden;border:2px solid var(--line);
-}
-.card .img{
-  aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;
-  font-size:56px;background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(0,0,0,.4));
-}
-.card .img img{width:100%;height:100%;object-fit:cover}
-.badge,.cnt{
-  position:absolute;top:8px;background:rgba(0,0,0,.7);
-  padding:4px 8px;border-radius:10px;font-size:10px;font-weight:800;
-}
-.badge{left:8px}.cnt{right:8px}
-.info{padding:10px}
-.name{font-size:14px;font-weight:800}
-.anime{font-size:10px;color:var(--muted);margin-top:2px}
-.stars{font-size:12px;margin-top:6px;letter-spacing:2px}
-.r1{border-color:var(--c1)} .r1 .stars{color:var(--c1)}
-.r2{border-color:var(--c2)} .r2 .stars{color:var(--c2)}
-.r3{border-color:var(--c3)} .r3 .stars{color:var(--c3)}
-.r4{border-color:var(--c4);animation:glow 2s ease-in-out infinite}
-.r4 .stars{color:var(--c4)}
-.r5{border-color:#22d3ee} .r5 .stars{color:#22d3ee}
-@keyframes glow{
-  0%,100%{box-shadow:0 0 6px rgba(255,122,69,.35)}
-  50%{box-shadow:0 0 20px rgba(255,122,69,.85)}
-}
-.empty{text-align:center;color:var(--muted);padding:40px 10px;grid-column:1/-1}
+/* ASOSIY PANEL */
+.frame{position:relative;padding:20px 16px 24px;background:var(--glass);border:1px solid rgba(255,31,61,.35);
+  box-shadow:inset 0 0 50px rgba(0,0,0,.55),0 0 18px rgba(255,31,61,.12);min-height:420px;overflow:hidden}
+.frame::before{content:"";position:absolute;inset:5px;pointer-events:none;
+  --b:var(--neon);
+  background:
+   linear-gradient(var(--b),var(--b)) 0 0/20px 2px no-repeat,linear-gradient(var(--b),var(--b)) 0 0/2px 20px no-repeat,
+   linear-gradient(var(--b),var(--b)) 100% 0/20px 2px no-repeat,linear-gradient(var(--b),var(--b)) 100% 0/2px 20px no-repeat,
+   linear-gradient(var(--b),var(--b)) 0 100%/20px 2px no-repeat,linear-gradient(var(--b),var(--b)) 0 100%/2px 20px no-repeat,
+   linear-gradient(var(--b),var(--b)) 100% 100%/20px 2px no-repeat,linear-gradient(var(--b),var(--b)) 100% 100%/2px 20px no-repeat;
+  filter:drop-shadow(0 0 4px var(--neon))}
+.flame{position:absolute;pointer-events:none;background:linear-gradient(120deg,var(--neon3),var(--neon),#ff7a8a);filter:drop-shadow(0 0 8px var(--neon))}
+.flame.a{right:0;top:0;width:46%;height:26px;clip-path:polygon(0 0,100% 0,100% 100%,62% 40%,30% 18%)}
+.flame.b{left:0;bottom:0;width:46%;height:26px;clip-path:polygon(0 0,38% 60%,70% 82%,100% 100%,0 100%)}
+.tab{display:none;position:relative;z-index:2}.tab.on{display:block}
 
-/* Do'kon */
-.shop{display:flex;flex-direction:column;gap:10px;margin-top:14px}
-.item{display:flex;align-items:center;gap:12px;padding:12px}
-.item .ic{font-size:30px}
-.item .tx{flex:1}
-.item .tx b{display:block;font-size:14px}
-.item .tx span{font-size:11px;color:var(--muted)}
-.buy{
-  border:0;border-radius:12px;padding:10px 12px;font-size:12px;font-weight:900;
-  background:linear-gradient(135deg,#7b4dff,#ff5a9d);color:#fff;
-}
-.note{
-  margin-top:14px;padding:10px;font-size:11px;color:var(--muted);
-  text-align:center;letter-spacing:.5px;
-}
+.title{position:relative;text-align:center;margin:4px 0 16px}
+.title small{display:block;font-family:var(--head);font-size:8px;letter-spacing:.5em;color:var(--muted);margin-bottom:6px}
+.title h1{font-family:var(--head);font-weight:900;font-size:24px;letter-spacing:.12em;color:var(--neon2);text-shadow:var(--glow)}
 
-/* Referal */
-.soon{
-  display:inline-block;margin:12px 0;padding:8px 16px;border-radius:20px;
-  background:var(--glass2);font-size:12px;font-weight:900;letter-spacing:1px;
-}
+/* PROFIL */
+.top{display:flex;align-items:center;justify-content:center;gap:12px}
+#avatar{width:56px;height:56px;flex:none;border-radius:50%;border:2px solid var(--neon);box-shadow:var(--glow);background:var(--glass2) center/cover no-repeat;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;font-family:var(--head);font-size:20px;font-weight:900;color:var(--neon2)}
+#avatar img{width:100%;height:100%;object-fit:cover}
+#handle{color:var(--muted);font-size:13px}
+.mini{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
+.mini .bev{--c:7px}
+.mini .in{padding:6px 2px;text-align:center}
+.mini small{display:block;font-size:8px;letter-spacing:.1em;color:var(--muted)}
+.mini b{font-family:var(--head);font-size:14px;color:var(--neon2);text-shadow:0 0 8px var(--neon)}
+.fav{margin-top:12px;min-height:380px}
+.fav .in{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;text-align:center;min-height:378px}
+.fav .pic{width:min(62%,230px);font-size:48px}
+.fav .row2{width:100%}
+.fav .empty{color:var(--muted);font-size:14px;line-height:1.7}
 
-/* O'yin */
-.board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
-.gc{
-  aspect-ratio:3/4;border-radius:16px;border:1px solid var(--line);
-  background:linear-gradient(160deg,rgba(123,77,255,.35),rgba(255,90,157,.25));
-  color:#fff;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:6px;font-size:34px;transition:.25s;
-}
-.gc small{font-size:10px;font-weight:900;letter-spacing:.5px}
-.gc.open{background:var(--glass);transform:scale(.97)}
-.gc.prize{border-color:var(--c4);background:rgba(255,122,69,.18);animation:glow 1.6s infinite}
-.gc.picked{outline:3px solid #fff}
-.gmsg{
-  margin-top:14px;padding:12px;text-align:center;
-  font-size:13px;font-weight:900;letter-spacing:.5px;
-}
+.pic{position:relative;overflow:hidden;width:100%;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;font-family:var(--head);font-weight:900;font-size:22px;
+  border:2px solid var(--rc,#888);background:linear-gradient(160deg,color-mix(in srgb,var(--rc) 50%,#000),#0a0a0a);box-shadow:0 0 10px color-mix(in srgb,var(--rc) 55%,transparent)}
+.pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cnt{position:absolute;right:0;top:0;background:var(--neon);font-family:var(--head);font-size:10px;padding:2px 6px;z-index:2}
+#mcont .pic{font-size:56px}
 
-/* Oyna va xabar */
-.modal{
-  position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;
-  align-items:center;justify-content:center;padding:24px;z-index:20;
-}
-.modal.show{display:flex}
-.modal .card{width:100%;max-width:320px}
-.modal .name{font-size:18px}
-.modal .anime{font-size:12px}
-.modal .stars{font-size:16px}
-.toast{
-  position:fixed;left:50%;top:18px;transform:translateX(-50%) translateY(-80px);
-  background:#fff;color:#111;padding:10px 16px;border-radius:14px;
-  font-size:12px;font-weight:900;z-index:30;transition:.3s;max-width:90%;text-align:center;
-}
-.toast.show{transform:translateX(-50%) translateY(0)}
+/* KOLLEKSIYA */
+.bar{display:flex;gap:8px;margin-bottom:10px}
+input{flex:1;min-width:0;padding:10px;background:var(--glass2);border:1px solid var(--neon);color:#fff;font:inherit;text-transform:uppercase;outline:none;box-shadow:0 0 8px rgba(255,31,61,.3)}
+.btn{padding:10px 14px;background:linear-gradient(180deg,var(--neon),var(--neon3));color:#fff;border:0;font-family:var(--head);font-weight:700;font-size:10px;letter-spacing:.14em;cursor:pointer;
+  clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);text-shadow:0 0 6px rgba(0,0,0,.6)}
+.btn.ghost{background:var(--dark);color:var(--neon2);box-shadow:inset 0 0 0 1px var(--neon)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{padding:5px 10px;border:1px solid var(--neon);background:var(--glass2);color:#fff;font:inherit;font-size:12px;cursor:pointer;letter-spacing:.12em}
+.chip[data-k]:not([data-k="0"])::before{content:"";display:inline-block;width:7px;height:7px;background:var(--rc);margin-right:6px}
+.chip.on{background:var(--neon);box-shadow:0 0 10px var(--neon)}
+.grid{display:grid;gap:8px}.c3{grid-template-columns:repeat(3,1fr)}.c4{grid-template-columns:repeat(4,1fr)}
+.it{cursor:pointer;min-width:0}
+.it .nm{display:block;margin-top:4px;font-size:11px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .mn{display:block;font-size:9px;text-align:center;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c4 .it .nm{font-size:10px}
+.empty2{grid-column:1/-1;text-align:center;color:var(--muted);padding:24px 0}
+
+/* DOKON */
+.shop{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sitem .in{padding:14px 8px;text-align:center}
+.sitem .big{font-family:var(--head);font-size:18px;font-weight:900;color:var(--gold);text-shadow:0 0 10px rgba(255,210,74,.5)}
+.sitem .rn{font-size:13px;margin:4px 0 10px}
+.demo{text-align:center;font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6}
+
+/* REFERAL */
+.refbox{display:flex;flex-direction:column;gap:9px}
+.line{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--glass2);border-left:3px solid var(--neon);box-shadow:-4px 0 10px -4px var(--neon)}
+.line b{font-family:var(--head);font-size:13px}
+.link{padding:10px;background:var(--glass2);border:1px dashed var(--neon);font-size:11px;word-break:break-all;text-transform:none;letter-spacing:.02em}
+.row2{display:flex;gap:8px}.row2 .btn{flex:1}
+
+/* OYIN */
+#ginfo{text-align:center;color:var(--muted);margin-bottom:8px;font-size:13px;line-height:1.6}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:290px;margin:6px auto 12px}
+.gc{--c:9px;aspect-ratio:1/1;cursor:pointer;border:0;font:inherit;color:inherit;display:block}
+.gc .in{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:var(--head);font-weight:900;font-size:22px;color:var(--neon2);text-shadow:var(--glow)}
+.gc .in small{font-size:10px;letter-spacing:.06em;text-shadow:none}
+.gc.open .in{color:var(--gold);background:var(--glass2);text-shadow:none}
+.gc.open{opacity:.55}
+.gc.open.picked{opacity:1}
+.gc.open.picked .in{box-shadow:inset 0 0 0 2px #fff}
+.gc.prize{opacity:1}
+.gc.prize .in{background:linear-gradient(180deg,var(--neon3),#3b0610);color:#fff}
+#gmsg{text-align:center;min-height:38px;font-weight:700;font-size:15px;line-height:1.5}
+#again{display:block;margin:10px auto 0}
+.note{margin-top:12px;font-size:11px;color:var(--muted);text-align:center;line-height:1.7}
+
+/* PASTKI PANEL */
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:50;padding:10px 8px env(safe-area-inset-bottom,0px);
+  background:linear-gradient(180deg,rgba(8,4,8,.2),rgba(8,4,8,.94) 35%);border-top:2px solid var(--neon);box-shadow:0 -2px 18px rgba(255,31,61,.55)}
+.row{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.nb{--c:8px;border:0;cursor:pointer;font:inherit;color:inherit;display:block;min-width:0}
+.nb .in{padding:5px 0 6px;text-align:center}
+.nb small{display:block;font-size:7px;letter-spacing:.1em;color:var(--muted);border-bottom:1px solid rgba(255,31,61,.35);margin:0 5px 4px;padding-bottom:2px;white-space:nowrap;overflow:hidden}
+.nb span{font-family:var(--body);font-size:10px;font-weight:700;letter-spacing:.02em;color:var(--neon2);text-shadow:0 0 6px var(--neon);white-space:nowrap}
+.nb.on .in{background:linear-gradient(180deg,#4a0a14,#1a0408)}
+.nb.on span{color:#fff;text-shadow:var(--glow)}
+
+#modal{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;padding:20px;overflow:auto}
+#modal.on{display:flex}
+#mbox{width:100%;max-width:310px;margin:auto}
+#mbox .in{padding:18px;display:flex;flex-direction:column;gap:10px}
+#mbox h3{font-family:var(--head);text-align:center;color:var(--neon2);text-shadow:var(--glow);letter-spacing:.14em;font-size:14px}
+.mname{text-align:center;font-size:16px}
+.msub{text-align:center;color:var(--muted);font-size:12px;line-height:1.6}
+#toast{position:fixed;left:50%;bottom:104px;transform:translateX(-50%);z-index:90;padding:8px 18px;background:var(--neon);font-family:var(--head);font-size:11px;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 0 14px var(--neon);max-width:92%;text-align:center}
+#toast.on{opacity:1}
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<!-- 1. PROFIL -->
-<section class="tab on" id="tab-profil">
-  <div class="glass pad center">
-    <div class="avatar" id="avatar">🌸</div>
-    <div class="uname" id="uname">FOYDALANUVCHI</div>
-    <div class="handle" id="handle"></div>
+  <div class="header">
+    <div class="slot l"><span>TANGA</span><b id="coins">0</b></div>
+    <div class="bev nameplate"><div class="in"><span id="uname">FOYDALANUVCHI</span></div></div>
+    <div class="slot r"><span>JAMI</span><b id="sJami">0</b></div>
   </div>
-  <div class="glass coinbox">
-    <span>🪙</span>
-    <div><b id="coins">0</b><small>TANGALAR</small></div>
-  </div>
-  <div class="stats">
-    <div class="glass stat"><b id="sJami">0</b><span>JAMI</span></div>
-    <div class="glass stat"><b id="sXil">0</b><span>TURLI</span></div>
-    <div class="glass stat"><b id="sMega">0</b><span>🔥 MEGA</span></div>
-  </div>
-  <button class="btn" onclick="show('kol')">🎴 KOLLEKSIYANI KO'RISH</button>
-</section>
 
-<!-- 2. KOLLEKSIYA -->
-<section class="tab" id="tab-kol">
-  <h2>🎴 KOLLEKSIYA</h2>
-  <p class="sub">SIZNING PERSONAJLARINGIZ</p>
-  <input class="search" id="q" placeholder="🔍 ISM YOKI ANIME QIDIRISH">
-  <div class="chips" id="chips"></div>
-  <div class="grid" id="grid"></div>
-</section>
+  <div class="frame">
+    <div class="flame a"></div><div class="flame b"></div>
 
-<!-- 3. DO'KON -->
-<section class="tab" id="tab-dokon">
-  <h2>🛒 DO'KON</h2>
-  <p class="sub">TANGAGA PERSONAJ SOTIB OLING</p>
-  <div class="shop" id="shop"></div>
-  <div class="glass note">⏳ TANGA TIZIMI TEZ ORADA ISHGA TUSHADI. NARXLAR NAMUNA.</div>
-</section>
-
-<!-- 4. REFERAL -->
-<section class="tab" id="tab-ref">
-  <div class="glass pad center">
-    <div style="font-size:54px">🤝</div>
-    <h2>REFERAL</h2>
-    <p class="sub">DO'STLARINGIZNI TAKLIF QILING VA MUKOFOT OLING</p>
-    <div class="soon">⏳ TEZ ORADA</div>
-    <button class="btn dis" onclick="toast('REFERAL TEZ ORADA ISHGA TUSHADI')">🔗 HAVOLANI NUSXALASH</button>
-  </div>
-</section>
-
-<!-- 5. O'YIN -->
-<section class="tab" id="tab-oyin">
-  <h2>🎲 TASODIFIY O'YIN</h2>
-  <p class="sub">9 TA KARTADAN BITTASIDA NODIR PERSONAJ YASHIRIN</p>
-  <div class="board" id="board"></div>
-  <div class="glass gmsg" id="gmsg">BITTA KARTANI TANLANG</div>
-  <button class="btn" id="again" style="display:none" onclick="newGame()">🔁 QAYTA O'YNASH</button>
-    <div class="glass note" id="gnote">...</div>
-</section>
-
-<!-- Pastki panel -->
-<nav class="nav" id="nav">
-  <button class="on" data-t="profil"><span>👤</span>PROFIL</button>
-  <button data-t="kol"><span>🎴</span>KOLLEKSIYA</button>
-  <button data-t="dokon"><span>🛒</span>DO'KON</button>
-  <button data-t="ref"><span>🤝</span>REFERAL</button>
-  <button data-t="oyin"><span>🎲</span>O'YIN</button>
-</nav>
-
-<div class="modal" id="modal"></div>
-<div class="toast" id="toast"></div>
-
-<script>
-// ---- Sozlama: B bosqichda API manzilini shu yerga yozamiz ----
-const API_URL = "https://gran-api.onrender.com";
-
-const tg = window.Telegram && window.Telegram.WebApp;
-if (tg) {
-  tg.ready();
-  tg.expand();
-  try { tg.setHeaderColor("#05050a"); tg.setBackgroundColor("#05050a"); } catch (e) {}
-}
-
-const $ = (id) => document.getElementById(id);
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => (
-  { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
-));
-const buzz = () => { if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light"); };
-
-function toast(t) {
-  const el = $("toast");
-  el.textContent = t;
-  el.classList.add("show");
-  setTimeout(() => el.classList.remove("show"), 2200);
-}
-
-/* ---------- Bo'limlar ---------- */
-function show(t) {
-  document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x.id === "tab-" + t));
-  document.querySelectorAll(".nav button").forEach((x) => x.classList.toggle("on", x.dataset.t === t));
-  window.scrollTo(0, 0);
-  buzz();
-}
-$("nav").addEventListener("click", (e) => {
-  const b = e.target.closest("button");
-  if (b) show(b.dataset.t);
-});
-
-/* ---------- Ma'lumotlar ---------- */
-const RAR = {
-  1: { n: "YAXSHI", e: "✨" },
-  2: { n: "AJOYIB", e: "💎" },
-  3: { n: "SUPER", e: "🔥" },
-  4: { n: "MEGA", e: "👑" },
-  5: { n: "MAXSUS", e: "💠" },
-};
-const RMAP = { common: 1, rare: 2, epic: 3, legendary: 4, special: 5};
-
-const DEMO = [
-  { name: "Rem", anime: "Re:Zero", r: 2, count: 1, emoji: "💙" },
-  { name: "Zero Two", anime: "Darling in the Franxx", r: 4, count: 1, emoji: "💗" },
-  { name: "Mikasa", anime: "Attack on Titan", r: 3, count: 2, emoji: "🧣" },
-  { name: "Hinata", anime: "Naruto", r: 1, count: 3, emoji: "🌙" },
-  { name: "Asuna", anime: "Sword Art Online", r: 3, count: 1, emoji: "⚔️" },
-  { name: "Nezuko", anime: "Demon Slayer", r: 4, count: 1, emoji: "🎋" },
-  { name: "Emilia", anime: "Re:Zero", r: 2, count: 1, emoji: "❄️" },
-  { name: "Sakura", anime: "Naruto", r: 1, count: 4, emoji: "🌸" },
-];
-
-let items = [];
-let filter = 0;
-let query = "";
-let coins = 0; // keyinchalik API'dan olinadi
-
-/* ---------- Kolleksiya ---------- */
-function cardHTML(it, i) {
-  const rr = RAR[it.r] || RAR[1];
-  const stars = it.r === 5 ? "✨ MAXSUS ✨" : "★".repeat(it.r) + "☆".repeat(5 - it.r);
-  const img = it.image ? `<img src="${esc(it.image)}" alt="">` : esc(it.emoji || "🌸");
-  return `
-    <div class="card r${it.r}" data-i="${i}">
-      <div class="img">${img}</div>
-      <span class="badge">${rr.e} ${rr.n}</span>
-      ${it.count > 1 ? `<span class="cnt">×${it.count}</span>` : ""}
-      <div class="info">
-        <div class="name">${esc(it.name)}</div>
-        <div class="anime">${esc(it.anime)}</div>
-        <div class="stars">${stars}</div>
+    <!-- 1. PROFIL -->
+    <section class="tab on" id="tab-profil">
+      <div class="title"><small>W A I F U &nbsp; B O T</small><h1>PROFIL</h1></div>
+      <div class="top">
+        <div id="avatar">🌸</div>
+        <div id="handle"></div>
       </div>
-    </div>`;
-}
+      <div class="mini">
+        <div class="bev"><div class="in"><small>TURLI</small><b id="sXil">0</b></div></div>
+        <div class="bev"><div class="in"><small>AJOYIB</small><b id="sAj">0</b></div></div>
+        <div class="bev"><div class="in"><small>SUPER</small><b id="sSup">0</b></div></div>
+        <div class="bev"><div class="in"><small>MEGA</small><b id="sMega">0</b></div></div>
+      </div>
+      <div class="bev fav"><div class="in" id="favIn"></div></div>
+    </section>
 
-function render() {
-  const list = items.filter((it) => {
-    if (filter && it.r !== filter) return false;
-    const t = (it.name + " " + it.anime).toLowerCase();
-    return !query || t.includes(query);
-  });
-  $("grid").innerHTML = list.length
-    ? list.map((it) => cardHTML(it, items.indexOf(it))).join("")
-    : `<div class="empty">📭 PERSONAJ TOPILMADI</div>`;
-}
+    <!-- 2. KOLLEKSIYA -->
+    <section class="tab" id="tab-kol">
+      <div class="title"><small>M E N I N G</small><h1>KOLLEKSIYA</h1></div>
+      <div class="bar"><input id="q" placeholder="ISM YOKI MANBA..."><button class="btn" id="seg">▦ 3</button></div>
+      <div class="chips" id="chips"></div>
+      <div class="grid c3" id="grid"></div>
+    </section>
 
-function stats() {
-  $("sJami").textContent = items.reduce((a, b) => a + b.count, 0);
-  $("sXil").textContent = items.length;
-  $("sMega").textContent = items.filter((x) => x.r === 4).length;
-  $("coins").textContent = coins;
-}
+    <!-- 3. DO'KON -->
+    <section class="tab" id="tab-dokon">
+      <div class="title"><small>T A N G A</small><h1>DO'KON</h1></div>
+      <div class="shop" id="shop"></div>
+      <div class="demo">⏳ DO'KON TEZ ORADA ISHGA TUSHADI.<br>NARXLAR HOZIRCHA NAMUNA.</div>
+    </section>
 
-function chips() {
-  const all = [[0, "HAMMASI"]].concat([1, 2, 3, 4, 5].map((k) => [k, RAR[k].e + " " + RAR[k].n]));
-  $("chips").innerHTML = all
-    .map(([k, t]) => `<button class="chip ${k === filter ? "on" : ""}" data-k="${k}">${t}</button>`)
-    .join("");
-}
+    <!-- 4. REFERAL -->
+    <section class="tab" id="tab-ref">
+      <div class="title"><small>D O ' S T L A R</small><h1>REFERAL</h1></div>
+      <div class="refbox">
+        <div class="line"><span>HAR BIR DO'ST UCHUN</span><b style="color:var(--gold)">+<span id="refTanga">250</span> 🪙</b></div>
+        <div class="line"><span>✅ QO'SHILGANLAR</span><b id="refOk">0</b></div>
+        <div class="line"><span>⏳ KUTILMOQDA</span><b id="refKut">0</b></div>
+        <div class="line"><span>🪙 OLINGAN</span><b id="refSum">0</b></div>
+        <div class="link" id="refLink">...</div>
+        <div class="row2"><button class="btn" id="refShare">📤 ULASHISH</button><button class="btn ghost" id="refCopy">🔗 NUSXA</button></div>
+        <div class="demo">DO'STINGIZ HAVOLA ORQALI BOTGA KIRADI, KANAL VA GURUHGA QO'SHILIB, BOTDA «✅ TEKSHIRISH» NI BOSSA, SIZGA TANGA BERILADI.</div>
+      </div>
+    </section>
 
-$("chips").addEventListener("click", (e) => {
-  const b = e.target.closest(".chip");
-  if (!b) return;
-  filter = Number(b.dataset.k);
-  chips(); render(); buzz();
-});
-$("q").addEventListener("input", (e) => {
-  query = e.target.value.trim().toLowerCase();
-  render();
-});
-$("grid").addEventListener("click", (e) => {
-  const c = e.target.closest(".card");
-  if (!c) return;
-  $("modal").innerHTML = cardHTML(items[Number(c.dataset.i)], c.dataset.i);
-  $("modal").classList.add("show");
-  buzz();
-});
-$("modal").addEventListener("click", () => $("modal").classList.remove("show"));
+    <!-- 5. O'YIN -->
+    <section class="tab" id="tab-oyin">
+      <div class="title"><small>O M A D N I &nbsp; S I N A N G</small><h1>O'YIN</h1></div>
+      <div id="ginfo"></div>
+      <div class="board" id="board"></div>
+      <div id="gmsg">BITTA KARTANI TANLANG</div>
+      <button class="btn" id="again" hidden>🔁 YANA O'YNASH</button>
+      <div class="note">🎁 HAR O'YINDA 9 TA KARTANING BITTASIDA WAIFU YASHIRINGAN.<br>🏆 KATTA SOVRINLAR: 2x VA 1.5x.</div>
+    </section>
+  </div>
+</div>
 
-/* ---------- Do'kon ---------- */
-const SHOP = [
-  { r: 1, price: 100 },
-  { r: 2, price: 300 },
-  { r: 3, price: 800 },
-  { r: 4, price: 2000 },
-];
-function shop() {
-  $("shop").innerHTML = SHOP.map((s) => `
-    <div class="glass item">
-      <div class="ic">${RAR[s.r].e}</div>
-      <div class="tx"><b>${RAR[s.r].n} PERSONAJ</b><span>TASODIFIY ${RAR[s.r].n} DARAJALI</span></div>
-      <button class="buy" data-r="${s.r}">🪙 ${s.price}</button>
-    </div>`).join("");
-}
-$("shop").addEventListener("click", (e) => {
-  if (e.target.closest(".buy")) toast("TANGA TIZIMI TEZ ORADA ISHGA TUSHADI");
-});
+<div id="modal"><div class="bev" id="mbox"><div class="in" id="mcont"></div></div></div>
+<div id="toast"></div>
 
-/* ---------- O'yin ---------- */
-let gameBusy = false, freePlay = true, replayCost = 60;
-
-function gameInfo() {
-  $("gnote").textContent = freePlay
-    ? "🎁 BUGUNGI BEPUL URINISH BOR!"
-    : `⏳ BEPUL URINISH ISHLATILDI. QAYTA O'YNASH: 🪙 ${replayCost}`;
-}
-
-function newGame() {
-  gameBusy = false;
-  $("gmsg").textContent = "BITTA KARTANI TANLANG";
-  $("again").style.display = "none";
-  $("board").innerHTML = Array.from({ length: 9 }, (_, i) =>
-    `<button class="gc" data-i="${i}"><span>❓</span></button>`).join("");
-  gameInfo();
-}
-
-$("board").addEventListener("click", async (e) => {
-  const b = e.target.closest(".gc");
-  if (!b || gameBusy) return;
-  if (!API_URL || !(tg && tg.initData)) {
-    toast("O'YIN FAQAT TELEGRAM ICHIDA ISHLAYDI");
-    return;
-  }
-  if (!freePlay && coins < replayCost) {
-    toast(`TANGA YETMAYDI: KERAK 🪙 ${replayCost}`);
-    return;
-  }
-  gameBusy = true;
-  $("gmsg").textContent = "⏳ ...";
-  const pick = Number(b.dataset.i);
-  try {
-    const res = await fetch(API_URL + "/api/game/play", {
-      method: "POST",
-      headers: { "X-Init-Data": tg.initData, "Content-Type": "application/json" },
-      body: JSON.stringify({ pick }),
-    });
-    const d = await res.json();
-    if (!res.ok) {
-      toast(d.error === "tanga_yetmaydi" ? "TANGA YETMAYDI" : "XATO, QAYTA URINING");
-      $("gmsg").textContent = "BITTA KARTANI TANLANG";
-      gameBusy = false;
-      return;
-    }
-    document.querySelectorAll(".gc").forEach((el, i) => {
-      const c = d.taxta[i];
-      el.classList.add("open");
-      if (c.tur === "personaj") {
-        el.classList.add("prize");
-        el.innerHTML = "<span>🎁</span><small>NODIR PERSONAJ</small>";
-      } else {
-        el.innerHTML = `<span>🪙</span><small>+${c.miqdor}</small>`;
-      }
-      if (i === pick) el.classList.add("picked");
-    });
-    coins = d.coins;
-    freePlay = false;
-    replayCost = d.replay_cost;
-    stats();
-    $("gmsg").textContent = d.natija.tur === "personaj"
-      ? `🎉 TABRIKLAYMAN! ${String(d.natija.name).toUpperCase()} YUTDINGIZ!`
-      : `🪙 +${d.natija.miqdor} TANGA!`;
-    $("again").style.display = "block";
-    gameInfo();
-    if (tg && tg.HapticFeedback) {
-      tg.HapticFeedback.notificationOccurred(d.natija.tur === "personaj" ? "success" : "warning");
-    }
-    if (d.natija.tur === "personaj") loadCollection();
-  } catch (err) {
-    toast("ULANISH XATOSI");
-    $("gmsg").textContent = "BITTA KARTANI TANLANG";
-    gameBusy = false;
-  }
-});
-/* ---------- Yuklash ---------- */
-async function loadCollection() {
-  if (API_URL && tg && tg.initData) {
-    try {
-      const res = await fetch(API_URL + "/api/collection", {
-        headers: { "X-Init-Data": tg.initData },
-      });
-      const data = await res.json();
-      items = data.map((x) => ({
-        name: x.name, anime: x.anime,
-        r: RMAP[String(x.rarity).toLowerCase()] || 1,
-        count: x.count || 1, image: x.image ? API_URL + x.image : "",
-      }));
-    } catch (e) {
-      items = [];
-    }
-  } else {
-    items = DEMO;
-  }
-  stats(); render();
-}
-
-async function loadMe() {
-  if (!(API_URL && tg && tg.initData)) return;
-  try {
-    const res = await fetch(API_URL + "/api/me", {
-      headers: { "X-Init-Data": tg.initData },
-    });
-    const d = await res.json();
-    coins = d.coins;
-    freePlay = d.free;
-    replayCost = d.replay_cost;
-    stats(); gameInfo();
-  } catch (e) {}
-}
-
-async function load() {
-  const u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
-  if (u) {
-    $("uname").textContent = u.first_name || "FOYDALANUVCHI";
-    $("avatar").textContent = (u.first_name || "🌸").charAt(0).toUpperCase();
-    $("handle").textContent = u.username ? "@" + u.username : "";
-  }
-  chips(); shop(); newGame();
-  await loadCollection();
-  await loadMe();
-}
-load();
-</script>
-</body>
-</html>
+<nav id="nav"><div class="row">
+  <button class="bev nb on" data-t="profil"><div class="in"><small>MENING</small><span>PROFIL</span></div></button>
+  <button class="bev nb" data-t="kol"><div class="in"><small>YIG'ILGAN</small><span>KOLLEKSIYA</span></div></button>
+  <button class="bev nb" data-t="dokon"><div class="in"><small>SOTIB OL</small><span>DO'KON</span></div></button>
+  <button class="bev nb" data-t="ref"><div class="in"><small>DO'ST CHAQIR</small><span>REFERAL</span></div></button>
+  <button class="bev nb" data-t="oyin"><div class="in"><small>OMAD SINA</small><span>O'YIN</span></div></button>
+</div></nav>
