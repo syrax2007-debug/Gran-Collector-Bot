@@ -14,6 +14,7 @@ from royxat import (
 )
 import admin_vositalar
 import referal
+import reyting
 from telegram import (
     Update, InlineQueryResultCachedPhoto,
     InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo,
@@ -814,6 +815,7 @@ ilova.add_handler(
 ilova.add_handler(InlineQueryHandler(inline_qidiruv))
 admin_vositalar.ulash(ilova, baza, ADMIN_ID, nodirlik_kaliti, NODIRLIK)
 referal.ulash(ilova, baza)
+reyting.ulash(ilova, baza)
 
 if __name__ == "__main__":
     ilova.run_polling()
