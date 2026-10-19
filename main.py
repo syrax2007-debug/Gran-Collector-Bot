@@ -132,12 +132,11 @@ def yulduz_matni(p):
 
 def kartochka(p):
     # Inline natijalar uchun qisqa kartochka
-    kod = str(p["_id"])[-4:].upper()
     return (
         f"🗽 Ismi : {K(p['name'])}\n"
         f"🎗️ RANK : {yulduz_matni(p)}\n"
         f"👀 Manba : {K(p['anime'])}\n"
-        f"🔢 Raqam : {p.get('raqam', '?')} | 🆔 <code>#{kod}</code>"
+        f"🔢 Raqam : {p.get('raqam', '?')}"
     )
 
 
