@@ -682,14 +682,14 @@ async def sovga(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await xabar.reply_text("❌ Bu odamga sovga qilib bo'lmaydi !")
         return
 
-        so_z = " ".join(context.args).strip().lower()
+    so_z = " ".join(context.args).strip().lstrip("#").lower()
     idlar = {
         d["char_id"] async for d in kolleksiya.find({"user_id": yuboruvchi.id})
     }
     royxat = [
         p async for p in personajlar.find({"_id": {"$in": list(idlar)}})
     ]
-    # Avval kod yoki raqam bo'yicha, keyin ism bo'yicha qidiramiz
+    # Avval raqam bo'yicha, keyin ism bo'yicha qidiramiz
     tanlangan = None
     for p in royxat:
         if str(p.get("raqam", "")) == so_z:
