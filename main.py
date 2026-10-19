@@ -681,7 +681,7 @@ async def sovga(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await xabar.reply_text("❌ Bu odamga sovga qilib bo'lmaydi !")
         return
 
-    so_z = " ".join(context.args).strip().lstrip("#").lower()
+        so_z = " ".join(context.args).strip().lower()
     idlar = {
         d["char_id"] async for d in kolleksiya.find({"user_id": yuboruvchi.id})
     }
