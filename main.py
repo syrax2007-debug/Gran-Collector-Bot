@@ -691,7 +691,7 @@ async def sovga(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Avval kod yoki raqam bo'yicha, keyin ism bo'yicha qidiramiz
     tanlangan = None
     for p in royxat:
-        if str(p["_id"])[-4:].lower() == so_z or str(p.get("raqam", "")) == so_z:
+        if str(p.get("raqam", "")) == so_z:
             tanlangan = p
             break
     if not tanlangan:
