@@ -28,6 +28,12 @@ KATTA_TANGALAR = [200, 150]  # 2x va 1.5x sovrin
 KICHIK_TANGALAR = [10, 20, 30, 40, 50, 60, 80]  # narxdan kam ("minus")
 
 
+# ---------- Slot sozlamalari ----------
+# (belgi, ehtimol %, tanga). "w" = Super waifu, "x" = bankrot
+SLOT_NATIJALAR = [("w", 5, 0), ("a", 7, 300), ("b", 18, 150), ("c", 30, 60), ("x", 40, 0)]
+SLOT_DARAJA = "epic"  # Super
+
+
 def bugun():
     return datetime.now(TOSHKENT).strftime("%Y-%m-%d")
 
@@ -79,6 +85,26 @@ def kartochka_json(p):
         "raqam": p.get("raqam"),
         "image": f"/api/photo/{p['_id']}",
     }
+
+
+def slot_holat(u, tolangan):
+    # bepul: kuniga 1 ta; bonus: har bir to'langan referal uchun 1 ta, kuniga ko'pi bilan 1 ta
+    b = bugun()
+    bepul = u.get("slot_sana") != b
+    jami = u.get("slot_bonus_jami", 0)
+    if u.get("slot_bonus_sana") == b:
+        bonus = "ishlatildi"
+    elif tolangan > jami:
+        bonus = "bor"
+    else:
+        bonus = "qulf"
+    return {"free": bepul, "bonus": bonus}
+
+
+async def tolangan_soni(baza, uid):
+    return await baza["users"].count_documents(
+        {"referrer": uid, "ref_tolangan": True}
+    )
 
 
 async def foydalanuvchi_ol(baza, f):
@@ -181,6 +207,7 @@ async def me_api(request):
         "ref_tolangan": tolangan,
         "ref_kutilmoqda": kutilmoqda,
         "ref_tanga": REFERAL_TANGA,
+        "slot": slot_holat(u, tolangan),
     })
 
 
@@ -306,6 +333,68 @@ async def oyin_api(request):
     })
 
 
+async def slot_api(request):
+    f = tekshir(request.headers.get("X-Init-Data", ""))
+    if not f:
+        raise web.HTTPUnauthorized(text="Ruxsat yo'q")
+    baza = request.app["baza"]
+    users = baza["users"]
+    uid = f["id"]
+    u = await foydalanuvchi_ol(baza, f)
+    b = bugun()
+    tolangan = await tolangan_soni(baza, uid)
+
+    # Urinishni atomik band qilamiz (avval bepul, keyin referal bonusi)
+    r = await users.update_one(
+        {"_id": uid, "slot_sana": {"$ne": b}}, {"$set": {"slot_sana": b}}
+    )
+    if r.modified_count == 0:
+        holat = slot_holat(u, tolangan)
+        if holat["bonus"] != "bor":
+            return web.json_response({"error": "limit"}, status=429)
+        r = await users.update_one(
+            {
+                "_id": uid,
+                "slot_bonus_sana": u.get("slot_bonus_sana"),
+                "slot_bonus_jami": u.get("slot_bonus_jami"),
+            },
+            {"$set": {"slot_bonus_sana": b}, "$inc": {"slot_bonus_jami": 1}},
+        )
+        if r.modified_count == 0:
+            return web.json_response({"error": "limit"}, status=429)
+
+    # Natijani server tanlaydi
+    shart = {"rarity": {"$in": [SLOT_DARAJA, SLOT_DARAJA.capitalize()]}}
+    nodir_soni = await baza["characters"].count_documents(shart)
+    variantlar = [v for v in SLOT_NATIJALAR if v[0] != "w" or nodir_soni]
+    tanlov = random.SystemRandom().choices(
+        variantlar, weights=[v[1] for v in variantlar]
+    )[0]
+    kalit, _, miqdor = tanlov
+
+    if kalit == "w":
+        p = await baza["characters"].find_one(
+            shart, skip=random.randrange(nodir_soni)
+        )
+        await baza["collection"].insert_one(
+            {"user_id": uid, "char_id": p["_id"]}
+        )
+        natija = dict(kartochka_json(p), tur="personaj")
+    elif kalit == "x":
+        natija = {"tur": "bankrot"}
+    else:
+        natija = {"tur": "tanga", "miqdor": miqdor}
+        await users.update_one({"_id": uid}, {"$inc": {"coins": miqdor}})
+
+    u = await users.find_one({"_id": uid})
+    return web.json_response({
+        "k": kalit,
+        "natija": natija,
+        "coins": u.get("coins", 0),
+        "slot": slot_holat(u, tolangan),
+    })
+
+
 async def ishga_tushish(app):
     app["mijoz"] = AsyncMongoClient(MONGO_URI)
     app["baza"] = app["mijoz"]["waifu"]
@@ -340,7 +429,7 @@ app.router.add_get("/api/photo/{pid}", rasm)
 app.router.add_get("/api/me", me_api)
 app.router.add_post("/api/favorite", sevimli_api)
 app.router.add_post("/api/game/play", oyin_api)
+app.router.add_post("/api/slot/play", slot_api)
 
 if __name__ == "__main__":
     web.run_app(app, host="0.0.0.0", port=int(os.environ.get("PORT", "8080")))
-    
