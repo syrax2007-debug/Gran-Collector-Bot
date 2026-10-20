@@ -588,3 +588,363 @@ $("seg").addEventListener("click", function () {
   try { localStorage.setItem("kol_cols", String(cols)); } catch (err) {}
   render(); buzz();
 });
+
+/* ---------- Do'kon (namuna) ---------- */
+var SHOP = [{ r: 1, price: 500 }, { r: 2, price: 1500 }, { r: 3, price: 4000 }, { r: 4, price: 10000 }];
+function shop() {
+  $("shop").innerHTML = SHOP.map(function (s) {
+    return '<div class="bev sitem"><div class="in"><div class="big">🪙 ' + s.price + '</div>' +
+      '<div class="rn" style="color:var(--c' + s.r + ')">' + RAR[s.r].n + ' WAIFU</div>' +
+      '<button class="btn" data-buy="' + s.r + '">SOTIB OLISH</button></div></div>';
+  }).join("");
+}
+$("shop").addEventListener("click", function (e) {
+  if (e.target.closest("[data-buy]")) toast("DO'KON TEZ ORADA ISHGA TUSHADI");
+});
+
+/* ---------- Referal ---------- */
+function refRender() {
+  $("refTanga").textContent = ref.tanga;
+  $("refOk").textContent = ref.ok;
+  $("refKut").textContent = ref.kut;
+  $("refSum").textContent = ref.ok * ref.tanga;
+  $("refLink").textContent = ref.link || "Havola faqat Telegram ichida ko'rinadi";
+}
+$("refShare").addEventListener("click", function () {
+  if (!ref.link) { toast("HAVOLA TOPILMADI"); return; }
+  var url = "https://t.me/share/url?url=" + encodeURIComponent(ref.link) +
+    "&text=" + encodeURIComponent("🎴 Waifu yig'ish o'yini! Qo'shiling:");
+  if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
+  else window.open(url, "_blank");
+});
+$("refCopy").addEventListener("click", async function () {
+  if (!ref.link) { toast("HAVOLA TOPILMADI"); return; }
+  try {
+    await navigator.clipboard.writeText(ref.link);
+    toast("🔗 NUSXALANDI");
+  } catch (e) {
+    toast("NUSXALAB BO'LMADI, ULASHISHNI BOSING");
+  }
+});
+
+/* ---------- O'yin ---------- */
+var gameBusy = false;
+
+function gameInfo() {
+  var t;
+  if (qolgan <= 0) {
+    t = "⏳ BUGUNGI URINISHLAR TUGADI.<br>ERTAGA QAYTING !";
+  } else if (freePlay) {
+    t = "🎁 BEPUL URINISH BOR !<br>URINISH : " + qolgan + "/" + limit;
+  } else {
+    t = "URINISH : " + qolgan + "/" + limit + " • NARXI : 🪙 " + replayCost + "<br>💰 SIZDA : 🪙 " + coins;
+  }
+  $("ginfo").innerHTML = t;
+}
+
+function newGame() {
+  gameBusy = false;
+  $("gmsg").textContent = qolgan <= 0 ? "ERTAGA QAYTING" : "BITTA KARTANI TANLANG";
+  $("again").hidden = true;
+  var h = "";
+  for (var i = 0; i < 9; i++) {
+    h += '<button class="bev gc" data-i="' + i + '"><div class="in"><span>?</span></div></button>';
+  }
+  $("board").innerHTML = h;
+  gameInfo();
+}
+$("again").addEventListener("click", newGame);
+
+$("board").addEventListener("click", async function (e) {
+  var b = e.target.closest(".gc");
+  if (!b || gameBusy) return;
+  if (qolgan <= 0) { toast("BUGUNGI URINISHLAR TUGADI"); return; }
+  if (!freePlay && coins < replayCost) {
+    toast("TANGA YETMAYDI : KERAK 🪙 " + replayCost);
+    return;
+  }
+  gameBusy = true;
+  $("gmsg").textContent = "⏳ ...";
+  var pick = Number(b.dataset.i);
+  try {
+    var r = onlayn() ? await api("/api/game/play", { method: "POST", body: JSON.stringify({ pick: pick }) }) : demoPlay(pick);
+    var d = r.data || {};
+    if (!r.ok) {
+      toast(d.error === "tanga_yetmaydi" ? "TANGA YETMAYDI"
+        : d.error === "limit" ? "BUGUNGI URINISHLAR TUGADI" : "XATO, QAYTA URINING");
+      $("gmsg").textContent = "BITTA KARTANI TANLANG";
+      gameBusy = false;
+      return;
+    }
+    document.querySelectorAll(".gc").forEach(function (el, i) {
+      var c = d.taxta[i];
+      el.classList.add("open");
+      if (c.tur === "personaj") {
+        el.classList.add("prize");
+        el.firstChild.innerHTML = "<span>🎁</span><small>WAIFU</small>";
+      } else {
+        el.firstChild.innerHTML = "<span>🪙</span><small>+" + c.miqdor + "</small>";
+      }
+      if (i === pick) el.classList.add("picked");
+    });
+    coins = d.coins;
+    freePlay = d.free;
+    qolgan = d.qolgan;
+    replayCost = d.replay_cost;
+    stats();
+
+    var narx = d.pullik ? d.replay_cost : 0;
+    if (d.natija.tur === "personaj") {
+      $("gmsg").textContent = "🎉 WAIFU YUTDINGIZ !" + (narx ? " (NARX −" + narx + ")" : "");
+      celebrate("big");
+      setTimeout(function () { openModal(toItem(d.natija), false, "🎉 SIZ YUTDINGIZ !"); }, 450);
+      loadCollection();
+    } else {
+      celebrate(d.natija.miqdor >= 150 ? "mid" : "small");
+      var sof = d.natija.miqdor - narx;
+      $("gmsg").textContent = "🪙 +" + d.natija.miqdor + (narx
+        ? " • NARX −" + narx + " • SOF " + (sof >= 0 ? "+" : "") + sof : "");
+    }
+    $("again").hidden = qolgan <= 0;
+    gameInfo();
+    try {
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred(d.natija.tur === "personaj" ? "success" : "warning");
+    } catch (e2) {}
+  } catch (err) {
+    toast("ULANISH XATOSI");
+    $("gmsg").textContent = "BITTA KARTANI TANLANG";
+    gameBusy = false;
+  }
+});
+
+
+/* ---------- Tabrik effekti (konfetti) ---------- */
+function celebrate(level) {
+  var c = $("fx"); if (!c) return;
+  var x = c.getContext("2d");
+  c.width = innerWidth; c.height = innerHeight;
+  var n = level === "big" ? 190 : level === "mid" ? 110 : 55;
+  var col = ["#e0192e", "#ff5a52", "#ffd24a", "#ffffff", "#ff9a1a", "#ff3b4e"];
+  var P = [], k;
+  for (k = 0; k < n; k++) {
+    var a = -Math.PI / 2 + (Math.random() - .5) * 2.2, v = 6 + Math.random() * (level === "big" ? 13 : 9);
+    P.push({ x: innerWidth / 2, y: innerHeight * .45, vx: Math.cos(a) * v, vy: Math.sin(a) * v, w: 5 + Math.random() * 6, h: 3 + Math.random() * 5,
+      r: Math.random() * 6, vr: (Math.random() - .5) * .4, c: col[k % col.length] });
+  }
+  var t0 = performance.now(), life = level === "big" ? 3200 : 2200;
+  function f(t) {
+    var el = t - t0;
+    x.clearRect(0, 0, c.width, c.height);
+    if (level === "big" && el < 260) { x.fillStyle = "rgba(255,210,74," + (0.28 * (1 - el / 260)) + ")"; x.fillRect(0, 0, c.width, c.height); }
+    P.forEach(function (p) {
+      p.vy += .28; p.vx *= .992; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      x.save(); x.translate(p.x, p.y); x.rotate(p.r);
+      x.globalAlpha = Math.max(0, 1 - el / life);
+      x.fillStyle = p.c; x.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); x.restore();
+    });
+    if (el < life) requestAnimationFrame(f); else x.clearRect(0, 0, c.width, c.height);
+  }
+  requestAnimationFrame(f);
+  try { if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success"); } catch (e) {}
+}
+
+/* ---------- Demo: kartalar o'yini (haqiqiy botda server hal qiladi) ---------- */
+function demoPlay(pick) {
+  var pullik = !freePlay;
+  if (pullik) coins -= replayCost;
+  var v = [200, 150, 10, 20, 30, 40, 50, 60, 80].sort(function () { return Math.random() - .5; });
+  var pz = Math.floor(Math.random() * 9);
+  var taxta = v.map(function (m, i) { return i === pz ? { tur: "personaj" } : { tur: "tanga", miqdor: m }; });
+  var natija;
+  if (pick === pz) {
+    var d2 = DEMO[1];
+    natija = { tur: "personaj", id: d2.id, name: d2.name, anime: d2.anime, rarity: "rare", raqam: d2.raqam, count: 1, image: d2.image };
+  } else {
+    natija = { tur: "tanga", miqdor: v[pick] };
+    coins += v[pick];
+  }
+  qolgan--; freePlay = false;
+  return { ok: true, data: { taxta: taxta, natija: natija, coins: coins, free: freePlay, qolgan: qolgan, replay_cost: replayCost, pullik: pullik } };
+}
+
+/* ---------- O'yin tanlash ---------- */
+document.querySelector(".gsel").addEventListener("click", function (e) {
+  var b = e.target.closest(".gs"); if (!b) return;
+  document.querySelectorAll(".gs").forEach(function (x) { x.classList.toggle("on", x === b); });
+  $("g-kart").hidden = b.dataset.m !== "kart";
+  $("g-slot").hidden = b.dataset.m !== "slot";
+  var sc = $("sc"); if (sc) sc.scrollTop = 0;
+  buzz();
+});
+
+/* ---------- Slot ---------- */
+var SYM = { w: "👑", a: "💎", b: "🪙", c: "🌸", x: "💀" };
+var OUT = [{ k: "w", p: 5 }, { k: "a", p: 7, m: 300 }, { k: "b", p: 18, m: 150 }, { k: "c", p: 30, m: 60 }, { k: "x", p: 40 }];
+var slotSt = { free: true, bonus: "qulf" }, spinning = false;
+function sLeft() { return (slotSt.free ? 1 : 0) + (slotSt.bonus === "bor" ? 1 : 0); }
+function slotInfo() {
+  var t;
+  if (sLeft() <= 0) t = "⏳ BUGUNGI AYLANTIRISHLAR TUGADI.<br>ERTAGA QAYTING !" +
+    (slotSt.bonus === "qulf" ? "<br>🔒 YANA 1 TA : 1 DO'ST TAKLIF QILING" : "");
+  else {
+    t = slotSt.free ? "🎁 BEPUL AYLANTIRISH : 1" : "🎁 BEPUL AYLANTIRISH : ISHLATILDI";
+    if (slotSt.bonus === "bor") t += "<br>👥 DO'ST BONUSI : 1";
+    else if (slotSt.bonus === "qulf") t += "<br>🔒 YANA 1 TA : 1 DO'ST TAKLIF QILING";
+  }
+  $("sinfo").innerHTML = t;
+  $("spin").disabled = spinning || sLeft() <= 0;
+}
+function symCell(k) { return '<div class="sy">' + SYM[k] + '</div>'; }
+function reelsInit() {
+  var keys = Object.keys(SYM);
+  document.querySelectorAll(".reel .strip").forEach(function (st, i) {
+    st.style.transition = "none"; st.style.transform = "translateY(0)";
+    st.innerHTML = symCell(keys[(i * 2 + 1) % keys.length]);
+  });
+}
+function rollOut() {
+  var r = Math.random() * 100, a = 0;
+  for (var i = 0; i < OUT.length; i++) { a += OUT[i].p; if (r < a) return OUT[i]; }
+  return OUT[OUT.length - 1];
+}
+function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+async function spin() {
+  if (spinning) return;
+  if (sLeft() <= 0) { toast("BUGUNGI AYLANTIRISHLAR TUGADI"); return; }
+  spinning = true;
+  var rs = $("reels"); rs.classList.remove("win", "lose");
+  $("smsg").textContent = "🎰 AYLANMOQDA...";
+  $("spin").disabled = true;
+  var o, wonItem = null, newSt = null, newCoins = null;
+  if (onlayn()) {
+    var rr;
+    try { rr = await api("/api/slot/play", { method: "POST", body: "{}" }); } catch (e) { rr = null; }
+    if (!rr || !rr.ok) {
+      toast(rr && rr.data && rr.data.error === "limit" ? "BUGUNGI AYLANTIRISHLAR TUGADI" : "XATO, QAYTA URINING");
+      spinning = false; $("smsg").textContent = "3 TA BIR XIL BELGI = YUTUQ"; slotInfo();
+      return;
+    }
+    var dd = rr.data;
+    o = { k: dd.k, m: dd.natija && dd.natija.miqdor };
+    if (dd.k === "w" && dd.natija) wonItem = toItem(dd.natija);
+    newSt = dd.slot; newCoins = dd.coins;
+  } else {
+    o = rollOut();
+    if (slotSt.free) slotSt.free = false; else slotSt.bonus = "ishlatildi";
+  }
+  slotInfo();
+  var keys = Object.keys(SYM), N = 28, cell = 84;
+  document.querySelectorAll(".reel").forEach(function (reel, i) {
+    var st = reel.firstElementChild, h = "";
+    for (var j = 0; j < N - 1; j++) h += symCell(keys[Math.floor(Math.random() * keys.length)]);
+    h += symCell(o.k);
+    st.style.transition = "none"; st.style.transform = "translateY(0)"; st.innerHTML = h;
+    void st.offsetHeight;
+    var dur = 1.7 + i * .75;
+    reel.classList.add("spin"); reel.classList.remove("stop");
+    st.style.transition = "transform " + dur + "s cubic-bezier(.12,.8,.18,1)";
+    st.style.transform = "translateY(-" + ((N - 1) * cell) + "px)";
+    setTimeout(function () { reel.classList.remove("spin"); reel.classList.add("stop"); buzz(); }, dur * 1000);
+  });
+  await wait(1700 + 2 * 750 + 350);
+  spinning = false;
+  if (newSt) slotSt = newSt;
+  if (newCoins !== null) coins = newCoins;
+  if (o.k === "w") {
+    rs.classList.add("win");
+    $("smsg").textContent = "👑 SUPER WAIFU YUTDINGIZ !";
+    celebrate("big");
+    var it = wonItem || DEMO.filter(function (d) { return d.r === 3; })[0] || DEMO[0];
+    setTimeout(function () { openModal(it, false, "🎉 SUPER WAIFU !"); }, 700);
+    if (onlayn()) loadCollection();
+  } else if (o.k === "x") {
+    rs.classList.add("lose");
+    $("smsg").textContent = "💀 BANKROT ! BU SAFAR OMAD KELMADI";
+    try { if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("error"); } catch (e) {}
+  } else {
+    rs.classList.add("win");
+    if (newCoins === null) coins += o.m;
+    stats();
+    $("smsg").textContent = "🪙 +" + o.m + " TANGA YUTDINGIZ !";
+    celebrate(o.m >= 150 ? "mid" : "small");
+  }
+  slotInfo();
+}
+$("spin").addEventListener("click", spin);
+reelsInit(); slotInfo();
+
+/* ---------- Yuklash ---------- */
+async function loadCollection() {
+  if (onlayn()) {
+    try {
+      var r = await api("/api/collection");
+      items = r.ok ? r.data.map(toItem) : [];
+    } catch (e) {
+      items = [];
+    }
+  } else {
+    items = DEMO;
+    if (!window.__demoInit) { window.__demoInit = 1; coins = 1250; stats(); gameInfo(); }
+  }
+  stats(); render();
+}
+
+async function loadMe() {
+  if (!onlayn()) return;
+  try {
+    var r = await api("/api/me");
+    if (!r.ok) return;
+    var d = r.data;
+    coins = d.coins;
+    freePlay = d.free;
+    qolgan = d.qolgan;
+    limit = d.limit;
+    replayCost = d.replay_cost;
+    fav = d.sevimli ? toItem(d.sevimli) : null;
+    ref = { link: d.ref_link, ok: d.ref_tolangan, kut: d.ref_kutilmoqda, tanga: d.ref_tanga };
+    if (d.slot) slotSt = d.slot;
+    stats(); gameInfo(); favRender(); refRender(); slotInfo();
+  } catch (e) {}
+}
+
+async function load() {
+  try {
+    var sc = Number(localStorage.getItem("kol_cols"));
+    if (sc === 3 || sc === 4) cols = sc;
+  } catch (e) {}
+  var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+  if (u) {
+    $("uname").textContent = u.first_name || "FOYDALANUVCHI";
+    $("handle").textContent = u.username ? "@" + u.username : "";
+    avatarOrnat(u);
+  }
+  chips(); shop(); newGame(); favRender(); refRender(); render();
+  await loadCollection();
+  await loadMe();
+}
+load();
+
+/* gullar + chiroqpashshalar */
+(function(){
+  var s="",n=9,i,a,r,cx,cy,ex,ey,k;
+  for(i=0;i<n;i++){a=(-160+i*(140/(n-1)))*Math.PI/180;r=34+((i*7)%5)*3;ex=Math.cos(a)*r;ey=Math.sin(a)*r;k=(i%2?1:-1)*10;
+    cx=Math.cos(a)*r*.5+Math.sin(a)*k;cy=Math.sin(a)*r*.5-Math.cos(a)*k;
+    s+='<path d="M0 22 Q'+cx.toFixed(1)+' '+(cy+8).toFixed(1)+' '+ex.toFixed(1)+' '+ey.toFixed(1)+'" stroke="#e0192e" stroke-width="1.5" fill="none" stroke-linecap="round"/><circle cx="'+ex.toFixed(1)+'" cy="'+ey.toFixed(1)+'" r="1.9" fill="#ff6a5a"/>';}
+  s+='<path d="M0 50 Q-3 36 0 22" stroke="#7d1020" stroke-width="2" fill="none"/><circle cx="0" cy="22" r="2.6" fill="#b0121f"/>';
+  document.getElementById("lily").innerHTML=s;
+  var h="",xs=[-2,14,30,47,63,80,94],sz=[110,80,130,90,120,84,104];
+  xs.forEach(function(x,i){h+='<svg viewBox="-50 -50 100 100" style="left:'+x+'%;width:'+sz[i]+'px;height:'+sz[i]+'px;margin-left:-'+(sz[i]/2)+'px;opacity:'+(.55+(i%3)*.15)+'"><use href="#lily"/></svg>'});
+  document.getElementById("field").innerHTML=h;
+  var c=document.getElementById("ff"),x=c.getContext("2d"),P=[],still=window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+  function size(){c.width=innerWidth;c.height=innerHeight}size();addEventListener("resize",size);
+  for(i=0;i<26;i++)P.push({x:Math.random(),y:.25+Math.random()*.7,r:1+Math.random()*1.6,s:Math.random()*6,v:.4+Math.random()*.8});
+  function f(t){x.clearRect(0,0,c.width,c.height);
+    P.forEach(function(p){var px=(p.x+Math.sin(t/4000*p.v+p.s)*.04)*c.width,py=(p.y+Math.cos(t/5000*p.v+p.s)*.03)*c.height,al=.35+.55*Math.abs(Math.sin(t/1400*p.v+p.s));
+      x.beginPath();x.arc(px,py,p.r,0,6.283);x.fillStyle="rgba(170,255,120,"+al+")";x.shadowColor="#9dff5a";x.shadowBlur=10;x.fill();});
+    if(!still)requestAnimationFrame(f);}
+  requestAnimationFrame(f);
+})();
+</script>
+</body>
+</html>
