@@ -219,3 +219,372 @@ input{flex:1;min-width:0;padding:10px;background:var(--glass2);border:1px solid 
 .orn{position:absolute;right:-8px;bottom:-10px;width:120px;height:120px;opacity:.85;pointer-events:none;z-index:1}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
     </style>
+
+</head>
+<body>
+<div class="sky"></div><div class="moon"></div><div class="cloud a"></div><div class="cloud b"></div>
+<canvas id="ff"></canvas>
+<div class="field" id="field"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="lily"></g></defs></svg>
+
+<div class="wrap">
+
+  <div class="header">
+    <div class="slot l"><span>TANGA</span><b id="coins">0</b></div>
+    <div class="bev nameplate"><div class="in"><span id="uname">FOYDALANUVCHI</span></div></div>
+    <div class="slot r"><span>JAMI</span><b id="sJami">0</b></div>
+  </div>
+
+  <div class="frame" id="frame" data-tab="profil">
+    <div class="favbg" id="favBg"></div>
+    <div class="flame a"></div><div class="flame b"></div><svg class="orn" viewBox="-50 -50 100 100"><use href="#lily"/></svg>
+
+    <div class="sc" id="sc">
+    <!-- 1. PROFIL -->
+    <section class="tab on" id="tab-profil">
+      <div class="title"><small>W A I F U &nbsp; B O T</small><h1 data-g="PROFIL">PROFIL</h1></div>
+      <div class="favtag" id="favTag"></div>
+      <div class="bev pbox"><div class="in">
+        <div class="top">
+          <div id="avatar">🌸</div>
+          <div id="handle"></div>
+        </div>
+        <div class="mini">
+          <div class="st"><small>TURLI</small><b id="sXil">0</b></div>
+          <div class="st"><small>AJOYIB</small><b id="sAj">0</b></div>
+          <div class="st"><small>SUPER</small><b id="sSup">0</b></div>
+          <div class="st"><small>MEGA</small><b id="sMega">0</b></div>
+        </div>
+      </div></div>
+    </section>
+
+    <!-- 2. KOLLEKSIYA -->
+    <section class="tab" id="tab-kol">
+      <div class="title"><small>M E N I N G</small><h1 data-g="WAIFU">KOLLEKSIYA</h1></div>
+      <div class="bar"><input id="q" placeholder="ISM YOKI MANBA..."><button class="btn" id="seg">▦ 3</button></div>
+      <div class="chips" id="chips"></div>
+      <div class="grid c3" id="grid"></div>
+    </section>
+
+    <!-- 3. DO'KON -->
+    <section class="tab" id="tab-dokon">
+      <div class="title"><small>T A N G A</small><h1 data-g="SHOP">DO'KON</h1></div>
+      <div class="shop" id="shop"></div>
+      <div class="demo">⏳ DO'KON TEZ ORADA ISHGA TUSHADI.<br>NARXLAR HOZIRCHA NAMUNA.</div>
+    </section>
+
+    <!-- 4. REFERAL -->
+    <section class="tab" id="tab-ref">
+      <div class="title"><small>D O ' S T L A R</small><h1 data-g="REFERAL">REFERAL</h1></div>
+      <div class="refbox">
+        <div class="line"><span>HAR BIR DO'ST UCHUN</span><b style="color:var(--gold)">+<span id="refTanga">250</span> 🪙</b></div>
+        <div class="line"><span>✅ QO'SHILGANLAR</span><b id="refOk">0</b></div>
+        <div class="line"><span>⏳ KUTILMOQDA</span><b id="refKut">0</b></div>
+        <div class="line"><span>🪙 OLINGAN</span><b id="refSum">0</b></div>
+        <div class="link" id="refLink">...</div>
+        <div class="row2"><button class="btn" id="refShare">📤 ULASHISH</button><button class="btn ghost" id="refCopy">🔗 NUSXA</button></div>
+        <div class="demo">DO'STINGIZ HAVOLA ORQALI BOTGA KIRADI, KANAL VA GURUHGA QO'SHILIB, BOTDA «✅ TEKSHIRISH» NI BOSSA, SIZGA TANGA BERILADI.</div>
+      </div>
+    </section>
+
+    <!-- 5. O'YIN -->
+    <section class="tab" id="tab-oyin">
+      <div class="title"><small>O M A D N I &nbsp; S I N A N G</small><h1 data-g="LUCKY">O'YIN</h1></div>
+      <div class="gsel">
+        <button class="bev gs on" data-m="kart"><div class="in"><span class="ic">🃏</span><b>KARTALAR</b><small>9 TA KARTA</small></div></button>
+        <button class="bev gs" data-m="slot"><div class="in"><span class="ic">🎰</span><b>SLOT</b><small>KUNIGA 1 BEPUL</small></div></button>
+      </div>
+
+      <div id="g-kart">
+        <div id="ginfo"></div>
+        <div class="board" id="board"></div>
+        <div id="gmsg">BITTA KARTANI TANLANG</div>
+        <button class="btn" id="again" hidden>🔁 YANA O'YNASH</button>
+        <div class="note">🎁 HAR O'YINDA 9 TA KARTANING BITTASIDA WAIFU YASHIRINGAN.<br>🏆 KATTA SOVRINLAR: 2x VA 1.5x.</div>
+      </div>
+
+      <div id="g-slot" hidden>
+        <div id="sinfo"></div>
+        <div class="bev slotbox"><div class="in">
+          <div class="reels" id="reels">
+            <div class="reel"><div class="strip"></div></div>
+            <div class="reel"><div class="strip"></div></div>
+            <div class="reel"><div class="strip"></div></div>
+            <div class="payline"></div>
+          </div>
+        </div></div>
+        <button class="btn" id="spin">🎰 AYLANTIRISH</button>
+        <div id="smsg">3 TA BIR XIL BELGI = YUTUQ</div>
+        <div class="ptable">
+          <div class="line"><span>👑👑👑 SUPER WAIFU</span><b>5%</b></div>
+          <div class="line"><span>💎💎💎 +300 🪙</span><b>7%</b></div>
+          <div class="line"><span>🪙🪙🪙 +150 🪙</span><b>18%</b></div>
+          <div class="line"><span>🌸🌸🌸 +60 🪙</span><b>30%</b></div>
+          <div class="line"><span>💀💀💀 BANKROT</span><b>40%</b></div>
+        </div>
+      </div>
+    </section>
+    </div>
+  </div>
+</div>
+
+<div id="modal"><div class="bev" id="mbox"><div class="in" id="mcont"></div></div></div>
+<div id="toast"></div>
+<canvas id="fx"></canvas>
+
+<nav id="nav"><div class="row">
+  <button class="bev nb on" data-t="profil"><div class="in"><small>MENING</small><span>PROFIL</span></div></button>
+  <button class="bev nb" data-t="kol"><div class="in"><small>YIG'ILGAN</small><span>KOLLEKSIYA</span></div></button>
+  <button class="bev nb" data-t="dokon"><div class="in"><small>SOTIB OL</small><span>DO'KON</span></div></button>
+  <button class="bev nb" data-t="ref"><div class="in"><small>DO'ST CHAQIR</small><span>REFERAL</span></div></button>
+  <button class="bev nb" data-t="oyin"><div class="in"><small>OMAD SINA</small><span>O'YIN</span></div></button>
+</div></nav>
+
+<script>
+var API_URL = "https://gran-api.onrender.com";
+
+var tg = window.Telegram && window.Telegram.WebApp;
+if (tg) {
+  try { tg.ready(); tg.expand(); if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); tg.setHeaderColor("#031013"); tg.setBackgroundColor("#031013"); } catch (e) {}
+}
+
+function $(id) { return document.getElementById(id); }
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+function buzz() { try { if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light"); } catch (e) {} }
+function onlayn() { return !!(API_URL && tg && tg.initData); }
+
+function toast(t) {
+  var el = $("toast");
+  el.textContent = t;
+  el.classList.add("on");
+  setTimeout(function () { el.classList.remove("on"); }, 2200);
+}
+
+async function api(path, opts) {
+  opts = opts || {};
+  var res = await fetch(API_URL + path, {
+    method: opts.method || "GET",
+    headers: { "X-Init-Data": tg.initData, "Content-Type": "application/json" },
+    body: opts.body,
+  });
+  var data = null;
+  try { data = await res.json(); } catch (e) {}
+  return { ok: res.ok, status: res.status, data: data };
+}
+
+/* ---------- Bo'limlar ---------- */
+function show(t) {
+  document.querySelectorAll(".tab").forEach(function (x) { x.classList.toggle("on", x.id === "tab-" + t); });
+  document.querySelectorAll(".nb").forEach(function (x) { x.classList.toggle("on", x.dataset.t === t); });
+  $("frame").dataset.tab = t;
+  var sc = $("sc"); if (sc) sc.scrollTop = 0;
+  window.scrollTo(0, 0);
+  buzz();
+}
+$("nav").addEventListener("click", function (e) {
+  var b = e.target.closest(".nb");
+  if (b) show(b.dataset.t);
+});
+
+/* ---------- Ma'lumotlar ---------- */
+var RAR = {
+  1: { n: "YAXSHI" }, 2: { n: "AJOYIB" }, 3: { n: "SUPER" }, 4: { n: "MEGA" }, 5: { n: "MAXSUS" },
+};
+var RMAP = { common: 1, rare: 2, epic: 3, legendary: 4, special: 5 };
+function starsOf(r) {
+  if (r === 5) return "✨ MAXSUS ✨";
+  return "★".repeat(r) + "☆".repeat(5 - r);
+}
+
+var DEMO = [
+  { id: "d1", name: "Rem", anime: "Re:Zero", r: 2, raqam: 4821, count: 1 },
+  { id: "d2", name: "Zero Two", anime: "Darling in the Franxx", r: 4, raqam: 273, count: 1 },
+  { id: "d3", name: "Mikasa", anime: "Attack on Titan", r: 3, raqam: 1190, count: 2 },
+  { id: "d4", name: "Hinata", anime: "Naruto", r: 1, raqam: 3302, count: 3 },
+  { id: "d5", name: "Asuna", anime: "Sword Art Online", r: 3, raqam: 905, count: 1 },
+  { id: "d6", name: "Nezuko", anime: "Demon Slayer", r: 4, raqam: 5521, count: 1 },
+];
+
+var items = [];
+var filter = 0;
+var query = "";
+var cols = 3;
+var coins = 0;
+var fav = null;
+var modalItem = null;
+var freePlay = true, replayCost = 100, qolgan = 5, limit = 5;
+var ref = { link: "", ok: 0, kut: 0, tanga: 250 };
+
+function toItem(x) {
+  return {
+    id: x.id, name: x.name, anime: x.anime,
+    r: RMAP[String(x.rarity).toLowerCase()] || 1,
+    raqam: x.raqam, count: x.count || 1,
+    image: x.image ? (/^data:/.test(x.image) ? x.image : API_URL + x.image) : "",
+  };
+}
+
+/* ---------- Kartochkalar ---------- */
+function ini(n) {
+  return String(n || "?").split(" ").map(function (w) { return w.charAt(0); }).join("").slice(0, 2).toUpperCase();
+}
+function tile(it, showCnt) {
+  return '<div class="pic" style="--rc:var(--c' + it.r + ')">' +
+    (it.image ? '<img src="' + esc(it.image) + '" alt="" loading="lazy">' : esc(ini(it.name))) +
+    (showCnt && it.count > 1 ? '<span class="cnt">×' + it.count + '</span>' : "") +
+    '</div>';
+}
+function miniCard(it, i) {
+  var on = fav && fav.id === it.id;
+  return '<div class="it" data-i="' + i + '">' + tile(it, true) +
+    '<button class="heart' + (on ? " on" : "") + '" data-heart="1" aria-label="Sevimli">' + (on ? "♥" : "♡") + '</button>' +
+    '<span class="nm">' + esc(it.name) + '</span><span class="mn">' + esc(it.anime) + '</span></div>';
+}
+
+function infoBlock(it) {
+  return '<div class="mname">' + esc(it.name) + '</div>' +
+    '<div class="msub">' + esc(RAR[it.r].n) + ' · ' + starsOf(it.r) + '<br>MANBA: ' + esc(it.anime) +
+    (it.raqam ? '<br>№ ' + esc(it.raqam) : "") + '</div>';
+}
+
+function openModal(it, favBtn, title) {
+  modalItem = it;
+  $("mcont").innerHTML =
+    (title ? '<h3>' + title + '</h3>' : "") +
+    '<div style="width:' + (title ? "80%" : "70%") + ';margin:0 auto">' + tile(it, false) + '</div>' +
+    infoBlock(it) +
+    (favBtn ? '<button class="btn" data-act="fav">' + (fav && fav.id === it.id ? "💔 SEVIMLIDAN OLISH" : "❤ SEVIMLI QILISH") + '</button>' : "") +
+    '<button class="btn ghost" data-act="close">YOPISH</button>';
+  $("modal").classList.add("on");
+  buzz();
+}
+
+$("modal").addEventListener("click", function (e) {
+  if (e.target.id === "modal") { $("modal").classList.remove("on"); return; }
+  var b = e.target.closest("[data-act]");
+  if (!b) return;
+  if (b.dataset.act === "fav" && modalItem) {
+    $("modal").classList.remove("on");
+    if (fav && fav.id === modalItem.id) clearFav(); else setFav(modalItem);
+  }
+  if (b.dataset.act === "close") $("modal").classList.remove("on");
+});
+
+/* ---------- Profil ---------- */
+function stats() {
+  $("sJami").textContent = items.reduce(function (a, b) { return a + b.count; }, 0);
+  $("sXil").textContent = items.length;
+  $("sAj").textContent = items.filter(function (x) { return x.r === 2; }).length;
+  $("sSup").textContent = items.filter(function (x) { return x.r === 3; }).length;
+  $("sMega").textContent = items.filter(function (x) { return x.r === 4; }).length;
+  $("coins").textContent = coins;
+}
+
+function avatarOrnat(u) {
+  var a = $("avatar");
+  a.textContent = (u.first_name || "🌸").charAt(0).toUpperCase();
+  if (u.photo_url) {
+    var im = new Image();
+    im.referrerPolicy = "no-referrer";
+    im.onload = function () { a.textContent = ""; a.appendChild(im); };
+    im.src = u.photo_url;
+  }
+}
+
+function favRender() {
+  var bg = $("favBg"), tag = $("favTag"), fr = $("frame");
+  if (!fav) {
+    bg.style.backgroundImage = "";
+    bg.removeAttribute("data-ini");
+    tag.className = "favtag hint";
+    tag.textContent = "KOLLEKSIYADA ♡ BOSIB SEVIMLI WAIFUNI TANLANG";
+    fr.classList.remove("has-fav");
+    render();
+    return;
+  }
+  fr.classList.add("has-fav");
+  if (fav.image) {
+    bg.style.backgroundImage = 'url("' + fav.image + '")';
+    bg.removeAttribute("data-ini");
+  } else {
+    bg.style.backgroundImage = "linear-gradient(160deg,color-mix(in srgb,var(--c" + fav.r + ") 55%,#000),#050d10)";
+    bg.setAttribute("data-ini", ini(fav.name));
+  }
+  tag.className = "favtag";
+  tag.innerHTML = '<b>❤ ' + esc(fav.name) + '</b><small>' + esc(RAR[fav.r].n) + ' · ' + esc(fav.anime) + (fav.raqam ? ' · № ' + esc(fav.raqam) : "") + '</small>';
+  render();
+}
+
+async function setFav(it) {
+  if (onlayn()) {
+    var r = await api("/api/favorite", { method: "POST", body: JSON.stringify({ id: it.id }) });
+    if (!r.ok) { toast("XATO, QAYTA URINING"); return; }
+    fav = toItem(r.data.sevimli);
+  } else {
+    fav = it;
+  }
+  favRender();
+  toast("❤ SEVIMLI WAIFU TANLANDI");
+}
+
+async function clearFav() {
+  if (onlayn()) {
+    var r = await api("/api/favorite", { method: "POST", body: JSON.stringify({ id: null }) });
+    if (!r.ok) { toast("XATO, QAYTA URINING"); return; }
+  }
+  fav = null;
+  favRender();
+  toast("OLIB TASHLANDI");
+}
+
+/* ---------- Kolleksiya ---------- */
+function render() {
+  var list = items.filter(function (it) {
+    if (filter && it.r !== filter) return false;
+    var t = (it.name + " " + it.anime).toLowerCase();
+    return !query || t.indexOf(query) > -1;
+  });
+  $("grid").className = "grid c" + cols;
+  $("grid").innerHTML = list.length
+    ? list.map(function (it) { return miniCard(it, items.indexOf(it)); }).join("")
+    : '<div class="empty2">📭 WAIFU TOPILMADI</div>';
+  $("seg").textContent = cols === 3 ? "▦ 3" : "▥ 4";
+}
+
+function chips() {
+  var h = '<button class="chip ' + (filter === 0 ? "on" : "") + '" data-k="0">HAMMASI</button>';
+  [1, 2, 3, 4, 5].forEach(function (k) {
+    h += '<button class="chip ' + (filter === k ? "on" : "") + '" data-k="' + k + '" style="--rc:var(--c' + k + ')">' + RAR[k].n + '</button>';
+  });
+  $("chips").innerHTML = h;
+}
+
+$("chips").addEventListener("click", function (e) {
+  var b = e.target.closest(".chip");
+  if (!b) return;
+  filter = Number(b.dataset.k);
+  chips(); render(); buzz();
+});
+$("q").addEventListener("input", function (e) {
+  query = e.target.value.trim().toLowerCase();
+  render();
+});
+$("grid").addEventListener("click", function (e) {
+  var c = e.target.closest(".it");
+  if (!c) return;
+  var it = items[Number(c.dataset.i)];
+  if (e.target.closest("[data-heart]")) {
+    if (fav && fav.id === it.id) clearFav(); else setFav(it);
+    return;
+  }
+  openModal(it, true, "");
+});
+$("seg").addEventListener("click", function () {
+  cols = cols === 3 ? 4 : 3;
+  try { localStorage.setItem("kol_cols", String(cols)); } catch (err) {}
+  render(); buzz();
+});
