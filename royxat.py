@@ -4,11 +4,12 @@ import random
 
 # Daraja emojilari (xohlagancha almashtiring)
 DARAJA_EMOJI = {
-    "common": "🍀",
-    "rare": "💎",
-    "epic": "🔮",
-    "legendary": "👑",
-    "special": "💠",
+    "common": "💠",  # ELITA
+    "rare": "🌟",  # SUPER
+    "epic": "💎",  # MEGA
+    "legendary": "🔥",  # ULTRA
+    "special": "⛩️",  # COLLECTOR
+    "max": "👑",  # MAX
 }
 MAKS_XABAR = 6  # kolleksiya ko'pi bilan shuncha xabarga bo'linadi
 RAQAM_MIN = 100

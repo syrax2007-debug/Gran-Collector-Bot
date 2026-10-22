@@ -3,6 +3,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes
+import ismlar
 
 # ---------- Sozlamalar ----------
 TOP_SONI = 10  # /top da nechta odam ko'rsatiladi
@@ -14,11 +15,12 @@ CIZIQ = "━━━━━━━━━━━━━━"
 TOSHKENT = timezone(timedelta(hours=5))
 
 DARAJA = {
-    "common": "Yaxshi 🟢",
-    "rare": "Ajoyib 🔵",
-    "epic": "Super 🟣",
-    "legendary": "Mega 🔥",
-    "special": "Maxsus 💠",
+    "common": "Elita 💠",
+    "rare": "Super 🌟",
+    "epic": "Mega 💎",
+    "legendary": "Ultra 🔥",
+    "special": "Collector ⛩️",
+    "max": "Max 👑",
 }
 
 _baza = None
@@ -62,13 +64,13 @@ async def top(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     birinchilar = hammasi[:TOP_SONI]
     idlar = [d["_id"] for d in birinchilar]
-    ismlar = {}
-    async for u in _baza["users"].find({"_id": {"$in": idlar}}):
-        ismlar[u["_id"]] = u.get("name") or str(u["_id"])
+    ismlar_xarita = await ismlar.ol(
+        _baza, idlar, context.bot, update.effective_chat.id
+    )
 
     qatorlar = []
     for i, d in enumerate(birinchilar):
-        ism = ismlar.get(d["_id"], str(d["_id"]))
+        ism = ismlar_xarita[d["_id"]]
         qatorlar.append(
             f"{nishon(i)} {toza(ism)}\n"
             f"      🧧 {d['jami']} ta  •  🎴 {d['turli']} xil"
@@ -148,15 +150,14 @@ async def ega(update: Update, context: ContextTypes.DEFAULT_TYPE):
     egalar = [d async for d in kursor]
     jami_ega = len(await kolleksiya.distinct("user_id", {"char_id": p["_id"]}))
 
-    ismlar = {}
-    async for u in _baza["users"].find(
-        {"_id": {"$in": [d["_id"] for d in egalar]}}
-    ):
-        ismlar[u["_id"]] = u.get("name") or str(u["_id"])
+    ismlar_xarita = await ismlar.ol(
+        _baza, [d["_id"] for d in egalar], context.bot,
+        update.effective_chat.id,
+    )
 
     if egalar:
         qatorlar = "\n".join(
-            f"{nishon(i)} {toza(ismlar.get(d['_id'], d['_id']))} — ×{d['n']}"
+            f"{nishon(i)} {toza(ismlar_xarita[d['_id']])} — ×{d['n']}"
             for i, d in enumerate(egalar)
         )
     else:
@@ -216,7 +217,11 @@ async def coin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await xabar.reply_text("🔍 Bu odam botdan hali foydalanmagan")
         return
     if oluvchi_ism is None:
-        oluvchi_ism = oluvchi.get("name") or str(oluvchi_id)
+        oluvchi_ism = (
+            await ismlar.ol(
+                _baza, [oluvchi_id], context.bot, update.effective_chat.id
+            )
+        )[oluvchi_id]
 
     b = bugun()
     u = await users.find_one({"_id": yub.id}) or {}
