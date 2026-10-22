@@ -14,7 +14,7 @@
   --neon:#e0192e; --neon2:#ff5a52; --neon3:#7a0c18; --metal:linear-gradient(135deg,#ff6a5a,#d4152a 40%,#7a0c18 65%,#e0334a);
   --dark:#050d10; --glass:rgba(10,4,8,.42); --glass2:rgba(0,0,0,.4);
   --text:#fff; --muted:#c9a6a2; --gold:#ffd24a;
-  --c1:#3ddc84; --c2:#3aa0ff; --c3:#c8102e; --c4:#ff9a1a; --c5:#22e6e0;
+  --c1:#3ddc84; --c2:#3aa0ff; --c3:#c8102e; --c4:#ff9a1a; --c5:#22e6e0; --c6:#ffd24a;
   --glow:0 0 5px #e0192e,0 0 14px rgba(224,25,46,.7);
   --head:"Orbitron","Segoe UI",Arial,sans-serif; --body:"Rajdhani","Segoe UI",Arial,sans-serif;
 }
@@ -251,9 +251,9 @@ input{flex:1;min-width:0;padding:10px;background:var(--glass2);border:1px solid 
         </div>
         <div class="mini">
           <div class="st"><small>TURLI</small><b id="sXil">0</b></div>
-          <div class="st"><small>AJOYIB</small><b id="sAj">0</b></div>
-          <div class="st"><small>SUPER</small><b id="sSup">0</b></div>
-          <div class="st"><small>MEGA</small><b id="sMega">0</b></div>
+          <div class="st"><small>SUPER</small><b id="sAj">0</b></div>
+          <div class="st"><small>MEGA</small><b id="sSup">0</b></div>
+          <div class="st"><small>ULTRA</small><b id="sMega">0</b></div>
         </div>
       </div></div>
     </section>
@@ -316,7 +316,7 @@ input{flex:1;min-width:0;padding:10px;background:var(--glass2);border:1px solid 
         <button class="btn" id="spin">🎰 AYLANTIRISH</button>
         <div id="smsg">3 TA BIR XIL BELGI = YUTUQ</div>
         <div class="ptable">
-          <div class="line"><span>👑👑👑 SUPER WAIFU</span><b>5%</b></div>
+          <div class="line"><span>👑👑👑 MEGA WAIFU</span><b>5%</b></div>
           <div class="line"><span>💎💎💎 +300 🪙</span><b>7%</b></div>
           <div class="line"><span>🪙🪙🪙 +150 🪙</span><b>18%</b></div>
           <div class="line"><span>🌸🌸🌸 +60 🪙</span><b>30%</b></div>
@@ -392,12 +392,11 @@ $("nav").addEventListener("click", function (e) {
 
 /* ---------- Ma'lumotlar ---------- */
 var RAR = {
-  1: { n: "YAXSHI" }, 2: { n: "AJOYIB" }, 3: { n: "SUPER" }, 4: { n: "MEGA" }, 5: { n: "MAXSUS" },
+  1: { n: "ELITA" }, 2: { n: "SUPER" }, 3: { n: "MEGA" }, 4: { n: "ULTRA" }, 5: { n: "COLLECTOR" }, 6: { n: "MAX" },
 };
-var RMAP = { common: 1, rare: 2, epic: 3, legendary: 4, special: 5 };
+var RMAP = { common: 1, rare: 2, epic: 3, legendary: 4, special: 5, max: 6 };
 function starsOf(r) {
-  if (r === 5) return "✨ MAXSUS ✨";
-  return "★".repeat(r) + "☆".repeat(5 - r);
+  return "★".repeat(r) + "☆".repeat(6 - r);
 }
 
 var DEMO = [
@@ -557,7 +556,7 @@ function render() {
 
 function chips() {
   var h = '<button class="chip ' + (filter === 0 ? "on" : "") + '" data-k="0">HAMMASI</button>';
-  [1, 2, 3, 4, 5].forEach(function (k) {
+  [1, 2, 3, 4, 5, 6].forEach(function (k) {
     h += '<button class="chip ' + (filter === k ? "on" : "") + '" data-k="' + k + '" style="--rc:var(--c' + k + ')">' + RAR[k].n + '</button>';
   });
   $("chips").innerHTML = h;
@@ -853,10 +852,10 @@ async function spin() {
   if (newCoins !== null) coins = newCoins;
   if (o.k === "w") {
     rs.classList.add("win");
-    $("smsg").textContent = "👑 SUPER WAIFU YUTDINGIZ !";
+    $("smsg").textContent = "👑 MEGA WAIFU YUTDINGIZ !";
     celebrate("big");
     var it = wonItem || DEMO.filter(function (d) { return d.r === 3; })[0] || DEMO[0];
-    setTimeout(function () { openModal(it, false, "🎉 SUPER WAIFU !"); }, 700);
+    setTimeout(function () { openModal(it, false, "🎉 MEGA WAIFU !"); }, 700);
     if (onlayn()) loadCollection();
   } else if (o.k === "x") {
     rs.classList.add("lose");
