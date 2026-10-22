@@ -15,6 +15,8 @@ from royxat import (
 import admin_vositalar
 import referal
 import reyting
+import ismlar
+import maxevent
 from telegram import (
     Update, InlineQueryResultCachedPhoto,
     InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo,
@@ -57,21 +59,28 @@ RULETKA_JEKPOT = 300  # 7️⃣7️⃣7️⃣
 RULETKA_UCHTA = 100  # boshqa uchta bir xil
 RULETKA_IKKITA = 15  # ikkita bir xil
 
-# kalit: (ko'rinadigan nom, chiqish ehtimoli)
+# 6 ta daraja. kalit (bazada saqlanadi): (ko'rinadigan nom, chiqish ehtimoli)
+# Ehtimol 0 bo'lsa, oddiy chiqishda uchramaydi:
+#   COLLECTOR - faqat EVENT paytida, MAX - faqat asosiy guruhda (/max orqali)
 NODIRLIK = {
-    "common": ("🟢 YAXSHI", 60),
-    "rare": ("🔵 AJOYIB", 25),
-    "epic": ("🟣 SUPER", 10),
-    "legendary": ("🔥 MEGA", 5),
-    "special": ("💠 MAXSUS", 2),
+    "common": ("💠 ELITA", 60),
+    "rare": ("🌟 SUPER", 25),
+    "epic": ("💎 MEGA", 10),
+    "legendary": ("🔥 ULTRA", 5),
+    "special": ("⛩️ COLLECTOR", 0),
+    "max": ("👑 MAX", 0),
 }
 
 # /yuklash da yoziladigan nomlar (eski nomlar ham ishlaydi)
 NODIRLIK_NOMLARI = {
+    "elita": "common",
+    "super": "rare",
+    "mega": "epic",
+    "ultra": "legendary",
+    "collector": "special",
+    "max": "max",
     "yaxshi": "common",
     "ajoyib": "rare",
-    "super": "epic",
-    "mega": "legendary",
     "maxsus": "special",
     "oddiy": "common",
     "nodir": "rare",
@@ -79,8 +88,13 @@ NODIRLIK_NOMLARI = {
     "afsonaviy": "legendary",
 }
 
-# Daraja yulduzlari (5 tadan). MAXSUS yulduzsiz
-YULDUZ = {"common": 1, "rare": 2, "epic": 3, "legendary": 4}
+# Daraja yulduzlari (6 tadan)
+YULDUZ = {
+    "common": 1, "rare": 2, "epic": 3, "legendary": 4, "special": 5, "max": 6,
+}
+YULDUZ_JAMI = 6
+# Oddiy chiqishdan chiqarib tashlanadigan darajalar
+YOPIQ_DARAJALAR = ["special", "Special", "max", "Max", "MAX"]
 
 # ---------- Baza ----------
 mijoz = AsyncMongoClient(os.environ["MONGO_URI"])
@@ -124,11 +138,8 @@ def nodirlik_belgisi(p):
 
 
 def yulduz_matni(p):
-    kalit = p["rarity"].lower()
-    if kalit == "special":
-        return "✨ MAXSUS ✨"
-    soni = YULDUZ.get(kalit, 1)
-    return "★" * soni + "☆" * (5 - soni)
+    soni = YULDUZ.get(str(p["rarity"]).lower(), 1)
+    return "★" * soni + "☆" * (YULDUZ_JAMI - soni)
 
 
 def kartochka(p):
@@ -167,7 +178,11 @@ def kolleksiya_tugmasi(egasi, shaxsiy=False):
 
 
 async def tasodifiy_personaj():
-    kalitlar = list(NODIRLIK)
+    # Event faol bo'lsa, ba'zan shu eventning Collector waifusi chiqadi
+    p = await maxevent.event_personaji()
+    if p:
+        return p
+    kalitlar = [k for k in NODIRLIK if NODIRLIK[k][1] > 0]
     ehtimollar = [NODIRLIK[k][1] for k in kalitlar]
     for _ in range(10):
         kalit = random.choices(kalitlar, ehtimollar)[0]
@@ -177,14 +192,15 @@ async def tasodifiy_personaj():
             return await personajlar.find_one(
                 shart, skip=random.randrange(soni)
             )
-    jami = await personajlar.count_documents({})
+    shart = {"rarity": {"$nin": YOPIQ_DARAJALAR}}
+    jami = await personajlar.count_documents(shart)
     if jami == 0:
         return None
-    return await personajlar.find_one({}, skip=random.randrange(jami))
+    return await personajlar.find_one(shart, skip=random.randrange(jami))
 
 
 async def bonus_personaji():
-    # Avval SUPER (epik), bo'lmasa boshqa darajalardan
+    # Avval MEGA, bo'lmasa boshqa darajalardan
     for kalit in ("epic", "rare", "common", "legendary"):
         shart = {"rarity": {"$in": [kalit, kalit.capitalize()]}}
         soni = await personajlar.count_documents(shart)
@@ -451,7 +467,7 @@ async def xush_kelibsiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"{RAMKA}\n"
         f"💫 Xush kelibsiz, {nomlar} !\n\n"
         "🫶 Sizni ko'rib xursandmiz !\n"
-        f"🎁 /bonus — Super waifu + {XUSH_BONUS_TANGA} tanga\n"
+        f"🎁 /bonus — Mega waifu + {XUSH_BONUS_TANGA} tanga\n"
         "📅 /kunlik — Kunlik tanga\n"
         "🎰 /ruletka — Omadni sinang\n"
         "🐾 /topish ism — Waifuni topish\n\n"
@@ -465,36 +481,55 @@ async def xush_kelibsiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ---------- Admin: personaj yuklash ----------
+YUKLASH_YORDAM = (
+    "Rasm yuboring, izohga yozing:\n"
+    "/yuklash Ism | Manba | Daraja\n"
+    "Daraja: Elita, Super, Mega, Ultra, Collector yoki Max\n\n"
+    "⛩️ Collector uchun event nomi ham kerak:\n"
+    "/yuklash Ism | Manba | Collector | Event nomi\n"
+    "(masalan: Qish 2026, Yoz, Halloween)"
+)
+
+
 async def yuklash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     xabar = update.message
     if update.effective_user.id != ADMIN_ID:
         return
     matn = re.sub(r"^/\w+(@\w+)?", "", xabar.caption or "").strip()
     qismlar = [q.strip() for q in matn.split("|")]
-    if len(qismlar) != 3 or not all(qismlar):
-        await xabar.reply_text(
-            "Rasm yuboring, izohga yozing:\n"
-            "/yuklash Ism | Manba | Nodirlik\n"
-            "Nodirlik: Yaxshi, Ajoyib, Super, Mega yoki Maxsus"
-        )
+    if len(qismlar) not in (3, 4) or not all(qismlar):
+        await xabar.reply_text(YUKLASH_YORDAM)
         return
-    ism, manba, nodirlik = qismlar
+    ism, manba, nodirlik = qismlar[:3]
     kalit = nodirlik_kaliti(nodirlik)
     if not kalit:
         await xabar.reply_text(
-            "Nodirlik: Yaxshi, Ajoyib, Super, Mega yoki Maxsus bo'lishi kerak."
+            "Daraja: Elita, Super, Mega, Ultra, Collector yoki Max bo'lishi kerak."
         )
         return
+    event = None
+    if kalit == "special":
+        if len(qismlar) != 4:
+            await xabar.reply_text(
+                "⛩️ Collector uchun event nomi kerak:\n"
+                "/yuklash Ism | Manba | Collector | Event nomi"
+            )
+            return
+        event = " ".join(qismlar[3].split())
     await raqam_tuzat(baza)
     raqam = await keyingi_raqam(baza)
-    await personajlar.insert_one({
+    hujjat = {
         "name": ism, "anime": manba, "rarity": kalit,
         "file_id": xabar.photo[-1].file_id, "raqam": raqam,
-    })
+    }
+    if event:
+        hujjat["event"] = event
+    await personajlar.insert_one(hujjat)
     jami = await personajlar.count_documents({})
     await xabar.reply_text(
         f"✅ {K(ism)} ({NODIRLIK[kalit][0]}) qo'shildi !\n"
-        f"🔢 Raqam : {raqam} | 🎴 Jami : {jami}",
+        + (f"⛩️ Event : {K(event)}\n" if event else "")
+        + f"🔢 Raqam : {raqam} | 🎴 Jami : {jami}",
         parse_mode="HTML",
     )
 
@@ -502,10 +537,18 @@ async def yuklash(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------- Guruh o'yini ----------
 async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
+    # MAX: faqat asosiy guruhda va admin /max bergan bo'lsagina sanaydi
+    try:
+        await maxevent.sana(update, context)
+    except Exception as xato:
+        logging.warning("MAX sanashda xato: %s", xato)
     hisoblagich[chat_id] = hisoblagich.get(chat_id, 0) + 1
     if hisoblagich[chat_id] < CHIQISH_ORALIGI:
         return
     hisoblagich[chat_id] = 0
+    # MAX personaj hali topilmagan bo'lsa, uning ustiga oddiysi chiqmasin
+    if await maxevent.max_kutilyapti(chat_id):
+        return
     p = await tasodifiy_personaj()
     if not p:
         return
@@ -816,6 +859,8 @@ ilova.add_handler(InlineQueryHandler(inline_qidiruv))
 admin_vositalar.ulash(ilova, baza, ADMIN_ID, nodirlik_kaliti, NODIRLIK)
 referal.ulash(ilova, baza)
 reyting.ulash(ilova, baza)
+ismlar.ulash(ilova, baza)
+maxevent.ulash(ilova, baza, ADMIN_ID, RASMIY_GURUH, yulduz_matni)
 
 if __name__ == "__main__":
     ilova.run_polling()
