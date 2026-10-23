@@ -65,7 +65,18 @@ async def admin_yordam(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "<code>/tahrirlash 4821 | Ism | Manba | Nodirlik</code>\n"
         "(o'zgarmasin desangiz - yozing)\n"
         "<code>/royxat mega</code>  yoki  <code>/royxat re:zero</code>\n"
-        "/tiklash — zaxira faylini yuborib, izohga yozing",
+        "/tiklash — zaxira faylini yuborib, izohga yozing\n\n"
+        "➕ <b>Qo'shimcha</b> (odam xabariga <b>reply</b> yoki ID bilan)\n"
+        "<code>/tangaber 100</code> — tanga berish (minus bilan olish)\n"
+        "<code>/waifuber 4821</code> — waifu berish\n"
+        "<code>/waifuol 4821</code> — waifuni olib qo'yish\n"
+        "<code>/foydalanuvchi</code> — odam haqida ma'lumot\n"
+        "<code>/ban sabab</code>, <code>/unban</code> — taqiqlash\n"
+        "<code>/xabar matn</code> — hammaga xabar\n"
+        "<code>/spawn 4821</code> — guruhda waifu chiqarish\n"
+        "<code>/oraliq 75</code> — chiqish oralig'i\n"
+        "<code>/eventochir Eski | Yangi</code>\n"
+        "/sozlamalar — hamma sozlama bir joyda",
         parse_mode="HTML",
     )
 
