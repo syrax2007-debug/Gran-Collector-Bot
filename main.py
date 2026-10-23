@@ -17,6 +17,7 @@ import referal
 import reyting
 import ismlar
 import maxevent
+import adminplus
 from telegram import (
     Update, InlineQueryResultCachedPhoto,
     InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo,
@@ -543,7 +544,7 @@ async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as xato:
         logging.warning("MAX sanashda xato: %s", xato)
     hisoblagich[chat_id] = hisoblagich.get(chat_id, 0) + 1
-    if hisoblagich[chat_id] < CHIQISH_ORALIGI:
+    if hisoblagich[chat_id] < await adminplus.oraliq_ol(CHIQISH_ORALIGI):
         return
     hisoblagich[chat_id] = 0
     # MAX personaj hali topilmagan bo'lsa, uning ustiga oddiysi chiqmasin
@@ -861,6 +862,10 @@ referal.ulash(ilova, baza)
 reyting.ulash(ilova, baza)
 ismlar.ulash(ilova, baza)
 maxevent.ulash(ilova, baza, ADMIN_ID, RASMIY_GURUH, yulduz_matni)
+adminplus.ulash(
+    ilova, baza, ADMIN_ID, NODIRLIK, yulduz_matni, tasodifiy_personaj,
+    CHIQISH_ORALIGI, RASMIY_GURUH,
+)
 
 if __name__ == "__main__":
     ilova.run_polling()
