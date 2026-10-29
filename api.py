@@ -21,17 +21,34 @@ RUXSAT_ETILGAN = os.environ.get(
 TOSHKENT = timezone(timedelta(hours=5))
 
 # ---------- O'yin sozlamalari ----------
-OYIN_KUNLIK = 5  # kuniga jami urinish
-OYIN_BEPUL = 1  # shundan nechtasi bepul
-REPLAY_NARX = 100  # pullik urinish narxi (tanga)
-KATTA_TANGALAR = [200, 150]  # 2x va 1.5x sovrin
-KICHIK_TANGALAR = [10, 20, 30, 40, 50, 60, 80]  # narxdan kam ("minus")
+OYIN_KUNLIK = 5  # kuniga jami urinish (hammasi pullik)
+OYIN_NARX_BOSH = 100  # 1-urinish narxi
+OYIN_NARX_QADAM = 50  # keyingi urinishlarga qo'shiladi: 100, 150, 200, 250, 300
+# Sovrinlar shu urinish narxining foizi (hammasi narxdan kam). 8 ta tanga + 1 ta waifu
+OYIN_FOIZLAR = [20, 30, 40, 50, 60, 70, 80, 90]
+
+
+def oyin_narx(ishlatilgan):
+    # ishlatilgan = bugun nechta urinish bo'lgan; shu urinish narxi
+    return OYIN_NARX_BOSH + OYIN_NARX_QADAM * ishlatilgan
+
+
+def oyin_sovrinlar(narx):
+    # 5 ga yaxlitlaymiz, doim narxdan kam
+    return [min(narx - 5, max(5, round(narx * f / 100 / 5) * 5)) for f in OYIN_FOIZLAR]
 
 
 # ---------- Slot sozlamalari ----------
-# (belgi, ehtimol %, tanga). "w" = Super waifu, "x" = bankrot
-SLOT_NATIJALAR = [("w", 5, 0), ("a", 7, 300), ("b", 18, 150), ("c", 30, 60), ("x", 40, 0)]
-SLOT_DARAJA = "epic"  # Super
+# Faqat 3 ta bir xil belgi tushsa sovrin beriladi.
+# (belgi, ehtimol %, tanga). "w" = ULTRA waifu, "n" = belgilar mos kelmadi
+# Pullik aylantirish narxiga (100) hisoblangan: o'rtacha qaytim ~49 tanga
+SLOT_NARX = 100  # kuniga 1 ta pullik aylantirish narxi
+SLOT_NATIJALAR = [
+    ("w", 3, 0), ("j", 5, 300), ("a", 8, 150), ("b", 12, 100), ("c", 17, 60),
+    ("n", 55, 0),
+]
+SLOT_BELGILAR = ["w", "j", "a", "b", "c"]
+SLOT_DARAJA = "legendary"  # ULTRA
 
 
 def bugun():
@@ -98,7 +115,8 @@ def slot_holat(u, tolangan):
         bonus = "bor"
     else:
         bonus = "qulf"
-    return {"free": bepul, "bonus": bonus}
+    pullik = "ishlatildi" if u.get("slot_pullik_sana") == b else "bor"
+    return {"free": bepul, "bonus": bonus, "pullik": pullik, "narx": SLOT_NARX}
 
 
 async def tolangan_soni(baza, uid):
@@ -198,10 +216,10 @@ async def me_api(request):
     nom = bot_nomi()
     return web.json_response({
         "coins": u.get("coins", 0),
-        "free": ishlatilgan < OYIN_BEPUL,
+        "free": False,
         "qolgan": max(OYIN_KUNLIK - ishlatilgan, 0),
         "limit": OYIN_KUNLIK,
-        "replay_cost": REPLAY_NARX,
+        "replay_cost": oyin_narx(ishlatilgan),
         "sevimli": sevimli,
         "ref_link": f"https://t.me/{nom}?start=ref_{f['id']}" if nom else "",
         "ref_tolangan": tolangan,
@@ -272,36 +290,37 @@ async def oyin_api(request):
     if ishlatilgan >= OYIN_KUNLIK:
         return web.json_response({"error": "limit"}, status=429)
 
-    # Bepul urinishdan keyingilari tanga evaziga
-    pullik = ishlatilgan >= OYIN_BEPUL
-    if pullik:
-        r = await users.update_one(
-            {"_id": uid, "coins": {"$gte": REPLAY_NARX}},
-            {"$inc": {"coins": -REPLAY_NARX}},
-        )
-        if r.modified_count == 0:
-            return web.json_response(
-                {"error": "tanga_yetmaydi", "replay_cost": REPLAY_NARX},
-                status=402,
-            )
+    # Hamma urinish pullik: 100, 150, 200, 250, 300
+    narx = oyin_narx(ishlatilgan)
     r = await users.update_one(
-        {"_id": uid, "oyin_sana": b, "oyin_soni": {"$lt": OYIN_KUNLIK}},
+        {"_id": uid, "coins": {"$gte": narx}},
+        {"$inc": {"coins": -narx}},
+    )
+    if r.modified_count == 0:
+        return web.json_response(
+            {"error": "tanga_yetmaydi", "replay_cost": narx}, status=402
+        )
+    r = await users.update_one(
+        {"_id": uid, "oyin_sana": b, "oyin_soni": ishlatilgan},
         {"$inc": {"oyin_soni": 1}},
     )
     if r.modified_count == 0:
-        if pullik:
-            await users.update_one(
-                {"_id": uid}, {"$inc": {"coins": REPLAY_NARX}}
-            )
+        await users.update_one({"_id": uid}, {"$inc": {"coins": narx}})
         return web.json_response({"error": "limit"}, status=429)
 
-    # Taxtani server tuzadi: 2x, 1.5x va 7 ta kichik sovrin
+    # Taxtani server tuzadi: 8 ta tanga (narxdan kam) + 1 ta Super waifu
     shart = {"rarity": {"$in": ["rare", "Rare"]}}
     nodir_soni = await baza["characters"].count_documents(shart)
-    karta = KATTA_TANGALAR + KICHIK_TANGALAR
-    random.shuffle(karta)
-    # Har o'yinda 9 ta kartaning bittasida DOIM waifu bor (o'rni tasodifiy)
-    sovrin = random.randrange(9) if nodir_soni else -1
+    tangalar = oyin_sovrinlar(narx)
+    if nodir_soni:
+        sovrin = random.randrange(9)
+        karta = tangalar[:]
+        random.shuffle(karta)
+        karta.insert(sovrin, None)
+    else:
+        sovrin = -1
+        karta = tangalar + [oyin_sovrinlar(narx)[-1]]
+        random.shuffle(karta)
 
     if tanlov == sovrin:
         p = await baza["characters"].find_one(
@@ -325,11 +344,12 @@ async def oyin_api(request):
             else {"tur": "tanga", "miqdor": karta[i]}
             for i in range(9)
         ],
-        "pullik": pullik,
+        "pullik": True,
+        "narx": narx,
         "coins": u.get("coins", 0),
         "qolgan": max(OYIN_KUNLIK - (ishlatilgan + 1), 0),
-        "free": (ishlatilgan + 1) < OYIN_BEPUL,
-        "replay_cost": REPLAY_NARX,
+        "free": False,
+        "replay_cost": oyin_narx(ishlatilgan + 1),
     })
 
 
@@ -344,33 +364,68 @@ async def slot_api(request):
     b = bugun()
     tolangan = await tolangan_soni(baza, uid)
 
-    # Urinishni atomik band qilamiz (avval bepul, keyin referal bonusi)
+    try:
+        pullik_xohish = bool((await request.json()).get("pullik"))
+    except Exception:
+        pullik_xohish = False
+
+    # Urinishni atomik band qilamiz: avval bepul, keyin referal bonusi, oxirida pullik
+    narx = 0
     r = await users.update_one(
         {"_id": uid, "slot_sana": {"$ne": b}}, {"$set": {"slot_sana": b}}
     )
     if r.modified_count == 0:
         holat = slot_holat(u, tolangan)
-        if holat["bonus"] != "bor":
-            return web.json_response({"error": "limit"}, status=429)
-        r = await users.update_one(
-            {
-                "_id": uid,
-                "slot_bonus_sana": u.get("slot_bonus_sana"),
-                "slot_bonus_jami": u.get("slot_bonus_jami"),
-            },
-            {"$set": {"slot_bonus_sana": b}, "$inc": {"slot_bonus_jami": 1}},
-        )
-        if r.modified_count == 0:
-            return web.json_response({"error": "limit"}, status=429)
+        band = False
+        if holat["bonus"] == "bor":
+            r = await users.update_one(
+                {
+                    "_id": uid,
+                    "slot_bonus_sana": u.get("slot_bonus_sana"),
+                    "slot_bonus_jami": u.get("slot_bonus_jami"),
+                },
+                {"$set": {"slot_bonus_sana": b}, "$inc": {"slot_bonus_jami": 1}},
+            )
+            band = r.modified_count > 0
+        if not band:
+            if holat["pullik"] != "bor":
+                return web.json_response({"error": "limit"}, status=429)
+            if not pullik_xohish:
+                return web.json_response({"error": "pullik_kerak"}, status=402)
+            r = await users.update_one(
+                {
+                    "_id": uid,
+                    "coins": {"$gte": SLOT_NARX},
+                    "slot_pullik_sana": {"$ne": b},
+                },
+                {"$inc": {"coins": -SLOT_NARX}, "$set": {"slot_pullik_sana": b}},
+            )
+            if r.modified_count == 0:
+                u2 = await users.find_one({"_id": uid})
+                if u2.get("slot_pullik_sana") == b:
+                    return web.json_response({"error": "limit"}, status=429)
+                return web.json_response(
+                    {"error": "tanga_yetmaydi", "narx": SLOT_NARX}, status=402
+                )
+            narx = SLOT_NARX
 
     # Natijani server tanlaydi
     shart = {"rarity": {"$in": [SLOT_DARAJA, SLOT_DARAJA.capitalize()]}}
     nodir_soni = await baza["characters"].count_documents(shart)
     variantlar = [v for v in SLOT_NATIJALAR if v[0] != "w" or nodir_soni]
-    tanlov = random.SystemRandom().choices(
-        variantlar, weights=[v[1] for v in variantlar]
-    )[0]
+    rng = random.SystemRandom()
+    tanlov = rng.choices(variantlar, weights=[v[1] for v in variantlar])[0]
     kalit, _, miqdor = tanlov
+
+    if kalit == "n":
+        # Uchala belgi bir xil bo'lmasligi shart
+        belgilar = SLOT_BELGILAR if nodir_soni else [x for x in SLOT_BELGILAR if x != "w"]
+        while True:
+            g = [rng.choice(belgilar) for _ in range(3)]
+            if len(set(g)) > 1:
+                break
+    else:
+        g = [kalit] * 3
 
     if kalit == "w":
         p = await baza["characters"].find_one(
@@ -380,8 +435,8 @@ async def slot_api(request):
             {"user_id": uid, "char_id": p["_id"]}
         )
         natija = dict(kartochka_json(p), tur="personaj")
-    elif kalit == "x":
-        natija = {"tur": "bankrot"}
+    elif kalit == "n":
+        natija = {"tur": "yoq"}
     else:
         natija = {"tur": "tanga", "miqdor": miqdor}
         await users.update_one({"_id": uid}, {"$inc": {"coins": miqdor}})
@@ -389,6 +444,8 @@ async def slot_api(request):
     u = await users.find_one({"_id": uid})
     return web.json_response({
         "k": kalit,
+        "g": g,
+        "narx": narx,
         "natija": natija,
         "coins": u.get("coins", 0),
         "slot": slot_holat(u, tolangan),
