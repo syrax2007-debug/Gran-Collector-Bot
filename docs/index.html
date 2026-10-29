@@ -339,7 +339,7 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
       <div class="title"><small>O M A D N I &nbsp; S I N A N G</small><h1 data-g="LUCKY">O'YIN</h1></div>
       <div class="gsel">
         <button class="bev gs on" data-m="kart"><div class="in"><span class="ic">🃏</span><b>KARTALAR</b><small>9 TA KARTA</small></div></button>
-        <button class="bev gs" data-m="slot"><div class="in"><span class="ic">🎰</span><b>SLOT</b><small>KUNIGA 1 BEPUL</small></div></button>
+        <button class="bev gs" data-m="slot"><div class="in"><span class="ic">🎰</span><b>SLOT</b><small>KUNIGA 3 URINISH</small></div></button>
       </div>
 
       <div id="g-kart">
@@ -347,7 +347,7 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
         <div class="board" id="board"></div>
         <div id="gmsg">BITTA KARTANI TANLANG</div>
         <button class="btn" id="again" hidden>🔁 YANA O'YNASH</button>
-        <div class="note">🎁 HAR O'YINDA 9 TA KARTANING BITTASIDA WAIFU YASHIRINGAN.<br>🏆 KATTA SOVRINLAR: 2x VA 1.5x.</div>
+        <div class="note">🎁 HAR O'YINDA 9 TA KARTANING BITTASIDA WAIFU YASHIRINGAN.<br>💰 NARX : 100 • 150 • 200 • 250 • 300 (KUNIGA 5 TA).<br>🪙 TANGA SOVRINLARI NARXDAN KAM.</div>
       </div>
 
       <div id="g-slot" hidden>
@@ -363,11 +363,12 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
         <button class="btn" id="spin">🎰 AYLANTIRISH</button>
         <div id="smsg">3 TA BIR XIL BELGI = YUTUQ</div>
         <div class="ptable">
-          <div class="line"><span>👑👑👑 MEGA WAIFU</span><b>5%</b></div>
-          <div class="line"><span>💎💎💎 +300 🪙</span><b>7%</b></div>
-          <div class="line"><span>🪙🪙🪙 +150 🪙</span><b>18%</b></div>
-          <div class="line"><span>🌸🌸🌸 +60 🪙</span><b>30%</b></div>
-          <div class="line"><span>💀💀💀 BANKROT</span><b>40%</b></div>
+          <div class="line"><span>👑👑👑 ULTRA WAIFU</span><b>3%</b></div>
+          <div class="line"><span>💎💎💎 +300 🪙</span><b>5%</b></div>
+          <div class="line"><span>🔥🔥🔥 +150 🪙</span><b>8%</b></div>
+          <div class="line"><span>🪙🪙🪙 +100 🪙</span><b>12%</b></div>
+          <div class="line"><span>🌸🌸🌸 +60 🪙</span><b>17%</b></div>
+          <div class="line"><span>❌ BELGILAR MOS EMAS</span><b>55%</b></div>
         </div>
       </div>
     </section>
@@ -680,8 +681,6 @@ function gameInfo() {
   var t;
   if (qolgan <= 0) {
     t = "⏳ BUGUNGI URINISHLAR TUGADI.<br>ERTAGA QAYTING !";
-  } else if (freePlay) {
-    t = "🎁 BEPUL URINISH BOR !<br>URINISH : " + qolgan + "/" + limit;
   } else {
     t = "URINISH : " + qolgan + "/" + limit + " • NARXI : 🪙 " + replayCost + "<br>💰 SIZDA : 🪙 " + coins;
   }
@@ -705,7 +704,7 @@ $("board").addEventListener("click", async function (e) {
   var b = e.target.closest(".gc");
   if (!b || gameBusy) return;
   if (qolgan <= 0) { toast("BUGUNGI URINISHLAR TUGADI"); return; }
-  if (!freePlay && coins < replayCost) {
+  if (coins < replayCost) {
     toast("TANGA YETMAYDI : KERAK 🪙 " + replayCost);
     return;
   }
@@ -734,12 +733,12 @@ $("board").addEventListener("click", async function (e) {
       if (i === pick) el.classList.add("picked");
     });
     coins = d.coins;
-    freePlay = d.free;
+    freePlay = false;
     qolgan = d.qolgan;
     replayCost = d.replay_cost;
     stats();
 
-    var narx = d.pullik ? d.replay_cost : 0;
+    var narx = d.narx || 0;
     if (d.natija.tur === "personaj") {
       $("gmsg").textContent = "🎉 WAIFU YUTDINGIZ !" + (narx ? " (NARX −" + narx + ")" : "");
       celebrate("big");
@@ -796,10 +795,11 @@ function celebrate(level) {
 
 /* ---------- Demo: kartalar o'yini (haqiqiy botda server hal qiladi) ---------- */
 function demoPlay(pick) {
-  var pullik = !freePlay;
-  if (pullik) coins -= replayCost;
-  var v = [200, 150, 10, 20, 30, 40, 50, 60, 80].sort(function () { return Math.random() - .5; });
+  var narx = replayCost;
+  coins -= narx;
+  var v = [20, 30, 40, 50, 60, 70, 80, 90].map(function (f) { return Math.max(5, Math.round(narx * f / 100 / 5) * 5); }).sort(function () { return Math.random() - .5; });
   var pz = Math.floor(Math.random() * 9);
+  v.splice(pz, 0, 0);
   var taxta = v.map(function (m, i) { return i === pz ? { tur: "personaj" } : { tur: "tanga", miqdor: m }; });
   var natija;
   if (pick === pz) {
@@ -809,8 +809,8 @@ function demoPlay(pick) {
     natija = { tur: "tanga", miqdor: v[pick] };
     coins += v[pick];
   }
-  qolgan--; freePlay = false;
-  return { ok: true, data: { taxta: taxta, natija: natija, coins: coins, free: freePlay, qolgan: qolgan, replay_cost: replayCost, pullik: pullik } };
+  qolgan--; freePlay = false; replayCost = narx + 50;
+  return { ok: true, data: { taxta: taxta, natija: natija, coins: coins, free: false, qolgan: qolgan, replay_cost: replayCost, pullik: true, narx: narx } };
 }
 
 /* ---------- O'yin tanlash ---------- */
@@ -819,25 +819,31 @@ document.querySelector(".gsel").addEventListener("click", function (e) {
   document.querySelectorAll(".gs").forEach(function (x) { x.classList.toggle("on", x === b); });
   $("g-kart").hidden = b.dataset.m !== "kart";
   $("g-slot").hidden = b.dataset.m !== "slot";
+  slotInfo();
   var sc = $("sc"); if (sc) sc.scrollTop = 0;
   buzz();
 });
 
 /* ---------- Slot ---------- */
-var SYM = { w: "👑", a: "💎", b: "🪙", c: "🌸", x: "💀" };
-var OUT = [{ k: "w", p: 5 }, { k: "a", p: 7, m: 300 }, { k: "b", p: 18, m: 150 }, { k: "c", p: 30, m: 60 }, { k: "x", p: 40 }];
-var slotSt = { free: true, bonus: "qulf" }, spinning = false;
-function sLeft() { return (slotSt.free ? 1 : 0) + (slotSt.bonus === "bor" ? 1 : 0); }
+var SYM = { w: "👑", j: "💎", a: "🔥", b: "🪙", c: "🌸" };
+var OUT = [{ k: "w", p: 3 }, { k: "j", p: 5, m: 300 }, { k: "a", p: 8, m: 150 }, { k: "b", p: 12, m: 100 }, { k: "c", p: 17, m: 60 }, { k: "n", p: 55 }];
+var slotSt = { free: true, bonus: "qulf", pullik: "bor", narx: 100 }, spinning = false;
+function sFree() { return (slotSt.free ? 1 : 0) + (slotSt.bonus === "bor" ? 1 : 0); }
+function sPaid() { return slotSt.pullik === "bor"; }
+function sLeft() { return sFree() + (sPaid() ? 1 : 0); }
 function slotInfo() {
-  var t;
-  if (sLeft() <= 0) t = "⏳ BUGUNGI AYLANTIRISHLAR TUGADI.<br>ERTAGA QAYTING !" +
-    (slotSt.bonus === "qulf" ? "<br>🔒 YANA 1 TA : 1 DO'ST TAKLIF QILING" : "");
-  else {
+  var t = "";
+  if (sLeft() <= 0) {
+    t = "⏳ BUGUNGI AYLANTIRISHLAR TUGADI.<br>ERTAGA QAYTING !" +
+      (slotSt.bonus === "qulf" ? "<br>🔒 YANA 1 TA : 1 DO'ST TAKLIF QILING" : "");
+  } else {
     t = slotSt.free ? "🎁 BEPUL AYLANTIRISH : 1" : "🎁 BEPUL AYLANTIRISH : ISHLATILDI";
     if (slotSt.bonus === "bor") t += "<br>👥 DO'ST BONUSI : 1";
     else if (slotSt.bonus === "qulf") t += "<br>🔒 YANA 1 TA : 1 DO'ST TAKLIF QILING";
+    t += sPaid() ? "<br>💰 PULLIK AYLANTIRISH : 🪙 " + slotSt.narx + " (SIZDA 🪙 " + coins + ")" : "<br>💰 PULLIK AYLANTIRISH : ISHLATILDI";
   }
   $("sinfo").innerHTML = t;
+  $("spin").textContent = sFree() > 0 || !sPaid() ? "🎰 AYLANTIRISH" : "🎰 AYLANTIRISH • 🪙 " + slotSt.narx;
   $("spin").disabled = spinning || sLeft() <= 0;
 }
 function symCell(k) { return '<div class="sy">' + SYM[k] + '</div>'; }
@@ -849,9 +855,13 @@ function reelsInit() {
   });
 }
 function rollOut() {
-  var r = Math.random() * 100, a = 0;
-  for (var i = 0; i < OUT.length; i++) { a += OUT[i].p; if (r < a) return OUT[i]; }
-  return OUT[OUT.length - 1];
+  var r = Math.random() * 100, a = 0, o = OUT[OUT.length - 1], i;
+  for (i = 0; i < OUT.length; i++) { a += OUT[i].p; if (r < a) { o = OUT[i]; break; } }
+  var keys = Object.keys(SYM), g;
+  if (o.k === "n") {
+    do { g = [0, 1, 2].map(function () { return keys[Math.floor(Math.random() * keys.length)]; }); } while (g[0] === g[1] && g[1] === g[2]);
+  } else g = [o.k, o.k, o.k];
+  return { k: o.k, m: o.m, g: g };
 }
 function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
@@ -863,28 +873,38 @@ async function spin() {
   $("smsg").textContent = "🎰 AYLANMOQDA...";
   $("spin").disabled = true;
   var o, wonItem = null, newSt = null, newCoins = null;
+  var pullikNiyat = sFree() <= 0 && sPaid();
+  if (pullikNiyat && coins < slotSt.narx) {
+    toast("TANGA YETMAYDI : KERAK 🪙 " + slotSt.narx);
+    spinning = false; slotInfo();
+    return;
+  }
   if (onlayn()) {
     var rr;
-    try { rr = await api("/api/slot/play", { method: "POST", body: "{}" }); } catch (e) { rr = null; }
+    try { rr = await api("/api/slot/play", { method: "POST", body: JSON.stringify({ pullik: pullikNiyat }) }); } catch (e) { rr = null; }
     if (!rr || !rr.ok) {
-      toast(rr && rr.data && rr.data.error === "limit" ? "BUGUNGI AYLANTIRISHLAR TUGADI" : "XATO, QAYTA URINING");
+      var er = rr && rr.data && rr.data.error;
+      toast(er === "limit" ? "BUGUNGI AYLANTIRISHLAR TUGADI" : er === "tanga_yetmaydi" ? "TANGA YETMAYDI" : "XATO, QAYTA URINING");
       spinning = false; $("smsg").textContent = "3 TA BIR XIL BELGI = YUTUQ"; slotInfo();
       return;
     }
     var dd = rr.data;
-    o = { k: dd.k, m: dd.natija && dd.natija.miqdor };
+    o = { k: dd.k, m: dd.natija && dd.natija.miqdor, g: dd.g || [dd.k, dd.k, dd.k] };
     if (dd.k === "w" && dd.natija) wonItem = toItem(dd.natija);
     newSt = dd.slot; newCoins = dd.coins;
   } else {
     o = rollOut();
-    if (slotSt.free) slotSt.free = false; else slotSt.bonus = "ishlatildi";
+    if (slotSt.free) slotSt.free = false;
+    else if (slotSt.bonus === "bor") slotSt.bonus = "ishlatildi";
+    else { slotSt.pullik = "ishlatildi"; coins -= slotSt.narx; }
+    stats();
   }
   slotInfo();
   var keys = Object.keys(SYM), N = 28, cell = 84;
   document.querySelectorAll(".reel").forEach(function (reel, i) {
     var st = reel.firstElementChild, h = "";
     for (var j = 0; j < N - 1; j++) h += symCell(keys[Math.floor(Math.random() * keys.length)]);
-    h += symCell(o.k);
+    h += symCell(o.g[i]);
     st.style.transition = "none"; st.style.transform = "translateY(0)"; st.innerHTML = h;
     void st.offsetHeight;
     var dur = 1.7 + i * .75;
@@ -899,14 +919,14 @@ async function spin() {
   if (newCoins !== null) coins = newCoins;
   if (o.k === "w") {
     rs.classList.add("win");
-    $("smsg").textContent = "👑 MEGA WAIFU YUTDINGIZ !";
+    $("smsg").textContent = "👑 ULTRA WAIFU YUTDINGIZ !";
     celebrate("big");
-    var it = wonItem || DEMO.filter(function (d) { return d.r === 3; })[0] || DEMO[0];
-    setTimeout(function () { openModal(it, false, "🎉 MEGA WAIFU !"); }, 700);
+    var it = wonItem || DEMO.filter(function (d) { return d.r === 4; })[0] || DEMO[0];
+    setTimeout(function () { openModal(it, false, "🎉 ULTRA WAIFU !"); }, 700);
     if (onlayn()) loadCollection();
-  } else if (o.k === "x") {
+  } else if (o.k === "n") {
     rs.classList.add("lose");
-    $("smsg").textContent = "💀 BANKROT ! BU SAFAR OMAD KELMADI";
+    $("smsg").textContent = "😔 BELGILAR MOS KELMADI. YANA URINING !";
     try { if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("error"); } catch (e) {}
   } else {
     rs.classList.add("win");
