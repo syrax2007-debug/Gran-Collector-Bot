@@ -2,6 +2,7 @@ import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackQueryHandler, CommandHandler, ContextTypes
 from stil import stil
+import haftalik
 
 KANAL_ID = "@Grab_Collector"
 GURUH_ID = "@Grab_Collector_Chat"
@@ -104,6 +105,7 @@ async def ref_tekshir(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await q.answer("Allaqachon hisoblangan", show_alert=True)
         return
     await users.update_one({"_id": egasi}, {"$inc": {"coins": REFERAL_TANGA}})
+    await haftalik.qosh(_baza, egasi, "ref", 1)
     try:
         await q.edit_message_text("✅ Rahmat ! Taklif hisoblandi 🫶")
     except Exception:

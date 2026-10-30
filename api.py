@@ -11,6 +11,7 @@ from bson import ObjectId
 from pymongo import AsyncMongoClient
 from main import ilova as telegram_bot
 from referal import REFERAL_TANGA
+import haftalik
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 MONGO_URI = os.environ["MONGO_URI"]
@@ -336,6 +337,10 @@ async def oyin_api(request):
             {"_id": uid}, {"$inc": {"coins": karta[tanlov]}}
         )
 
+    await haftalik.qosh(
+        baza, uid, "coin",
+        (natija["miqdor"] if natija["tur"] == "tanga" else 0) - narx,
+    )
     u = await users.find_one({"_id": uid})
     return web.json_response({
         "natija": natija,
@@ -441,6 +446,9 @@ async def slot_api(request):
         natija = {"tur": "tanga", "miqdor": miqdor}
         await users.update_one({"_id": uid}, {"$inc": {"coins": miqdor}})
 
+    await haftalik.qosh(
+        baza, uid, "coin", (miqdor if kalit not in ("w", "n") else 0) - narx
+    )
     u = await users.find_one({"_id": uid})
     return web.json_response({
         "k": kalit,
@@ -467,6 +475,7 @@ async def bot_yoqish(app):
     await telegram_bot.initialize()
     await telegram_bot.start()
     await telegram_bot.updater.start_polling()
+    haftalik.fon_boshlash(telegram_bot.bot)
 
 
 async def bot_ochirish(app):
