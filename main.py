@@ -18,6 +18,8 @@ import reyting
 import ismlar
 import maxevent
 import adminplus
+import haftalik
+import qoshimcha
 from telegram import (
     Update, InlineQueryResultCachedPhoto,
     InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo,
@@ -369,6 +371,7 @@ async def kunlik(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "⏳ Bugungi bonusni olgansiz. Ertaga qayting !"
         )
         return
+    await haftalik.qosh(baza, f.id, "coin", miqdor)
     u = await foydalanuvchilar.find_one({"_id": f.id}) or {}
     await update.message.reply_text(
         f"{RAMKA}\n"
@@ -427,6 +430,7 @@ async def ruletka(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await foydalanuvchilar.update_one(
             {"_id": f.id}, {"$inc": {"coins": miqdor}}
         )
+        await haftalik.qosh(baza, f.id, "coin", miqdor)
     u = await foydalanuvchilar.find_one({"_id": f.id}) or {}
     await dice.reply_text(
         f"{RAMKA}\n"
@@ -584,6 +588,7 @@ async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await chiqqanlar.delete_one({"_id": chat_id})
         f = update.effective_user
         await kolleksiya.insert_one({"user_id": f.id, "char_id": p["_id"]})
+        await haftalik.qosh(baza, f.id, "waifu", 1)
         matn = (
             f"🫧 {K(f.first_name)} waifuni topdi !\n\n"
             f"🗽 Ismi : {K(p['name'])}\n"
@@ -866,6 +871,9 @@ adminplus.ulash(
     ilova, baza, ADMIN_ID, NODIRLIK, yulduz_matni, tasodifiy_personaj,
     CHIQISH_ORALIGI, RASMIY_GURUH,
 )
+
+haftalik.ulash(ilova, baza, ADMIN_ID)
+qoshimcha.ulash(ilova, baza, NODIRLIK, yulduz_matni, guruh_tekshir)
 
 if __name__ == "__main__":
     ilova.run_polling()
