@@ -10,27 +10,24 @@ from telegram import (
 )
 from telegram.ext import CallbackQueryHandler, CommandHandler, ContextTypes
 import haftalik
+import sozlama as S
 
 # ---------- Sozlamalar ----------
 TOSHKENT = timezone(timedelta(hours=5))
 MINI_APP_URL = "https://syrax2007-debug.github.io/Gran-Collector-Bot/"
 
-# Daraja narxlari (tanga). /narx va /trade shu narxlardan foydalanadi
-NARX = {
-    "common": 600,
-    "rare": 1800,
-    "epic": 5000,
-    "legendary": 12000,
-    "special": 30000,
-    "max": 80000,
-}
+# Daraja narxlari /panel dan o'zgartiriladi (sozlama.py). /narx va /trade shularni ishlatadi
+def narx_ol(k):
+    return S.ol("narx_" + k)
+
+
 # Almashib bo'lmaydigan darajalar (faqat tushish bilan olinadi)
 ALMASHMAYDI = ("special", "max")
-TRADE_LIMIT = 5  # kuniga nechta almashish
-TRADE_MUDDAT = 600  # taklif necha soniya amal qiladi
+# Kunlik almashish soni, taklif muddati va /claim vaznlari ham /panel da
 
-# /claim ehtimollari (nisbat; jami 100 bo'lishi shart emas)
-CLAIM_IHTIMOL = [("common", 45), ("rare", 25), ("epic", 15), ("legendary", 5)]
+
+def claim_ihtimol():
+    return [(k, S.ol("claim_" + k)) for k in ("common", "rare", "epic", "legendary")]
 
 _baza = None
 _nodirlik = {}
@@ -74,7 +71,7 @@ async def narx_buyruq(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for k in ("common", "rare", "epic", "legendary", "special", "max"):
         belgi = _nodirlik[k][0] if k in _nodirlik else k.upper()
         izoh = "  (almashilmaydi)" if k in ALMASHMAYDI else ""
-        qatorlar.append(f"{belgi} : 🪙 {NARX[k]}{izoh}")
+        qatorlar.append(f"{belgi} : 🪙 {narx_ol(k)}{izoh}")
     await update.message.reply_text(
         f"{_ramka}\n"
         "💰 Daraja narxlari\n\n" + "\n".join(qatorlar) + "\n\n"
@@ -89,7 +86,9 @@ async def narx_buyruq(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------- /claim ----------
 async def _claim_personaji():
     ranglar = []
-    for k, v in CLAIM_IHTIMOL:
+    for k, v in claim_ihtimol():
+        if v <= 0:
+            continue
         shart = {"rarity": {"$in": [k, k.capitalize(), k.upper()]}}
         soni = await _baza["characters"].count_documents(shart)
         if soni:
@@ -289,11 +288,11 @@ async def trade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if kalit(mening) in ALMASHMAYDI or kalit(uning) in ALMASHMAYDI:
         await xabar.reply_text("🚫 COLLECTOR va MAX waifular almashilmaydi !")
         return
-    if await _kunlik_son(men.id) >= TRADE_LIMIT:
-        await xabar.reply_text(f"⏳ Bugungi almashish limiti tugadi ({TRADE_LIMIT} ta)")
+    if await _kunlik_son(men.id) >= S.ol('trade_limit'):
+        await xabar.reply_text(f"⏳ Bugungi almashish limiti tugadi ({S.ol('trade_limit')} ta)")
         return
     # farq > 0: men olayotgan waifu qimmatroq, farqni men to'layman
-    farq = NARX[kalit(uning)] - NARX[kalit(mening)]
+    farq = narx_ol(kalit(uning)) - narx_ol(kalit(mening))
     tolovchi = men.id if farq > 0 else u2.id
     if farq != 0:
         t = await _baza["users"].find_one({"_id": tolovchi}) or {}
@@ -321,9 +320,9 @@ async def trade(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"{_ramka}\n"
         "🔁 Almashish taklifi\n\n"
         f"🫧 {bog(men.id, men.first_name)} beradi :\n"
-        f"🗽 {K(mening['name'])} • {_yulduz(mening)} • 🪙 {NARX[kalit(mening)]}\n\n"
+        f"🗽 {K(mening['name'])} • {_yulduz(mening)} • 🪙 {narx_ol(kalit(mening))}\n\n"
         f"🫧 {bog(u2.id, u2.first_name)} beradi :\n"
-        f"🗽 {K(uning['name'])} • {_yulduz(uning)} • 🪙 {NARX[kalit(uning)]}\n"
+        f"🗽 {K(uning['name'])} • {_yulduz(uning)} • 🪙 {narx_ol(kalit(uning))}\n"
         f"{tanga}\n\n"
         f"{bog(u2.id, u2.first_name)}, qabul qilasizmi ?",
         parse_mode="HTML", reply_markup=tugmalar,
@@ -354,12 +353,12 @@ async def trade_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not d:
         await q.answer("Bu taklif endi amal qilmaydi", show_alert=True)
         return
-    if time.time() - d["t"] > TRADE_MUDDAT:
+    if time.time() - d["t"] > S.ol('trade_muddat') * 60:
         await q.edit_message_text("⌛ Taklif muddati tugadi.")
         await q.answer()
         return
     a, b, ca, cb, farq = d["a"], d["b"], d["ca"], d["cb"], d["farq"]
-    if await _kunlik_son(a) >= TRADE_LIMIT or await _kunlik_son(b) >= TRADE_LIMIT:
+    if await _kunlik_son(a) >= S.ol('trade_limit') or await _kunlik_son(b) >= S.ol('trade_limit'):
         await q.edit_message_text("⏳ Kunlik almashish limiti tugagan.")
         await q.answer()
         return

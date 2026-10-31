@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes, TypeHandler
 import ismlar
+import sozlama as S
 
 # ---------- Sozlamalar ----------
 TOSHKENT = timezone(timedelta(hours=5))
@@ -19,9 +20,12 @@ TOIFALAR = [
     ("ref", "👥", "Eng ko'p do'st taklif qilganlar", "ta"),
 ]
 # Sovrinlar (uchala toifada bir xil): 1-o'rin Collector waifu, 2-o'rin va 3-o'rin tanga
-MUKOFOT_TANGA = {2: 1111, 3: 777}
-COLLECTOR_YOQ_TANGA = 3333  # Collector waifu umuman bo'lmasa, 1-o'rin shuni oladi
-COLLECTOR_KALITLAR = ["special", "Special", "SPECIAL"]
+# 2- va 3-o'rin tanga sovrinlari /panel dan o'zgartiriladi (sozlama.py).
+# 1-o'rin Collector waifuni bot BERMAYDI: g'olib adminga yozadi va admin o'zi beradi
+def mukofot_tanga(orin):
+    return S.ol("hafta_2" if orin == 2 else "hafta_3")
+
+
 MEDAL = {1: "🥇", 2: "🥈", 3: "🥉"}
 
 _baza = None
@@ -94,9 +98,9 @@ def _qiymat(q, birlik):
 
 def sovrin_matni():
     return (
-        f"🥇 Collector waifu\n"
-        f"🥈 {MUKOFOT_TANGA[2]} 🪙\n"
-        f"🥉 {MUKOFOT_TANGA[3]} 🪙"
+        f"🥇 Collector waifu (adminga yozib tanlanadi)\n"
+        f"🥈 {mukofot_tanga(2)} 🪙\n"
+        f"🥉 {mukofot_tanga(3)} 🪙"
     )
 
 
@@ -119,23 +123,10 @@ def matn_tuz(natija, ismlar_, sarlavha):
 
 # ---------- Sovrin berish ----------
 async def _sovrin_ber(baza, uid, orin):
-    # {"tur": "waifu", "p": personaj} yoki {"tur": "tanga", "miqdor": n}
+    # 1-o'rin: Collector waifu admin tomonidan qo'lda beriladi (bot hech narsa bermaydi)
     if orin == 1:
-        shart = {"rarity": {"$in": COLLECTOR_KALITLAR}}
-        soni = await baza["characters"].count_documents(shart)
-        if soni:
-            p = await baza["characters"].find_one(
-                shart, skip=random.randrange(soni)
-            )
-            await baza["collection"].insert_one(
-                {"user_id": uid, "char_id": p["_id"]}
-            )
-            return {"tur": "waifu", "p": p}
-        await baza["users"].update_one(
-            {"_id": uid}, {"$inc": {"coins": COLLECTOR_YOQ_TANGA}}, upsert=True
-        )
-        return {"tur": "tanga", "miqdor": COLLECTOR_YOQ_TANGA, "zaxira": True}
-    miqdor = MUKOFOT_TANGA[orin]
+        return {"tur": "collector"}
+    miqdor = mukofot_tanga(orin)
     await baza["users"].update_one(
         {"_id": uid}, {"$inc": {"coins": miqdor}}, upsert=True
     )
@@ -182,12 +173,15 @@ async def tugat(bot, hid):
         except Exception:
             pass
     # G'oliblarga shaxsiy xabar
-    for uid, toifa, orin, s in sovrinlar:
-        if s["tur"] == "waifu":
-            p = s["p"]
-            tarif = f"⛩️ Collector waifu : {html.escape(p['name'])} ({p.get('raqam', '?')})"
+    admin_havola = f'<a href="tg://user?id={_admin_id}">adminga</a>'
+    for uid, toifa, orin, s_ in sovrinlar:
+        if s_["tur"] == "collector":
+            tarif = (
+                "⛩️ Sovrin : Collector waifu (o'zingiz tanlaysiz)\n"
+                f"Qaysi Collector waifuni xohlasangiz, {admin_havola} yozing."
+            )
         else:
-            tarif = f"💰 Tanga : +{s['miqdor']}"
+            tarif = f"💰 Tanga : +{s_['miqdor']}"
         try:
             await bot.send_message(
                 uid,
@@ -197,14 +191,20 @@ async def tugat(bot, hid):
             )
         except Exception:
             pass
-    # Collector waifu yo'qligi haqida adminni ogohlantirish
-    if any(s.get("zaxira") for _, _, _, s in sovrinlar):
+    # Adminga: Collector waifu kutayotganlar ro'yxati
+    kutayotgan = [(u, t) for u, t, o, s_ in sovrinlar if s_["tur"] == "collector"]
+    if kutayotgan:
+        qatorlar = [
+            f"▫️ {_bog(u, ismlar_.get(u, 'Foydalanuvchi'))} (<code>{u}</code>) — {t}"
+            for u, t in kutayotgan
+        ]
         try:
             await bot.send_message(
                 _admin_id,
-                "⚠️ Haftalik 1-o'rin uchun Collector waifu topilmadi, "
-                f"o'rniga {COLLECTOR_YOQ_TANGA} tanga berildi. "
-                "Collector waifu yuklab qo'ying.",
+                "🥇 Haftalik 1-o'rin: Collector waifu kutayotganlar\n\n"
+                + "\n".join(qatorlar)
+                + "\n\nBerish : <code>/waifuber ID RAQAM</code>",
+                parse_mode="HTML",
             )
         except Exception:
             pass

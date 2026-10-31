@@ -10,8 +10,8 @@ from aiohttp import web, ClientSession
 from bson import ObjectId
 from pymongo import AsyncMongoClient
 from main import ilova as telegram_bot
-from referal import REFERAL_TANGA
 import haftalik
+import sozlama as S
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 MONGO_URI = os.environ["MONGO_URI"]
@@ -22,16 +22,13 @@ RUXSAT_ETILGAN = os.environ.get(
 TOSHKENT = timezone(timedelta(hours=5))
 
 # ---------- O'yin sozlamalari ----------
-OYIN_KUNLIK = 5  # kuniga jami urinish (hammasi pullik)
-OYIN_NARX_BOSH = 100  # 1-urinish narxi
-OYIN_NARX_QADAM = 50  # keyingi urinishlarga qo'shiladi: 100, 150, 200, 250, 300
-# Sovrinlar shu urinish narxining foizi (hammasi narxdan kam). 8 ta tanga + 1 ta waifu
+# Hamma raqam /panel dan o'zgartiriladi (sozlama.py). Sovrinlar shu urinish narxining foizi
 OYIN_FOIZLAR = [20, 30, 40, 50, 60, 70, 80, 90]
 
 
 def oyin_narx(ishlatilgan):
     # ishlatilgan = bugun nechta urinish bo'lgan; shu urinish narxi
-    return OYIN_NARX_BOSH + OYIN_NARX_QADAM * ishlatilgan
+    return S.ol("oyin_narx_bosh") + S.ol("oyin_narx_qadam") * ishlatilgan
 
 
 def oyin_sovrinlar(narx):
@@ -40,14 +37,8 @@ def oyin_sovrinlar(narx):
 
 
 # ---------- Slot sozlamalari ----------
-# Faqat 3 ta bir xil belgi tushsa sovrin beriladi.
-# (belgi, ehtimol %, tanga). "w" = ULTRA waifu, "n" = belgilar mos kelmadi
-# Pullik aylantirish narxiga (100) hisoblangan: o'rtacha qaytim ~49 tanga
-SLOT_NARX = 100  # kuniga 1 ta pullik aylantirish narxi
-SLOT_NATIJALAR = [
-    ("w", 3, 0), ("j", 5, 300), ("a", 8, 150), ("b", 12, 100), ("c", 17, 60),
-    ("n", 55, 0),
-]
+# Faqat 3 ta bir xil belgi tushsa sovrin beriladi. Ehtimol va sovrinlar /panel da
+# "w" = ULTRA waifu, "n" = belgilar mos kelmadi
 SLOT_BELGILAR = ["w", "j", "a", "b", "c"]
 SLOT_DARAJA = "legendary"  # ULTRA
 
@@ -117,7 +108,7 @@ def slot_holat(u, tolangan):
     else:
         bonus = "qulf"
     pullik = "ishlatildi" if u.get("slot_pullik_sana") == b else "bor"
-    return {"free": bepul, "bonus": bonus, "pullik": pullik, "narx": SLOT_NARX}
+    return {"free": bepul, "bonus": bonus, "pullik": pullik, "narx": S.ol("slot_narx")}
 
 
 async def tolangan_soni(baza, uid):
@@ -188,6 +179,7 @@ async def me_api(request):
     if not f:
         raise web.HTTPUnauthorized(text="Ruxsat yo'q")
     baza = request.app["baza"]
+    await S.yangila(baza)
     u = await foydalanuvchi_ol(baza, f)
     ishlatilgan = u.get("oyin_soni", 0) if u.get("oyin_sana") == bugun() else 0
 
@@ -218,14 +210,14 @@ async def me_api(request):
     return web.json_response({
         "coins": u.get("coins", 0),
         "free": False,
-        "qolgan": max(OYIN_KUNLIK - ishlatilgan, 0),
-        "limit": OYIN_KUNLIK,
+        "qolgan": max(S.ol("oyin_kunlik") - ishlatilgan, 0),
+        "limit": S.ol("oyin_kunlik"),
         "replay_cost": oyin_narx(ishlatilgan),
         "sevimli": sevimli,
         "ref_link": f"https://t.me/{nom}?start=ref_{f['id']}" if nom else "",
         "ref_tolangan": tolangan,
         "ref_kutilmoqda": kutilmoqda,
-        "ref_tanga": REFERAL_TANGA,
+        "ref_tanga": S.ol("referal_tanga"),
         "slot": slot_holat(u, tolangan),
     })
 
@@ -276,6 +268,7 @@ async def oyin_api(request):
         raise web.HTTPBadRequest(text="pick xato")
 
     baza = request.app["baza"]
+    await S.yangila(baza)
     users = baza["users"]
     uid = f["id"]
     u = await foydalanuvchi_ol(baza, f)
@@ -288,7 +281,7 @@ async def oyin_api(request):
         ishlatilgan = 0
     else:
         ishlatilgan = u.get("oyin_soni", 0)
-    if ishlatilgan >= OYIN_KUNLIK:
+    if ishlatilgan >= S.ol("oyin_kunlik"):
         return web.json_response({"error": "limit"}, status=429)
 
     # Hamma urinish pullik: 100, 150, 200, 250, 300
@@ -352,7 +345,7 @@ async def oyin_api(request):
         "pullik": True,
         "narx": narx,
         "coins": u.get("coins", 0),
-        "qolgan": max(OYIN_KUNLIK - (ishlatilgan + 1), 0),
+        "qolgan": max(S.ol("oyin_kunlik") - (ishlatilgan + 1), 0),
         "free": False,
         "replay_cost": oyin_narx(ishlatilgan + 1),
     })
@@ -363,6 +356,7 @@ async def slot_api(request):
     if not f:
         raise web.HTTPUnauthorized(text="Ruxsat yo'q")
     baza = request.app["baza"]
+    await S.yangila(baza)
     users = baza["users"]
     uid = f["id"]
     u = await foydalanuvchi_ol(baza, f)
@@ -400,24 +394,24 @@ async def slot_api(request):
             r = await users.update_one(
                 {
                     "_id": uid,
-                    "coins": {"$gte": SLOT_NARX},
+                    "coins": {"$gte": S.ol("slot_narx")},
                     "slot_pullik_sana": {"$ne": b},
                 },
-                {"$inc": {"coins": -SLOT_NARX}, "$set": {"slot_pullik_sana": b}},
+                {"$inc": {"coins": -S.ol("slot_narx")}, "$set": {"slot_pullik_sana": b}},
             )
             if r.modified_count == 0:
                 u2 = await users.find_one({"_id": uid})
                 if u2.get("slot_pullik_sana") == b:
                     return web.json_response({"error": "limit"}, status=429)
                 return web.json_response(
-                    {"error": "tanga_yetmaydi", "narx": SLOT_NARX}, status=402
+                    {"error": "tanga_yetmaydi", "narx": S.ol("slot_narx")}, status=402
                 )
-            narx = SLOT_NARX
+            narx = S.ol("slot_narx")
 
     # Natijani server tanlaydi
     shart = {"rarity": {"$in": [SLOT_DARAJA, SLOT_DARAJA.capitalize()]}}
     nodir_soni = await baza["characters"].count_documents(shart)
-    variantlar = [v for v in SLOT_NATIJALAR if v[0] != "w" or nodir_soni]
+    variantlar = [v for v in S.slot_natijalar() if v[0] != "w" or nodir_soni]
     rng = random.SystemRandom()
     tanlov = rng.choices(variantlar, weights=[v[1] for v in variantlar])[0]
     kalit, _, miqdor = tanlov

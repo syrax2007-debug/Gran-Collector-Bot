@@ -20,6 +20,8 @@ import maxevent
 import adminplus
 import haftalik
 import qoshimcha
+import sozlama as S
+import panel
 from telegram import (
     Update, InlineQueryResultCachedPhoto,
     InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo,
@@ -51,16 +53,8 @@ GURUH_URL = "https://t.me/Grab_Collector_Chat"
 RASMIY_GURUH = "grab_collector_chat"  # kichik harflarda, @ siz
 
 # Bonuslar
-XUSH_BONUS_TANGA = 222  # bir martalik bonus: tanga
-KUNLIK_BONUS = 50  # kunlik bonus: boshlang'ich miqdor
-KUNLIK_QOSHIMCHA = 10  # har bir ketma-ket kun uchun qo'shimcha
-KUNLIK_MAKS_SERIYA = 6  # shu kundan keyin o'smaydi (50 + 5x10 = 100)
 
 # Ruletka (🎰)
-RULETKA_LIMIT = 3  # kuniga urinishlar soni
-RULETKA_JEKPOT = 300  # 7️⃣7️⃣7️⃣
-RULETKA_UCHTA = 100  # boshqa uchta bir xil
-RULETKA_IKKITA = 15  # ikkita bir xil
 
 # 6 ta daraja. kalit (bazada saqlanadi): (ko'rinadigan nom, chiqish ehtimoli)
 # Ehtimol 0 bo'lsa, oddiy chiqishda uchramaydi:
@@ -185,8 +179,10 @@ async def tasodifiy_personaj():
     p = await maxevent.event_personaji()
     if p:
         return p
-    kalitlar = [k for k in NODIRLIK if NODIRLIK[k][1] > 0]
-    ehtimollar = [NODIRLIK[k][1] for k in kalitlar]
+    # Chiqish vaznlari /panel dan o'zgartiriladi (max faqat /max orqali)
+    vazn = {k: S.ol("w_" + k) for k in NODIRLIK if k != "max"}
+    kalitlar = [k for k in vazn if vazn[k] > 0]
+    ehtimollar = [vazn[k] for k in kalitlar]
     for _ in range(10):
         kalit = random.choices(kalitlar, ehtimollar)[0]
         shart = {"rarity": {"$in": [kalit, kalit.capitalize()]}}
@@ -319,7 +315,7 @@ async def bonus(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     r = await foydalanuvchilar.update_one(
         {"_id": f.id, "xush_bonus": {"$ne": True}},
-        {"$set": {"xush_bonus": True}, "$inc": {"coins": XUSH_BONUS_TANGA}},
+        {"$set": {"xush_bonus": True}, "$inc": {"coins": S.ol('xush_tanga')}},
     )
     if r.modified_count == 0:
         await update.message.reply_text("🎁 Bonusni allaqachon olgansiz !")
@@ -332,7 +328,7 @@ async def bonus(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🗽 Ismi : {K(p['name'])}\n"
         f"🎗️ RANK : {yulduz_matni(p)}\n"
         f"👀 Manba : {K(p['anime'])}\n"
-        f"💰 Tanga : +{XUSH_BONUS_TANGA}\n\n"
+        f"💰 Tanga : +{S.ol('xush_tanga')}\n\n"
         "🫶 Waifularni koring  /kolleksiya!"
     )
     await update.message.reply_photo(
@@ -356,8 +352,8 @@ async def kunlik(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     seriya = (u.get("kunlik_seriya", 0) + 1) if u.get("kunlik_sana") == kecha() else 1
-    miqdor = KUNLIK_BONUS + KUNLIK_QOSHIMCHA * (
-        min(seriya, KUNLIK_MAKS_SERIYA) - 1
+    miqdor = S.ol('kunlik_bonus') + S.ol('kunlik_qosh') * (
+        min(seriya, S.ol('kunlik_seriya')) - 1
     )
     r = await foydalanuvchilar.update_one(
         {"_id": f.id, "kunlik_sana": {"$ne": b}},
@@ -391,10 +387,10 @@ def ruletka_hisobla(qiymat):
     g = [v % 4, (v // 4) % 4, v // 16]
     if g[0] == g[1] == g[2]:
         if g[0] == 3:
-            return RULETKA_JEKPOT, "Jekpot ! 7️⃣7️⃣7️⃣"
-        return RULETKA_UCHTA, "Uchta bir xil !"
+            return S.ol('ruletka_jekpot'), "Jekpot ! 7️⃣7️⃣7️⃣"
+        return S.ol('ruletka_uchta'), "Uchta bir xil !"
     if len(set(g)) == 2:
-        return RULETKA_IKKITA, "Ikkita bir xil !"
+        return S.ol('ruletka_ikkita'), "Ikkita bir xil !"
     return 0, "Bu safar omad kelmadi"
 
 
@@ -413,7 +409,7 @@ async def ruletka(update: Update, context: ContextTypes.DEFAULT_TYPE):
             {"_id": f.id}, {"$set": {"ruletka_sana": b, "ruletka_soni": 0}}
         )
     r = await foydalanuvchilar.update_one(
-        {"_id": f.id, "ruletka_sana": b, "ruletka_soni": {"$lt": RULETKA_LIMIT}},
+        {"_id": f.id, "ruletka_sana": b, "ruletka_soni": {"$lt": S.ol('ruletka_limit')}},
         {"$inc": {"ruletka_soni": 1}},
     )
     if r.modified_count == 0:
@@ -421,7 +417,7 @@ async def ruletka(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "⏳ Bugungi urinishlar tugadi. Ertaga qayting !"
         )
         return
-    qolgan = RULETKA_LIMIT - (ishlatilgan + 1)
+    qolgan = S.ol('ruletka_limit') - (ishlatilgan + 1)
 
     dice = await update.message.reply_dice(emoji="🎰")
     await asyncio.sleep(3)  # animatsiya tugashini kutamiz
@@ -472,7 +468,7 @@ async def xush_kelibsiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"{RAMKA}\n"
         f"💫 Xush kelibsiz, {nomlar} !\n\n"
         "🫶 Sizni ko'rib xursandmiz !\n"
-        f"🎁 /bonus — Mega waifu + {XUSH_BONUS_TANGA} tanga\n"
+        f"🎁 /bonus — Mega waifu + {S.ol('xush_tanga')} tanga\n"
         "📅 /kunlik — Kunlik tanga\n"
         "🎰 /ruletka — Omadni sinang\n"
         "🐾 /topish ism — Waifuni topish\n\n"
@@ -872,7 +868,9 @@ adminplus.ulash(
     CHIQISH_ORALIGI, RASMIY_GURUH,
 )
 
+S.ulash(ilova, baza)
 haftalik.ulash(ilova, baza, ADMIN_ID)
+panel.ulash(ilova, baza, ADMIN_ID)
 qoshimcha.ulash(ilova, baza, NODIRLIK, yulduz_matni, guruh_tekshir)
 
 if __name__ == "__main__":

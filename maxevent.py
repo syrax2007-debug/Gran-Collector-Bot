@@ -1,5 +1,6 @@
 import html
 import logging
+import sozlama as S
 import random
 import re
 from pymongo import ReturnDocument
@@ -10,7 +11,7 @@ from telegram.ext import CommandHandler, ContextTypes
 # MAX nimani sanaydi: "soz" - xabarlardagi so'zlar, "xabar" - har bir xabar 1 ta
 SANASH = "soz"
 # Event faol paytda chiqadigan personajlarning necha foizi Collector bo'ladi
-EVENT_FOIZ = 20
+EVENT_FOIZ = 20  # standart; haqiqiy qiymat /panel dan (sozlama.py)
 MAX_KALIT = "max"
 COLLECTOR_KALIT = "special"
 
@@ -235,7 +236,7 @@ async def event_buyruq(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await xabar.reply_text(
         f"✅ Event yoqildi : {tanlangan[0]}\n"
         f"⛩️ Collector waifular : {tanlangan[1]} ta\n"
-        f"🎲 Chiqish ulushi : {EVENT_FOIZ}%"
+        f"🎲 Chiqish ulushi : {S.ol('event_foiz')}%"
     )
 
 
@@ -280,7 +281,7 @@ async def event_qosh(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def event_personaji():
     # Event faol bo'lsa va tasodif tushsa, shu eventdan Collector beradi
-    if random.random() * 100 >= EVENT_FOIZ:
+    if random.random() * 100 >= S.ol('event_foiz'):
         return None
     d = await _baza["sozlamalar"].find_one({"_id": "event"})
     nom = (d or {}).get("nom")
