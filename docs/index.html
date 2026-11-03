@@ -115,7 +115,10 @@ input{flex:1;min-width:0;padding:10px;background:var(--glass2);border:1px solid 
 .shop{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .sitem .in{padding:14px 8px;text-align:center}
 .sitem .big{font-family:var(--head);font-size:18px;font-weight:900;color:var(--gold);text-shadow:0 0 10px rgba(255,210,74,.5)}
-.sitem .rn{font-size:13px;margin:4px 0 10px}
+.sitem .rn{font-size:13px;margin:2px 0 6px}
+.sitem .bx{font-size:34px;line-height:1.1}
+.sitem .lm{font-size:10px;color:var(--muted);letter-spacing:.08em;margin:2px 0 10px}
+.btn:disabled{opacity:.45;cursor:default}
 .demo{text-align:center;font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6}
 
 /* REFERAL */
@@ -317,7 +320,7 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
     <section class="tab" id="tab-dokon">
       <div class="title"><small>T A N G A</small><h1 data-g="SHOP">DO'KON</h1></div>
       <div class="shop" id="shop"></div>
-      <div class="demo">⏳ DO'KON TEZ ORADA ISHGA TUSHADI.<br>NARXLAR HOZIRCHA NAMUNA.</div>
+      <div class="demo">📦 HAR BIR QUTI O'Z DARAJASIDA TASODIFIY WAIFU BERADI.<br>HAR BIR QUTIGA KUNLIK LIMIT BOR.</div>
     </section>
 
     <!-- 4. REFERAL -->
@@ -362,14 +365,6 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
         </div></div>
         <button class="btn" id="spin">🎰 AYLANTIRISH</button>
         <div id="smsg">3 TA BIR XIL BELGI = YUTUQ</div>
-        <div class="ptable">
-          <div class="line"><span>👑👑👑 ULTRA WAIFU</span><b>3%</b></div>
-          <div class="line"><span>💎💎💎 +300 🪙</span><b>5%</b></div>
-          <div class="line"><span>🔥🔥🔥 +150 🪙</span><b>8%</b></div>
-          <div class="line"><span>🪙🪙🪙 +100 🪙</span><b>12%</b></div>
-          <div class="line"><span>🌸🌸🌸 +60 🪙</span><b>17%</b></div>
-          <div class="line"><span>❌ BELGILAR MOS EMAS</span><b>55%</b></div>
-        </div>
       </div>
     </section>
     </div>
@@ -519,6 +514,7 @@ $("modal").addEventListener("click", function (e) {
     if (fav && fav.id === modalItem.id) clearFav(); else setFav(modalItem);
   }
   if (b.dataset.act === "close") $("modal").classList.remove("on");
+  if (b.dataset.act === "buy") sotibOl(b.dataset.k);
 });
 
 /* ---------- Profil ---------- */
@@ -636,18 +632,81 @@ $("seg").addEventListener("click", function () {
   render(); buzz();
 });
 
-/* ---------- Do'kon (namuna) ---------- */
-var SHOP = [{ r: 1, price: 500 }, { r: 2, price: 1500 }, { r: 3, price: 4000 }, { r: 4, price: 10000 }];
+/* ---------- Do'kon ---------- */
+var QUTI = [
+  { k: "common", r: 1, narx: 125, limit: 10, qolgan: 10, bor: true },
+  { k: "rare", r: 2, narx: 375, limit: 5, qolgan: 5, bor: true },
+  { k: "epic", r: 3, narx: 875, limit: 3, qolgan: 3, bor: true },
+  { k: "legendary", r: 4, narx: 1750, limit: 1, qolgan: 1, bor: true },
+];
+var buying = false;
 function shop() {
-  $("shop").innerHTML = SHOP.map(function (s) {
-    return '<div class="bev sitem"><div class="in"><div class="big">🪙 ' + s.price + '</div>' +
-      '<div class="rn" style="color:var(--c' + s.r + ')">' + RAR[s.r].n + ' WAIFU</div>' +
-      '<button class="btn" data-buy="' + s.r + '">SOTIB OLISH</button></div></div>';
+  $("shop").innerHTML = QUTI.map(function (s) {
+    var yopiq = s.limit <= 0 || !s.bor, tugadi = !yopiq && s.qolgan <= 0;
+    return '<div class="bev sitem"><div class="in"><div class="bx">📦</div>' +
+      '<div class="rn" style="color:var(--c' + s.r + ')">' + RAR[s.r].n + ' QUTI</div>' +
+      '<div class="big">🪙 ' + s.narx + '</div>' +
+      '<div class="lm">' + (yopiq ? "YOPIQ" : "BUGUN : " + s.qolgan + " / " + s.limit) + '</div>' +
+      '<button class="btn" data-buy="' + s.k + '"' + (yopiq || tugadi ? " disabled" : "") + '>' + (tugadi ? "LIMIT TUGADI" : "SOTIB OLISH") + '</button></div></div>';
   }).join("");
 }
+function qutiOl(k) { return QUTI.filter(function (x) { return x.k === k; })[0]; }
+async function loadShop() {
+  if (!onlayn()) return;
+  try {
+    var r = await api("/api/shop");
+    if (r.ok && r.data.qutilar) {
+      QUTI = r.data.qutilar.map(function (x) {
+        return { k: x.k, r: RMAP[x.k], narx: x.narx, limit: x.limit, qolgan: x.qolgan, bor: x.bor };
+      });
+      coins = r.data.coins; stats(); shop();
+    }
+  } catch (e) {}
+}
 $("shop").addEventListener("click", function (e) {
-  if (e.target.closest("[data-buy]")) toast("DO'KON TEZ ORADA ISHGA TUSHADI");
+  var b = e.target.closest("[data-buy]");
+  if (!b || b.disabled) return;
+  var q = qutiOl(b.dataset.buy); if (!q) return;
+  $("mcont").innerHTML = '<h3>📦 ' + RAR[q.r].n + ' QUTI</h3>' +
+    '<div class="mname" style="font-size:44px">📦</div>' +
+    '<div class="msub">TASODIFIY <b style="color:var(--c' + q.r + ')">' + RAR[q.r].n + '</b> WAIFU BERADI<br>NARX : 🪙 ' + q.narx + ' • SIZDA : 🪙 ' + coins + '</div>' +
+    '<button class="btn" data-act="buy" data-k="' + q.k + '">✅ SOTIB OLISH</button>' +
+    '<button class="btn ghost" data-act="close">BEKOR</button>';
+  $("modal").classList.add("on");
+  buzz();
 });
+async function sotibOl(k) {
+  if (buying) return;
+  var q = qutiOl(k); if (!q) return;
+  if (coins < q.narx) { $("modal").classList.remove("on"); toast("TANGA YETMAYDI : KERAK 🪙 " + q.narx); return; }
+  buying = true;
+  var item = null;
+  if (onlayn()) {
+    var r;
+    try { r = await api("/api/shop/buy", { method: "POST", body: JSON.stringify({ quti: k }) }); } catch (e) { r = null; }
+    if (!r || !r.ok) {
+      var er = r && r.data && r.data.error;
+      $("modal").classList.remove("on");
+      toast(er === "tanga_yetmaydi" ? "TANGA YETMAYDI" : er === "limit" ? "BUGUNGI LIMIT TUGADI" : er === "waifu_yoq" ? "BU DARAJADA WAIFU YO'Q" : er === "yopiq" ? "QUTI HOZIR YOPIQ" : "XATO, QAYTA URINING");
+      buying = false; loadShop();
+      return;
+    }
+    item = toItem(r.data.natija);
+    coins = r.data.coins;
+    QUTI = r.data.qutilar.map(function (x) {
+      return { k: x.k, r: RMAP[x.k], narx: x.narx, limit: x.limit, qolgan: x.qolgan, bor: x.bor };
+    });
+    loadCollection();
+  } else {
+    coins -= q.narx; q.qolgan = Math.max(q.qolgan - 1, 0);
+    var pool = DEMO.filter(function (d) { return d.r === q.r; });
+    item = pool.length ? pool[Math.floor(Math.random() * pool.length)] : DEMO[0];
+  }
+  buying = false;
+  stats(); shop();
+  celebrate(q.r >= 4 ? "big" : q.r >= 3 ? "mid" : "small");
+  openModal(item, false, "🎁 " + RAR[q.r].n + " QUTI OCHILDI !");
+}
 
 /* ---------- Referal ---------- */
 function refRender() {
@@ -825,8 +884,9 @@ document.querySelector(".gsel").addEventListener("click", function (e) {
 });
 
 /* ---------- Slot ---------- */
-var SYM = { w: "👑", j: "💎", a: "🔥", b: "🪙", c: "🌸" };
-var OUT = [{ k: "w", p: 3 }, { k: "j", p: 5, m: 300 }, { k: "a", p: 8, m: 150 }, { k: "b", p: 12, m: 100 }, { k: "c", p: 17, m: 60 }, { k: "n", p: 55 }];
+var SYM = { w: "👑", m: "🔮", j: "💎", s: "🌟", a: "🔥", e: "🍀", b: "🪙", c: "🌸" };
+var SLOTW = { w: { n: "ULTRA", r: 4 }, m: { n: "MEGA", r: 3 }, s: { n: "SUPER", r: 2 }, e: { n: "ELITA", r: 1 } };
+var OUT = [{ k: "w", p: 3 }, { k: "m", p: 4 }, { k: "j", p: 5, m: 300 }, { k: "s", p: 6 }, { k: "a", p: 7, m: 150 }, { k: "e", p: 9 }, { k: "b", p: 11, m: 100 }, { k: "c", p: 16, m: 60 }, { k: "n", p: 39 }];
 var slotSt = { free: true, bonus: "qulf", pullik: "bor", narx: 100 }, spinning = false;
 function sFree() { return (slotSt.free ? 1 : 0) + (slotSt.bonus === "bor" ? 1 : 0); }
 function sPaid() { return slotSt.pullik === "bor"; }
@@ -890,7 +950,7 @@ async function spin() {
     }
     var dd = rr.data;
     o = { k: dd.k, m: dd.natija && dd.natija.miqdor, g: dd.g || [dd.k, dd.k, dd.k] };
-    if (dd.k === "w" && dd.natija) wonItem = toItem(dd.natija);
+    if (SLOTW[dd.k] && dd.natija && dd.natija.tur === "personaj") wonItem = toItem(dd.natija);
     newSt = dd.slot; newCoins = dd.coins;
   } else {
     o = rollOut();
@@ -917,12 +977,13 @@ async function spin() {
   spinning = false;
   if (newSt) slotSt = newSt;
   if (newCoins !== null) coins = newCoins;
-  if (o.k === "w") {
+  if (SLOTW[o.k]) {
+    var sw = SLOTW[o.k];
     rs.classList.add("win");
-    $("smsg").textContent = "👑 ULTRA WAIFU YUTDINGIZ !";
-    celebrate("big");
-    var it = wonItem || DEMO.filter(function (d) { return d.r === 4; })[0] || DEMO[0];
-    setTimeout(function () { openModal(it, false, "🎉 ULTRA WAIFU !"); }, 700);
+    $("smsg").textContent = SYM[o.k] + " " + sw.n + " WAIFU YUTDINGIZ !";
+    celebrate(sw.r >= 4 ? "big" : sw.r >= 3 ? "mid" : "small");
+    var it = wonItem || DEMO.filter(function (d) { return d.r === sw.r; })[0] || DEMO[0];
+    setTimeout(function () { openModal(it, false, "🎉 " + sw.n + " WAIFU !"); }, 700);
     if (onlayn()) loadCollection();
   } else if (o.k === "n") {
     rs.classList.add("lose");
@@ -988,6 +1049,7 @@ async function load() {
   chips(); shop(); newGame(); favRender(); refRender(); render();
   await loadCollection();
   await loadMe();
+  await loadShop();
 }
 load();
 
