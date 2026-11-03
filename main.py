@@ -20,6 +20,7 @@ import maxevent
 import adminplus
 import haftalik
 import qoshimcha
+import dokon
 import sozlama as S
 import panel
 from telegram import (
@@ -726,6 +727,22 @@ async def sovga(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if oluvchi.is_bot or oluvchi.id == yuboruvchi.id:
         await xabar.reply_text("❌ Bu odamga sovga qilib bo'lmaydi !")
         return
+    qulf = await S.yangi_qulf(baza, yuboruvchi.id)
+    if qulf:
+        await xabar.reply_text(
+            f"🔒 Yangi foydalanuvchilar {S.ol('yangi_soat')} soat sovga qila olmaydi.\n"
+            f"⏳ Qolgan vaqt : {S.vaqt_matni(qulf)}"
+        )
+        return
+    if S.ol("sovga_limit") <= 0:
+        await xabar.reply_text("🚫 Sovga qilish hozir yopiq")
+        return
+    u = await foydalanuvchilar.find_one({"_id": yuboruvchi.id}) or {}
+    if u.get("sovga_sana") == bugun() and u.get("sovga_soni", 0) >= S.ol("sovga_limit"):
+        await xabar.reply_text(
+            f"⏳ Bugungi sovga limiti tugadi ({S.ol('sovga_limit')} ta). Ertaga qayting !"
+        )
+        return
 
     so_z = " ".join(context.args).strip().lstrip("#").lower()
     idlar = {
@@ -748,6 +765,9 @@ async def sovga(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 break
     if not tanlangan:
         await xabar.reply_text("🔍 Bunday waifu kolleksiyangizda yo'q")
+        return
+    if S.ol("sovga_collector") and str(tanlangan["rarity"]).lower() in ("special", "max"):
+        await xabar.reply_text("🚫 COLLECTOR va MAX waifularni sovga qilib bo'lmaydi !")
         return
 
     tugmalar = InlineKeyboardMarkup([[
@@ -786,11 +806,28 @@ async def sovga_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
     yuboruvchi_id = int(qismlar[1])
     oluvchi_id = int(qismlar[2])
     pid = ObjectId(qismlar[3])
+    # Kunlik sovga limiti (atomik: ikki marta bosilsa ham oshib ketmaydi)
+    b = bugun()
+    await foydalanuvchilar.update_one(
+        {"_id": yuboruvchi_id, "sovga_sana": {"$ne": b}},
+        {"$set": {"sovga_sana": b, "sovga_soni": 0}},
+    )
+    r = await foydalanuvchilar.update_one(
+        {"_id": yuboruvchi_id, "sovga_sana": b, "sovga_soni": {"$lt": S.ol("sovga_limit")}},
+        {"$inc": {"sovga_soni": 1}},
+    )
+    if r.modified_count == 0:
+        await q.edit_message_text("⏳ Bugungi sovga limiti tugadi. Ertaga qayting !")
+        await q.answer()
+        return
     # Waifuni yuboruvchidan olib tashlaymiz (bir marta, xavfsiz)
     olindi = await kolleksiya.find_one_and_delete(
         {"user_id": yuboruvchi_id, "char_id": pid}
     )
     if not olindi:
+        await foydalanuvchilar.update_one(
+            {"_id": yuboruvchi_id}, {"$inc": {"sovga_soni": -1}}
+        )
         await q.edit_message_text("❌ Bu waifu endi sizda yo'q.")
         await q.answer()
         return
@@ -872,6 +909,7 @@ S.ulash(ilova, baza)
 haftalik.ulash(ilova, baza, ADMIN_ID)
 panel.ulash(ilova, baza, ADMIN_ID)
 qoshimcha.ulash(ilova, baza, NODIRLIK, yulduz_matni, guruh_tekshir)
+dokon.ulash(ilova, baza, yulduz_matni)
 
 if __name__ == "__main__":
     ilova.run_polling()

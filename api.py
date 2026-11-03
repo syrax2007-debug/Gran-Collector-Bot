@@ -11,6 +11,7 @@ from bson import ObjectId
 from pymongo import AsyncMongoClient
 from main import ilova as telegram_bot
 import haftalik
+import dokon
 import sozlama as S
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
@@ -38,9 +39,9 @@ def oyin_sovrinlar(narx):
 
 # ---------- Slot sozlamalari ----------
 # Faqat 3 ta bir xil belgi tushsa sovrin beriladi. Ehtimol va sovrinlar /panel da
-# "w" = ULTRA waifu, "n" = belgilar mos kelmadi
-SLOT_BELGILAR = ["w", "j", "a", "b", "c"]
-SLOT_DARAJA = "legendary"  # ULTRA
+# w/m/s/e = ULTRA/MEGA/SUPER/ELITA waifu, j/a/b/c = tanga, "n" = belgilar mos kelmadi
+SLOT_BELGILAR = ["w", "m", "j", "s", "a", "e", "b", "c"]
+SLOT_DARAJA = {"w": "legendary", "m": "epic", "s": "rare", "e": "common"}
 
 
 def bugun():
@@ -118,6 +119,8 @@ async def tolangan_soni(baza, uid):
 
 
 async def foydalanuvchi_ol(baza, f):
+    # Yangi foydalanuvchi cheklovi (24 soat) uchun birinchi kirgan vaqtni yozib qo'yamiz
+    await S.belgila(baza, f["id"])
     await baza["users"].update_one(
         {"_id": f["id"]},
         {"$set": {"name": f.get("first_name", "")}},
@@ -408,27 +411,27 @@ async def slot_api(request):
                 )
             narx = S.ol("slot_narx")
 
-    # Natijani server tanlaydi
-    shart = {"rarity": {"$in": [SLOT_DARAJA, SLOT_DARAJA.capitalize()]}}
-    nodir_soni = await baza["characters"].count_documents(shart)
-    variantlar = [v for v in S.slot_natijalar() if v[0] != "w" or nodir_soni]
+    # Natijani server tanlaydi. Waifu belgisi faqat shu darajada waifu bo'lsa chiqadi
+    soni = {}
+    for belgi, daraja in SLOT_DARAJA.items():
+        soni[belgi] = await baza["characters"].count_documents(dokon.shart(daraja))
+    variantlar = [v for v in S.slot_natijalar() if v[0] not in SLOT_DARAJA or soni[v[0]]]
     rng = random.SystemRandom()
     tanlov = rng.choices(variantlar, weights=[v[1] for v in variantlar])[0]
     kalit, _, miqdor = tanlov
 
     if kalit == "n":
         # Uchala belgi bir xil bo'lmasligi shart
-        belgilar = SLOT_BELGILAR if nodir_soni else [x for x in SLOT_BELGILAR if x != "w"]
         while True:
-            g = [rng.choice(belgilar) for _ in range(3)]
+            g = [rng.choice(SLOT_BELGILAR) for _ in range(3)]
             if len(set(g)) > 1:
                 break
     else:
         g = [kalit] * 3
 
-    if kalit == "w":
+    if kalit in SLOT_DARAJA:
         p = await baza["characters"].find_one(
-            shart, skip=random.randrange(nodir_soni)
+            dokon.shart(SLOT_DARAJA[kalit]), skip=random.randrange(soni[kalit])
         )
         await baza["collection"].insert_one(
             {"user_id": uid, "char_id": p["_id"]}
@@ -440,9 +443,7 @@ async def slot_api(request):
         natija = {"tur": "tanga", "miqdor": miqdor}
         await users.update_one({"_id": uid}, {"$inc": {"coins": miqdor}})
 
-    await haftalik.qosh(
-        baza, uid, "coin", (miqdor if kalit not in ("w", "n") else 0) - narx
-    )
+    await haftalik.qosh(baza, uid, "coin", miqdor - narx)
     u = await users.find_one({"_id": uid})
     return web.json_response({
         "k": kalit,
@@ -451,6 +452,47 @@ async def slot_api(request):
         "natija": natija,
         "coins": u.get("coins", 0),
         "slot": slot_holat(u, tolangan),
+    })
+
+
+# ---------- Do'kon ----------
+async def dokon_api(request):
+    f = tekshir(request.headers.get("X-Init-Data", ""))
+    if not f:
+        raise web.HTTPUnauthorized(text="Ruxsat yo'q")
+    baza = request.app["baza"]
+    await S.yangila(baza)
+    await foydalanuvchi_ol(baza, f)
+    tanga, qutilar = await dokon.holat(baza, f["id"])
+    return web.json_response({"coins": tanga, "qutilar": qutilar})
+
+
+async def dokon_sotib_api(request):
+    f = tekshir(request.headers.get("X-Init-Data", ""))
+    if not f:
+        raise web.HTTPUnauthorized(text="Ruxsat yo'q")
+    try:
+        quti = str((await request.json()).get("quti"))
+    except Exception:
+        raise web.HTTPBadRequest(text="quti kerak")
+    baza = request.app["baza"]
+    await S.yangila(baza)
+    await foydalanuvchi_ol(baza, f)
+    kod, d = await dokon.sotib_ol(baza, f["id"], quti)
+    holat_kodi = {
+        "nomalum": 400, "yopiq": 403, "limit": 429,
+        "tanga_yetmaydi": 402, "waifu_yoq": 404, "xato": 500,
+    }
+    if kod != "ok":
+        return web.json_response(dict({"error": kod}, **{
+            k: v for k, v in d.items() if k in ("narx", "coins")
+        }), status=holat_kodi.get(kod, 500))
+    tanga, qutilar = await dokon.holat(baza, f["id"])
+    return web.json_response({
+        "natija": dict(kartochka_json(d["p"]), tur="personaj"),
+        "narx": d["narx"],
+        "coins": tanga,
+        "qutilar": qutilar,
     })
 
 
@@ -490,6 +532,8 @@ app.router.add_get("/api/me", me_api)
 app.router.add_post("/api/favorite", sevimli_api)
 app.router.add_post("/api/game/play", oyin_api)
 app.router.add_post("/api/slot/play", slot_api)
+app.router.add_get("/api/shop", dokon_api)
+app.router.add_post("/api/shop/buy", dokon_sotib_api)
 
 if __name__ == "__main__":
     web.run_app(app, host="0.0.0.0", port=int(os.environ.get("PORT", "8080")))

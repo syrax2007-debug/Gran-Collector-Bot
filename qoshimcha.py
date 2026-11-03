@@ -291,6 +291,14 @@ async def trade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await _kunlik_son(men.id) >= S.ol('trade_limit'):
         await xabar.reply_text(f"⏳ Bugungi almashish limiti tugadi ({S.ol('trade_limit')} ta)")
         return
+    for kim_id, kim_nom in ((men.id, "Siz"), (u2.id, "Bu odam")):
+        qulf = await S.yangi_qulf(_baza, kim_id)
+        if qulf:
+            await xabar.reply_text(
+                f"🔒 {kim_nom} yangi foydalanuvchisiz, {S.ol('yangi_soat')} soat almashib bo'lmaydi.\n"
+                f"⏳ Qolgan vaqt : {S.vaqt_matni(qulf)}"
+            )
+            return
     # farq > 0: men olayotgan waifu qimmatroq, farqni men to'layman
     farq = narx_ol(kalit(uning)) - narx_ol(kalit(mening))
     tolovchi = men.id if farq > 0 else u2.id

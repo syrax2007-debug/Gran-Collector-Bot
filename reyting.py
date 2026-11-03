@@ -4,11 +4,12 @@ from datetime import datetime, timedelta, timezone
 from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes
 import ismlar
+import sozlama as S
 
 # ---------- Sozlamalar ----------
 TOP_SONI = 10  # /top da nechta odam ko'rsatiladi
 EGA_SONI = 5  # /ega da nechta ega ko'rsatiladi
-COIN_KUNLIK_LIMIT = 1000  # bir kunda ulashish mumkin bo'lgan jami tanga
+# Kunlik ulashish limiti /panel dan o'zgartiriladi (sozlama.py: coin_limit)
 # Har bir o'rin uchun alohida nishon (o'zgartirsangiz bo'ladi)
 NISHONLAR = ["🥇", "🥈", "🥉", "💎", "🔥", "⚡", "🌟", "🎖️", "🏅", "✨"]
 CIZIQ = "━━━━━━━━━━━━━━"
@@ -186,7 +187,7 @@ async def coin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "<code>/coin 100</code>\n\n"
         "yoki uning ID raqami bilan:\n"
         "<code>/coin 123456789 100</code>\n\n"
-        f"Kunlik limit : {COIN_KUNLIK_LIMIT} 🪙"
+        f"Kunlik limit : {S.ol('coin_limit')} 🪙"
     )
     args = context.args
     javob = xabar.reply_to_message
@@ -211,6 +212,14 @@ async def coin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await xabar.reply_text("❌ O'zingizga tanga berib bo'lmaydi !")
         return
 
+    qulf = await S.yangi_qulf(_baza, yub.id)
+    if qulf:
+        await xabar.reply_text(
+            f"🔒 Yangi foydalanuvchilar {S.ol('yangi_soat')} soat tanga ulasha olmaydi.\n"
+            f"⏳ Qolgan vaqt : {S.vaqt_matni(qulf)}"
+        )
+        return
+
     users = _baza["users"]
     oluvchi = await users.find_one({"_id": oluvchi_id})
     if oluvchi is None:
@@ -226,10 +235,10 @@ async def coin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     b = bugun()
     u = await users.find_one({"_id": yub.id}) or {}
     ishlatilgan = u.get("coin_yub", 0) if u.get("coin_sana") == b else 0
-    if ishlatilgan + n > COIN_KUNLIK_LIMIT:
-        qoldi = max(COIN_KUNLIK_LIMIT - ishlatilgan, 0)
+    if ishlatilgan + n > S.ol("coin_limit"):
+        qoldi = max(S.ol("coin_limit") - ishlatilgan, 0)
         await xabar.reply_text(
-            f"⏳ Kunlik limit : {COIN_KUNLIK_LIMIT} 🪙\n"
+            f"⏳ Kunlik limit : {S.ol('coin_limit')} 🪙\n"
             f"Bugun yana {qoldi} 🪙 ulasha olasiz"
         )
         return

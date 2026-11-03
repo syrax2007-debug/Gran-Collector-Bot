@@ -35,11 +35,14 @@ RO = {
     "oyin_narx_qadam": (50, 0, 1000000, "Har urinishda narx oshishi"),
     # 🎰 Slot
     "slot_narx": (100, 0, 1000000, "Pullik aylantirish narxi"),
-    "s_w": (3, 0, 100, "ULTRA waifu ehtimoli (%)"),
+    "s_w": (3, 0, 100, "👑 ULTRA waifu ehtimoli (%)"),
+    "s_m": (4, 0, 100, "🔮 MEGA waifu ehtimoli (%)"),
+    "s_s": (6, 0, 100, "🌟 SUPER waifu ehtimoli (%)"),
+    "s_e": (9, 0, 100, "🍀 ELITA waifu ehtimoli (%)"),
     "s_j": (5, 0, 100, "💎💎💎 ehtimoli (%)"),
-    "s_a": (8, 0, 100, "🔥🔥🔥 ehtimoli (%)"),
-    "s_b": (12, 0, 100, "🪙🪙🪙 ehtimoli (%)"),
-    "s_c": (17, 0, 100, "🌸🌸🌸 ehtimoli (%)"),
+    "s_a": (7, 0, 100, "🔥🔥🔥 ehtimoli (%)"),
+    "s_b": (11, 0, 100, "🪙🪙🪙 ehtimoli (%)"),
+    "s_c": (16, 0, 100, "🌸🌸🌸 ehtimoli (%)"),
     "sov_j": (300, 0, 1000000, "💎💎💎 sovrini"),
     "sov_a": (150, 0, 1000000, "🔥🔥🔥 sovrini"),
     "sov_b": (100, 0, 1000000, "🪙🪙🪙 sovrini"),
@@ -48,14 +51,28 @@ RO = {
     "hafta_2": (1111, 0, 10000000, "2-o'rin sovrini"),
     "hafta_3": (777, 0, 10000000, "3-o'rin sovrini"),
     # 🔁 Trade
-    "narx_common": (600, 1, 100000000, "ELITA narxi"),
-    "narx_rare": (1800, 1, 100000000, "SUPER narxi"),
-    "narx_epic": (5000, 1, 100000000, "MEGA narxi"),
-    "narx_legendary": (12000, 1, 100000000, "ULTRA narxi"),
-    "narx_special": (30000, 1, 100000000, "COLLECTOR narxi"),
-    "narx_max": (80000, 1, 100000000, "MAX narxi"),
+    "narx_common": (100, 1, 100000000, "ELITA narxi"),
+    "narx_rare": (300, 1, 100000000, "SUPER narxi"),
+    "narx_epic": (700, 1, 100000000, "MEGA narxi"),
+    "narx_legendary": (1400, 1, 100000000, "ULTRA narxi"),
+    "narx_special": (5000, 1, 100000000, "COLLECTOR narxi"),
+    "narx_max": (20000, 1, 100000000, "MAX narxi"),
     "trade_limit": (5, 0, 100, "Kunlik almashish soni"),
     "trade_muddat": (10, 1, 120, "Taklif muddati (daqiqa)"),
+    # 🎁 Sovga va tanga ulashish
+    "yangi_soat": (24, 0, 720, "Yangi foydalanuvchi cheklovi (soat, 0 = o'chiq)"),
+    "sovga_limit": (5, 0, 100, "Kunlik sovga soni"),
+    "sovga_collector": (1, 0, 1, "COLLECTOR/MAX sovga qilishni taqiqlash (1 = ha, 0 = yo'q)"),
+    "coin_limit": (1000, 0, 100000000, "Kunlik tanga ulashish limiti"),
+    # 🛒 Do'kon (qutilar)
+    "quti_common": (125, 1, 100000000, "ELITA qutisi narxi"),
+    "quti_rare": (375, 1, 100000000, "SUPER qutisi narxi"),
+    "quti_epic": (875, 1, 100000000, "MEGA qutisi narxi"),
+    "quti_legendary": (1750, 1, 100000000, "ULTRA qutisi narxi"),
+    "qlimit_common": (10, 0, 1000, "ELITA qutisi : kunlik limit (0 = yopiq)"),
+    "qlimit_rare": (5, 0, 1000, "SUPER qutisi : kunlik limit (0 = yopiq)"),
+    "qlimit_epic": (3, 0, 1000, "MEGA qutisi : kunlik limit (0 = yopiq)"),
+    "qlimit_legendary": (1, 0, 1000, "ULTRA qutisi : kunlik limit (0 = yopiq)"),
 }
 
 # Panel bo'limlari: (kalit, nomi, [sozlamalar])
@@ -69,13 +86,19 @@ BOLIMLAR = [
      ["claim_common", "claim_rare", "claim_epic", "claim_legendary"]),
     ("oyin", "🃏 9 karta", ["oyin_kunlik", "oyin_narx_bosh", "oyin_narx_qadam"]),
     ("slot", "🎰 Slot",
-     ["slot_narx", "s_w", "s_j", "s_a", "s_b", "s_c", "sov_j", "sov_a", "sov_b", "sov_c"]),
+     ["slot_narx", "s_w", "s_m", "s_s", "s_e", "s_j", "s_a", "s_b", "s_c",
+      "sov_j", "sov_a", "sov_b", "sov_c"]),
     ("hafta", "🏆 Haftalik", ["hafta_2", "hafta_3"]),
     ("trade", "🔁 Trade va narx",
      ["narx_common", "narx_rare", "narx_epic", "narx_legendary", "narx_special", "narx_max",
       "trade_limit", "trade_muddat"]),
+    ("sovga", "🎁 Sovga va ulashish",
+     ["yangi_soat", "sovga_limit", "sovga_collector", "coin_limit"]),
+    ("dokon", "🛒 Do'kon",
+     ["quti_common", "quti_rare", "quti_epic", "quti_legendary",
+      "qlimit_common", "qlimit_rare", "qlimit_epic", "qlimit_legendary"]),
 ]
-SLOT_KALITLAR = ("s_w", "s_j", "s_a", "s_b", "s_c")
+SLOT_KALITLAR = ("s_w", "s_m", "s_s", "s_e", "s_j", "s_a", "s_b", "s_c")
 CLAIM_KALITLAR = ("claim_common", "claim_rare", "claim_epic", "claim_legendary")
 CHIQISH_KALITLAR = ("w_common", "w_rare", "w_epic", "w_legendary", "w_special")
 
@@ -149,12 +172,60 @@ async def tikla(baza, kalit):
 # ---- ko'p ishlatiladigan hisoblar
 def slot_natijalar():
     # (belgi, ehtimol %, tanga). "n" = belgilar mos kelmadi (qolgan ulush)
-    w, j, a, b, c = (ol(k) for k in SLOT_KALITLAR)
-    n = max(0, 100 - (w + j + a + b + c))
+    # w/m/s/e = ULTRA/MEGA/SUPER/ELITA waifu (tanga 0), j/a/b/c = tanga sovrinlari
+    w, m, s, e, j, a, b, c = (ol(k) for k in SLOT_KALITLAR)
+    n = max(0, 100 - (w + m + s + e + j + a + b + c))
     return [
-        ("w", w, 0), ("j", j, ol("sov_j")), ("a", a, ol("sov_a")),
+        ("w", w, 0), ("m", m, 0), ("s", s, 0), ("e", e, 0),
+        ("j", j, ol("sov_j")), ("a", a, ol("sov_a")),
         ("b", b, ol("sov_b")), ("c", c, ol("sov_c")), ("n", n, 0),
     ]
+
+
+def vaqt_matni(soniya):
+    # 5 soat 12 daqiqa ko'rinishida
+    daq = max(1, int(soniya // 60) + (1 if soniya % 60 else 0))
+    soat, daq = divmod(daq, 60)
+    if soat and daq:
+        return f"{soat} soat {daq} daqiqa"
+    return f"{soat} soat" if soat else f"{daq} daqiqa"
+
+
+async def yangi_qulf(baza, uid):
+    # Yangi foydalanuvchi bo'lsa, cheklov tugashigacha qolgan soniya; aks holda 0.
+    # Eski foydalanuvchilarda "qoshildi" yo'q, ular cheklanmaydi.
+    soat = ol("yangi_soat")
+    if soat <= 0:
+        return 0
+    try:
+        u = await baza["users"].find_one({"_id": uid}) or {}
+    except Exception as xato:
+        logging.warning("Yangi foydalanuvchini tekshirib bo'lmadi: %s", xato)
+        return 0
+    t = u.get("qoshildi")
+    if not isinstance(t, (int, float)):
+        return 0
+    return max(0, t + soat * 3600 - time.time())
+
+
+_korilgan = set()
+
+
+async def belgila(baza, uid):
+    # Foydalanuvchi birinchi marta buyruq bergan vaqtni saqlaydi (faqat yangi hujjatga)
+    if uid in _korilgan:
+        return
+    _korilgan.add(uid)
+    try:
+        # Waifusi bor odam eski o'yinchi (masalan, faqat guruhda topib o'ynagan): cheklanmaydi
+        if await baza["collection"].find_one({"user_id": uid}) is not None:
+            return
+        await baza["users"].update_one(
+            {"_id": uid}, {"$setOnInsert": {"qoshildi": time.time()}}, upsert=True
+        )
+    except Exception as xato:
+        _korilgan.discard(uid)
+        logging.warning("Qo'shilgan vaqtni yozib bo'lmadi: %s", xato)
 
 
 async def _yangila_ishlovchi(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -162,6 +233,19 @@ async def _yangila_ishlovchi(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await yangila(_baza)
     except Exception as xato:
         logging.warning("Sozlamani yangilab bo'lmadi: %s", xato)
+    # Faqat buyruq yoki tugma bosganlar: guruhda shunchaki yozganlar bazaga kirmaydi
+    try:
+        u = update.effective_user
+        if u is None or u.is_bot:
+            return
+        m = update.message
+        buyruq = bool(m and m.text and m.text.startswith("/")) or (
+            update.callback_query is not None
+        )
+        if buyruq:
+            await belgila(_baza, u.id)
+    except Exception as xato:
+        logging.warning("Foydalanuvchini belgilab bo'lmadi: %s", xato)
 
 
 _baza = None
