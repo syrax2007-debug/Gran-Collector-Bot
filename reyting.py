@@ -194,6 +194,16 @@ async def ega_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
 YULDUZ = {"common": 1, "rare": 2, "epic": 3, "legendary": 4, "special": 5, "max": 6}
 
 
+def _waifu_matni(p):
+    k = str(p["rarity"]).lower()
+    return (
+        f"🗽 Ismi : {toza(p['name'])}\n"
+        f"🎗️ Daraja : {DARAJA.get(k, str(p['rarity']))}\n"
+        f"👀 Manba : {toza(p['anime'])}\n"
+        f"🔢 Raqam : {p.get('raqam', '?')}"
+    )
+
+
 async def waifu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     xabar = update.message
     if not context.args:
@@ -228,53 +238,30 @@ async def waifu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if len(topilgan) > 1:
             topilgan.sort(key=lambda d: (str(d["name"]).lower(), d.get("raqam") or 0))
             ortiqcha = len(topilgan) > WAIFU_RO_SONI
-            royxat = "\n".join(
-                f"• {toza(d['name'])} · {toza(d['anime'])} · "
-                f"{DARAJA.get(str(d['rarity']).lower(), str(d['rarity']))} — "
-                f"<code>{d.get('raqam', '?')}</code>"
-                for d in topilgan[:WAIFU_RO_SONI]
-            )
-            await xabar.reply_text(
+            bloklar = [
+                _waifu_matni(d) for d in topilgan[:WAIFU_RO_SONI]
+            ]
+            bosh = (
                 f"🔎 {min(len(topilgan), WAIFU_RO_SONI)}"
-                f"{'+' if ortiqcha else ''} ta waifu topildi. Raqami bilan yozing:\n\n"
-                f"{royxat}\n\n<code>/waifu raqam</code>"
-                + ("\n\nℹ️ Ro'yxat uzun: ismni aniqroq yozing" if ortiqcha else ""),
-                parse_mode="HTML",
+                f"{'+' if ortiqcha else ''} ta waifu topildi\n\n"
             )
+            oxir = "\n\n<code>/waifu raqam</code> — rasmini ko'rish"
+            if ortiqcha:
+                oxir += "\nℹ️ Ro'yxat uzun: ismni aniqroq yozing"
+            qismlar, joriy = [], bosh
+            for blok in bloklar:
+                if len(joriy) + len(blok) + 2 > 3500:
+                    qismlar.append(joriy)
+                    joriy = ""
+                joriy += blok + "\n\n"
+            qismlar.append(joriy.rstrip() + oxir)
+            for q in qismlar:
+                await xabar.reply_text(q, parse_mode="HTML")
             return
         p = topilgan[0]
 
-
-    sanash = Counter()
-    async for d in _baza["collection"].find({"char_id": p["_id"]}):
-        sanash[d["user_id"]] += 1
-    k = str(p["rarity"]).lower()
-    yulduz = YULDUZ.get(k, 1)
-    qator = [
-        f"🗽 Ismi : {toza(p['name'])}",
-        f"🔢 Raqam : {p.get('raqam', '?')}",
-        f"🎗️ Daraja : {DARAJA.get(k, str(p['rarity']))}  "
-        + "★" * yulduz + "☆" * (6 - yulduz),
-        f"👀 Manba : {toza(p['anime'])}",
-    ]
-    if p.get("event"):
-        qator.append(f"🎪 Event : {toza(p['event'])}")
-    if ("narx_" + k) in S.RO:
-        qator.append(f"💰 Daraja narxi : 🪙 {S.ol('narx_' + k)}")
-    qator.append(
-        f"👥 Egalari : {len(sanash)} kishi • jami {sum(sanash.values())} ta nusxa"
-    )
-    elonlar = [d async for d in _baza["bozor"].find({"c": p["_id"]})]
-    if elonlar:
-        qator.append(
-            f"🏪 Do'konda : {len(elonlar)} ta e'lon • eng arzoni "
-            f"🪙 {min(d['narx'] for d in elonlar)}"
-        )
-    else:
-        qator.append("🏪 Do'konda : yo'q")
-    qator.append(f"\n👑 Egalarini ko'rish : /ega {p.get('raqam', '')}")
     await xabar.reply_photo(
-        photo=p["file_id"], caption="\n".join(qator), parse_mode="HTML"
+        photo=p["file_id"], caption=_waifu_matni(p), parse_mode="HTML"
     )
 
 
