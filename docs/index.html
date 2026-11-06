@@ -166,14 +166,19 @@ input{flex:1;min-width:0;padding:10px;background:var(--glass2);border:1px solid 
 #toast.on{opacity:1}
 
 /* O'YIN TANLASH + SLOT */
-.gsel{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-.gs{--c:10px;border:0;cursor:pointer;font:inherit;color:inherit;display:block}
-.gs .in{padding:10px 4px;text-align:center;display:flex;flex-direction:column;gap:2px;align-items:center}
-.gs .ic{font-size:30px;line-height:1.1}
-.gs b{font-family:var(--head);font-size:12px;letter-spacing:.14em;color:var(--neon2)}
-.gs small{font-size:9px;color:var(--muted);letter-spacing:.1em}
-.gs.on .in{background:linear-gradient(180deg,var(--on1),var(--on2));box-shadow:inset 0 -2px 0 var(--neon)}
-.gs.on b{color:#fff;text-shadow:var(--glow)}
+.gsel,.dsel{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.gs,.ds{--c:10px;border:0;cursor:pointer;font:inherit;color:inherit;display:block}
+.gs .in,.ds .in{padding:10px 4px;text-align:center;display:flex;flex-direction:column;gap:2px;align-items:center}
+.gs .ic,.ds .ic{font-size:30px;line-height:1.1}
+.gs b,.ds b{font-family:var(--head);font-size:12px;letter-spacing:.14em;color:var(--neon2)}
+.gs small,.ds small{font-size:9px;color:var(--muted);letter-spacing:.1em}
+.gs.on .in,.ds.on .in{background:linear-gradient(180deg,var(--on1),var(--on2));box-shadow:inset 0 -2px 0 var(--neon)}
+.gs.on b,.ds.on b{color:#fff;text-shadow:var(--glow)}
+.bzc .in{padding:10px 8px}
+.bzc .pic{width:78%;margin:0 auto 6px}
+.bzc .big{font-size:15px}
+.bzc .lm{margin:2px 0 6px}
+.inp{width:100%;padding:11px;background:var(--glass2);border:1px solid var(--neon);color:#fff;font:inherit;font-size:16px;text-align:center;outline:0}
 #sinfo{text-align:center;color:var(--muted);margin-bottom:10px;font-size:13px;line-height:1.6}
 .slotbox{--c:14px;margin:4px 0 12px}
 .slotbox>.in{padding:14px 12px;height:auto}
@@ -318,9 +323,20 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
 
     <!-- 3. DO'KON -->
     <section class="tab" id="tab-dokon">
-      <div class="title"><small>T A N G A</small><h1 data-g="SHOP">DO'KON</h1></div>
-      <div class="shop" id="shop"></div>
-      <div class="demo">📦 HAR BIR QUTI O'Z DARAJASIDA TASODIFIY WAIFU BERADI.<br>HAR BIR QUTIGA KUNLIK LIMIT BOR.</div>
+      <div class="title"><small id="dsub">O M A D L I &nbsp; Q U T I</small><h1 data-g="SHOP" id="dtitle">SANDIQ</h1></div>
+      <div class="dsel" id="dsel">
+        <button class="bev ds on" data-m="sandiq"><div class="in"><span class="ic">📦</span><b>SANDIQ</b><small>OMADLI QUTI</small></div></button>
+        <button class="bev ds" data-m="bozor"><div class="in"><span class="ic">🏪</span><b>DO'KON</b><small>WAIFU SAVDOSI</small></div></button>
+      </div>
+      <div id="d-sandiq">
+        <div class="shop" id="shop"></div>
+        <div class="demo">📦 HAR BIR SANDIQ O'Z DARAJASIDA TASODIFIY WAIFU BERADI.<br>HAR BIR SANDIQQA KUNLIK LIMIT BOR.</div>
+      </div>
+      <div id="d-bozor" hidden>
+        <div class="chips" id="bchips"></div>
+        <div class="shop" id="bgrid"></div>
+        <div class="demo" id="binfo"></div>
+      </div>
     </section>
 
     <!-- 4. REFERAL -->
@@ -500,6 +516,7 @@ function openModal(it, favBtn, title) {
     '<div style="width:' + (title ? "80%" : "70%") + ';margin:0 auto">' + tile(it, false) + '</div>' +
     infoBlock(it) +
     (favBtn ? '<button class="btn" data-act="fav">' + (fav && fav.id === it.id ? "💔 SEVIMLIDAN OLISH" : "❤ SEVIMLI QILISH") + '</button>' : "") +
+    (favBtn && BZ.oraliq[RKEY[it.r]] ? '<button class="btn ghost" data-act="sell">🏪 SOTISHGA QO\'YISH</button>' : "") +
     '<button class="btn ghost" data-act="close">YOPISH</button>';
   $("modal").classList.add("on");
   buzz();
@@ -515,6 +532,9 @@ $("modal").addEventListener("click", function (e) {
   }
   if (b.dataset.act === "close") $("modal").classList.remove("on");
   if (b.dataset.act === "buy") sotibOl(b.dataset.k);
+  if (b.dataset.act === "bzbuy") bzSotib(b.dataset.e);
+  if (b.dataset.act === "sell") sotishOynasi();
+  if (b.dataset.act === "sellgo") sotishYubor();
 });
 
 /* ---------- Profil ---------- */
@@ -632,7 +652,7 @@ $("seg").addEventListener("click", function () {
   render(); buzz();
 });
 
-/* ---------- Do'kon ---------- */
+/* ---------- Sandiq ---------- */
 var QUTI = [
   { k: "common", r: 1, narx: 125, limit: 10, qolgan: 10, bor: true },
   { k: "rare", r: 2, narx: 375, limit: 5, qolgan: 5, bor: true },
@@ -644,7 +664,7 @@ function shop() {
   $("shop").innerHTML = QUTI.map(function (s) {
     var yopiq = s.limit <= 0 || !s.bor, tugadi = !yopiq && s.qolgan <= 0;
     return '<div class="bev sitem"><div class="in"><div class="bx">📦</div>' +
-      '<div class="rn" style="color:var(--c' + s.r + ')">' + RAR[s.r].n + ' QUTI</div>' +
+      '<div class="rn" style="color:var(--c' + s.r + ')">' + RAR[s.r].n + ' SANDIQ</div>' +
       '<div class="big">🪙 ' + s.narx + '</div>' +
       '<div class="lm">' + (yopiq ? "YOPIQ" : "BUGUN : " + s.qolgan + " / " + s.limit) + '</div>' +
       '<button class="btn" data-buy="' + s.k + '"' + (yopiq || tugadi ? " disabled" : "") + '>' + (tugadi ? "LIMIT TUGADI" : "SOTIB OLISH") + '</button></div></div>';
@@ -654,7 +674,7 @@ function qutiOl(k) { return QUTI.filter(function (x) { return x.k === k; })[0]; 
 async function loadShop() {
   if (!onlayn()) return;
   try {
-    var r = await api("/api/shop");
+    var r = await api("/api/sandiq");
     if (r.ok && r.data.qutilar) {
       QUTI = r.data.qutilar.map(function (x) {
         return { k: x.k, r: RMAP[x.k], narx: x.narx, limit: x.limit, qolgan: x.qolgan, bor: x.bor };
@@ -667,7 +687,7 @@ $("shop").addEventListener("click", function (e) {
   var b = e.target.closest("[data-buy]");
   if (!b || b.disabled) return;
   var q = qutiOl(b.dataset.buy); if (!q) return;
-  $("mcont").innerHTML = '<h3>📦 ' + RAR[q.r].n + ' QUTI</h3>' +
+  $("mcont").innerHTML = '<h3>📦 ' + RAR[q.r].n + ' SANDIQ</h3>' +
     '<div class="mname" style="font-size:44px">📦</div>' +
     '<div class="msub">TASODIFIY <b style="color:var(--c' + q.r + ')">' + RAR[q.r].n + '</b> WAIFU BERADI<br>NARX : 🪙 ' + q.narx + ' • SIZDA : 🪙 ' + coins + '</div>' +
     '<button class="btn" data-act="buy" data-k="' + q.k + '">✅ SOTIB OLISH</button>' +
@@ -683,11 +703,11 @@ async function sotibOl(k) {
   var item = null;
   if (onlayn()) {
     var r;
-    try { r = await api("/api/shop/buy", { method: "POST", body: JSON.stringify({ quti: k }) }); } catch (e) { r = null; }
+    try { r = await api("/api/sandiq/buy", { method: "POST", body: JSON.stringify({ quti: k }) }); } catch (e) { r = null; }
     if (!r || !r.ok) {
       var er = r && r.data && r.data.error;
       $("modal").classList.remove("on");
-      toast(er === "tanga_yetmaydi" ? "TANGA YETMAYDI" : er === "limit" ? "BUGUNGI LIMIT TUGADI" : er === "waifu_yoq" ? "BU DARAJADA WAIFU YO'Q" : er === "yopiq" ? "QUTI HOZIR YOPIQ" : "XATO, QAYTA URINING");
+      toast(er === "tanga_yetmaydi" ? "TANGA YETMAYDI" : er === "limit" ? "BUGUNGI LIMIT TUGADI" : er === "waifu_yoq" ? "BU DARAJADA WAIFU YO'Q" : er === "yopiq" ? "SANDIQ HOZIR YOPIQ" : "XATO, QAYTA URINING");
       buying = false; loadShop();
       return;
     }
@@ -705,7 +725,182 @@ async function sotibOl(k) {
   buying = false;
   stats(); shop();
   celebrate(q.r >= 4 ? "big" : q.r >= 3 ? "mid" : "small");
-  openModal(item, false, "🎁 " + RAR[q.r].n + " QUTI OCHILDI !");
+  openModal(item, false, "🎁 " + RAR[q.r].n + " SANDIQ OCHILDI !");
+}
+
+/* ---------- Do'kon (o'yinchilar savdosi) ---------- */
+var RKEY = { 1: "common", 2: "rare", 3: "epic", 4: "legendary", 5: "special" };
+var BZ = { elonlar: [], oraliq: {}, limit: 5, qulf: 0, filter: 0, yuklandi: false };
+function bzDemo() {
+  return [
+    { elon: "x1", narx: 500, sotuvchi: "ALI", oz: false, item: DEMO[0] },
+    { elon: "x2", narx: 1500, sotuvchi: "VALI", oz: false, item: DEMO[1] },
+    { elon: "x3", narx: 700, sotuvchi: "SIZ", oz: true, item: DEMO[2] },
+  ];
+}
+function bzOl(id) { return BZ.elonlar.filter(function (x) { return x.elon === id; })[0]; }
+function bzOraliq(r) {
+  var o = BZ.oraliq[RKEY[r]];
+  return o ? "MIN 🪙 " + o.min + " • MAX " + (o.max == null ? "CHEKSIZ" : "🪙 " + o.max) : "";
+}
+function bzXato(er, d) {
+  d = d || {};
+  var m = {
+    yangi: "YANGI FOYDALANUVCHI : " + Math.ceil((d.qolgan || 0) / 3600) + " SOAT KUTING",
+    yopiq: "DO'KON HOZIR YOPIQ", taqiq: "BU WAIFUNI SOTIB BO'LMAYDI",
+    limit: "E'LONLAR LIMITI TO'LDI : " + (d.limit || BZ.limit) + " TA",
+    past: "NARX JUDA PAST : MIN 🪙 " + d.min, baland: "NARX JUDA BALAND : MAX 🪙 " + d.max,
+    topilmadi: "WAIFU SIZDA YO'Q", yoq: "E'LON ENDI YO'Q (SOTILGAN)", oz: "O'Z E'LONINGIZNI OLOLMAYSIZ",
+    tanga_yetmaydi: "TANGA YETMAYDI : KERAK 🪙 " + d.narx,
+  };
+  return m[er] || "XATO, QAYTA URINING";
+}
+function bzChips() {
+  var h = '<button class="chip ' + (BZ.filter === 0 ? "on" : "") + '" data-bk="0">HAMMASI</button>';
+  [1, 2, 3, 4, 5].forEach(function (k) {
+    h += '<button class="chip ' + (BZ.filter === k ? "on" : "") + '" data-bk="' + k + '" style="--rc:var(--c' + k + ')">' + RAR[k].n + '</button>';
+  });
+  h += '<button class="chip ' + (BZ.filter === 9 ? "on" : "") + '" data-bk="9">MENING</button>';
+  $("bchips").innerHTML = h;
+}
+function bzRender() {
+  bzChips();
+  var list = BZ.elonlar.filter(function (x) {
+    return BZ.filter === 0 || (BZ.filter === 9 ? x.oz : x.item.r === BZ.filter);
+  });
+  $("bgrid").innerHTML = list.length ? list.map(function (x) {
+    var it = x.item;
+    return '<div class="bev sitem bzc"><div class="in">' + tile(it, false) +
+      '<div class="rn" style="color:var(--c' + it.r + ')">' + esc(it.name) + '</div>' +
+      '<div class="lm">' + RAR[it.r].n + (it.raqam ? ' · № ' + esc(it.raqam) : "") + '</div>' +
+      '<div class="big">🪙 ' + x.narx + '</div>' +
+      '<div class="lm">' + (x.oz ? "SIZNING E'LONINGIZ" : "SOTUVCHI : " + esc(x.sotuvchi)) + '</div>' +
+      (x.oz ? '<button class="btn ghost" data-bzc="' + esc(x.elon) + '">❌ BEKOR</button>'
+            : '<button class="btn" data-bzb="' + esc(x.elon) + '">SOTIB OLISH</button>') +
+      '</div></div>';
+  }).join("") : '<div class="empty2">📭 E\'LON YO\'Q</div>';
+  $("binfo").innerHTML = "🏪 O'Z WAIFUNGIZNI SOTISH : KOLLEKSIYADA WAIFUNI BOSING ➜ «SOTISHGA QO'YISH».<br>SIZNING E'LONLARINGIZ : " +
+    BZ.elonlar.filter(function (x) { return x.oz; }).length + " / " + BZ.limit;
+}
+async function loadBozor() {
+  if (!onlayn()) {
+    if (!BZ.yuklandi) {
+      BZ.yuklandi = true;
+      BZ.elonlar = bzDemo();
+      BZ.oraliq = { common: { min: 70, max: 1000 }, rare: { min: 210, max: 3000 }, epic: { min: 490, max: 7000 }, legendary: { min: 980, max: 14000 }, special: { min: 4000, max: 50000 } };
+    }
+    bzRender();
+    return;
+  }
+  try {
+    var r = await api("/api/bozor");
+    if (r.ok) {
+      BZ.elonlar = r.data.elonlar.map(function (x) {
+        return { elon: x.elon, narx: x.narx, sotuvchi: x.sotuvchi, oz: x.oz, item: toItem(x) };
+      });
+      BZ.oraliq = r.data.oraliq || {};
+      BZ.limit = r.data.limit; BZ.qulf = r.data.qulf || 0; BZ.yuklandi = true;
+      coins = r.data.coins; stats();
+    }
+  } catch (e) {}
+  bzRender();
+}
+document.getElementById("dsel").addEventListener("click", function (e) {
+  var b = e.target.closest(".ds"); if (!b) return;
+  document.querySelectorAll(".ds").forEach(function (x) { x.classList.toggle("on", x === b); });
+  var m = b.dataset.m;
+  $("d-sandiq").hidden = m !== "sandiq";
+  $("d-bozor").hidden = m !== "bozor";
+  $("dtitle").textContent = m === "bozor" ? "DO'KON" : "SANDIQ";
+  $("dtitle").setAttribute("data-g", m === "bozor" ? "SHOP" : "SHOP");
+  $("dsub").innerHTML = m === "bozor" ? "S A V D O" : "O M A D L I &nbsp; Q U T I";
+  if (m === "bozor") loadBozor(); else loadShop();
+  buzz();
+});
+$("bchips").addEventListener("click", function (e) {
+  var b = e.target.closest(".chip"); if (!b) return;
+  BZ.filter = Number(b.dataset.bk); bzRender(); buzz();
+});
+$("bgrid").addEventListener("click", function (e) {
+  var b = e.target.closest("[data-bzb]"), c = e.target.closest("[data-bzc]");
+  if (b) {
+    var x = bzOl(b.dataset.bzb); if (!x) return;
+    $("mcont").innerHTML = '<h3>🛒 SOTIB OLASIZMI ?</h3>' +
+      '<div style="width:70%;margin:0 auto">' + tile(x.item, false) + '</div>' + infoBlock(x.item) +
+      '<div class="msub">NARX : 🪙 ' + x.narx + ' • SIZDA : 🪙 ' + coins + '<br>SOTUVCHI : ' + esc(x.sotuvchi) + '</div>' +
+      '<button class="btn" data-act="bzbuy" data-e="' + esc(x.elon) + '">✅ SOTIB OLISH</button>' +
+      '<button class="btn ghost" data-act="close">BEKOR</button>';
+    $("modal").classList.add("on"); buzz();
+  } else if (c) {
+    bzBekor(c.dataset.bzc);
+  }
+});
+var bzBand = false;
+async function bzSotib(id) {
+  if (bzBand) return;
+  var x = bzOl(id); if (!x) { $("modal").classList.remove("on"); toast(bzXato("yoq")); return; }
+  if (coins < x.narx) { $("modal").classList.remove("on"); toast(bzXato("tanga_yetmaydi", { narx: x.narx })); return; }
+  bzBand = true;
+  var item = x.item;
+  if (onlayn()) {
+    var r;
+    try { r = await api("/api/bozor/sotib", { method: "POST", body: JSON.stringify({ elon: id }) }); } catch (e) { r = null; }
+    bzBand = false;
+    if (!r || !r.ok) {
+      $("modal").classList.remove("on");
+      toast(bzXato(r && r.data && r.data.error, r && r.data)); loadBozor();
+      return;
+    }
+    item = toItem(r.data.natija); coins = r.data.coins;
+    loadCollection();
+  } else {
+    bzBand = false; coins -= x.narx;
+    BZ.elonlar = BZ.elonlar.filter(function (y) { return y.elon !== id; });
+  }
+  stats(); bzRender(); celebrate(item.r >= 4 ? "big" : "small");
+  openModal(item, false, "🛒 SOTIB OLINDI !");
+  if (onlayn()) loadBozor();
+}
+async function bzBekor(id) {
+  if (onlayn()) {
+    var r;
+    try { r = await api("/api/bozor/bekor", { method: "POST", body: JSON.stringify({ elon: id }) }); } catch (e) { r = null; }
+    if (!r || !r.ok) { toast(bzXato(r && r.data && r.data.error, r && r.data)); loadBozor(); return; }
+    loadCollection();
+  } else {
+    BZ.elonlar = BZ.elonlar.filter(function (y) { return y.elon !== id; });
+  }
+  toast("❌ E'LON BEKOR QILINDI");
+  if (onlayn()) loadBozor(); else bzRender();
+}
+function sotishOynasi() {
+  var it = modalItem; if (!it) return;
+  var o = BZ.oraliq[RKEY[it.r]];
+  $("mcont").innerHTML = '<h3>🏪 SOTISHGA QO\'YISH</h3>' +
+    '<div style="width:60%;margin:0 auto">' + tile(it, false) + '</div>' + infoBlock(it) +
+    '<div class="msub">NARXNI O\'ZINGIZ BELGILANG<br>' + bzOraliq(it.r) + '</div>' +
+    '<input class="inp" id="sellPrice" type="number" inputmode="numeric" min="1" value="' + (o ? o.min : "") + '">' +
+    '<button class="btn" data-act="sellgo">✅ E\'LON QO\'YISH</button>' +
+    '<button class="btn ghost" data-act="close">BEKOR</button>';
+}
+async function sotishYubor() {
+  var it = modalItem; if (!it) return;
+  var narx = parseInt($("sellPrice").value, 10);
+  if (!narx || narx < 1) { toast("NARXNI YOZING"); return; }
+  var o = BZ.oraliq[RKEY[it.r]];
+  if (o && narx < o.min) { toast(bzXato("past", { min: o.min })); return; }
+  if (o && o.max != null && narx > o.max) { toast(bzXato("baland", { max: o.max })); return; }
+  if (onlayn()) {
+    var r;
+    try { r = await api("/api/bozor/sot", { method: "POST", body: JSON.stringify({ id: it.id, narx: narx }) }); } catch (e) { r = null; }
+    if (!r || !r.ok) { $("modal").classList.remove("on"); toast(bzXato(r && r.data && r.data.error, r && r.data)); return; }
+    loadCollection();
+  } else {
+    BZ.elonlar.unshift({ elon: "d" + Date.now(), narx: narx, sotuvchi: "SIZ", oz: true, item: it });
+  }
+  $("modal").classList.remove("on");
+  toast("🏪 E'LON QO'YILDI : 🪙 " + narx);
+  if (onlayn()) loadBozor(); else bzRender();
 }
 
 /* ---------- Referal ---------- */
@@ -1050,6 +1245,7 @@ async function load() {
   await loadCollection();
   await loadMe();
   await loadShop();
+  await loadBozor();
 }
 load();
 
