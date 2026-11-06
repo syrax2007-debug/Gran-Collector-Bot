@@ -1,8 +1,10 @@
 import html
+import math
 import re
+from collections import Counter
 from datetime import datetime, timedelta, timezone
-from telegram import Update
-from telegram.ext import CommandHandler, ContextTypes
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import CallbackQueryHandler, CommandHandler, ContextTypes
 import ismlar
 import sozlama as S
 
@@ -97,22 +99,111 @@ async def top(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(matn, parse_mode="HTML")
 
 
-# ---------- /ega : waifu kimlarda ko'p ----------
+# ---------- /ega : waifu egalari (faqat raqam bo'yicha, sahifalar bilan) ----------
+async def _waifu_raqamda(raqam):
+    return await _baza["characters"].find_one({"raqam": raqam})
+
+
+async def _ega_korinishi(p, sahifa, bot, chat_id):
+    sanash = Counter()
+    async for d in _baza["collection"].find({"char_id": p["_id"]}):
+        sanash[d["user_id"]] += 1
+    tartib = sorted(sanash.items(), key=lambda x: (-x[1], x[0]))
+    jami_ega = len(tartib)
+    sahifalar = max(1, math.ceil(jami_ega / EGA_SONI))
+    sahifa = max(0, min(sahifa, sahifalar - 1))
+    qism = tartib[sahifa * EGA_SONI:(sahifa + 1) * EGA_SONI]
+    xarita = (
+        await ismlar.ol(_baza, [u for u, _ in qism], bot, chat_id) if qism else {}
+    )
+    if qism:
+        qatorlar = "\n".join(
+            f"{nishon(sahifa * EGA_SONI + i)} {toza(xarita[u])} — ×{n}"
+            for i, (u, n) in enumerate(qism)
+        )
+    else:
+        qatorlar = "Hali hech kimda yo'q"
+    daraja = DARAJA.get(str(p["rarity"]).lower(), str(p["rarity"]))
+    matn = (
+        f"🗽 Ismi : {toza(p['name'])}\n"
+        f"🎗️ Daraja : {daraja}\n"
+        f"👀 Manba : {toza(p['anime'])}\n"
+        f"🔢 Raqam : {p.get('raqam', '?')}\n\n"
+        f"👑 Egalari ({jami_ega} kishi) • {sahifa + 1}/{sahifalar}:\n{qatorlar}"
+    )
+    tugma = None
+    if sahifalar > 1:
+        r = p.get("raqam")
+        tugma = InlineKeyboardMarkup([[
+            InlineKeyboardButton("◀️", callback_data=f"eg:{r}:{(sahifa - 1) % sahifalar}"),
+            InlineKeyboardButton(f"{sahifa + 1}/{sahifalar}", callback_data="eg:n"),
+            InlineKeyboardButton("▶️", callback_data=f"eg:{r}:{(sahifa + 1) % sahifalar}"),
+        ]])
+    return matn, tugma
+
+
 async def ega(update: Update, context: ContextTypes.DEFAULT_TYPE):
     xabar = update.message
-    if not context.args:
+    s = " ".join(context.args).strip().lstrip("#") if context.args else ""
+    if not s.isdigit():
         await xabar.reply_text(
             "👑 Waifu egalari\n\n"
-            "Qaysi waifu kimlarda ko'p ekanini ko'rish:\n"
-            "<code>/ega ism</code>  yoki  <code>/ega 4821</code>",
+            "Faqat waifu raqami bilan ishlaydi:\n"
+            "<code>/ega 4821</code>\n\n"
+            "Raqamini bilmasangiz, avval qidiring : <code>/waifu ism</code>",
             parse_mode="HTML",
         )
         return
+    p = await _waifu_raqamda(int(s))
+    if not p:
+        await xabar.reply_text("🔍 Bunday raqamli waifu topilmadi")
+        return
+    matn, tugma = await _ega_korinishi(
+        p, 0, context.bot, update.effective_chat.id
+    )
+    await xabar.reply_photo(
+        photo=p["file_id"], caption=matn, parse_mode="HTML", reply_markup=tugma
+    )
 
-    s = " ".join(context.args).strip()
+
+async def ega_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    qismlar = q.data.split(":")
+    if qismlar[1] == "n":
+        await q.answer()
+        return
+    p = await _waifu_raqamda(int(qismlar[1]))
+    if not p:
+        await q.answer("Waifu topilmadi", show_alert=True)
+        return
+    matn, tugma = await _ega_korinishi(
+        p, int(qismlar[2]), context.bot, q.message.chat_id
+    )
+    try:
+        await q.edit_message_caption(
+            caption=matn, parse_mode="HTML", reply_markup=tugma
+        )
+    except Exception:
+        pass
+    await q.answer()
+
+
+# ---------- /waifu : waifu haqida to'liq ma'lumot ----------
+YULDUZ = {"common": 1, "rare": 2, "epic": 3, "legendary": 4, "special": 5, "max": 6}
+
+
+async def waifu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    xabar = update.message
+    if not context.args:
+        await xabar.reply_text(
+            "🗽 Waifu haqida ma'lumot\n\n"
+            "Ismi yoki raqami bilan qidiring:\n"
+            "<code>/waifu Rem</code>  yoki  <code>/waifu 4821</code>",
+            parse_mode="HTML",
+        )
+        return
+    s = " ".join(context.args).strip().lstrip("#")
     personajlar = _baza["characters"]
-    kolleksiya = _baza["collection"]
-
     p = None
     if s.isdigit():
         p = await personajlar.find_one({"raqam": int(s)})
@@ -136,44 +227,42 @@ async def ega(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             await xabar.reply_text(
                 "🔎 Bir nechta waifu topildi. Raqami bilan yozing:\n\n"
-                f"{royxat}\n\n<code>/ega raqam</code>",
+                f"{royxat}\n\n<code>/waifu raqam</code>",
                 parse_mode="HTML",
             )
             return
         p = topilgan[0]
 
-    kursor = await kolleksiya.aggregate([
-        {"$match": {"char_id": p["_id"]}},
-        {"$group": {"_id": "$user_id", "n": {"$sum": 1}}},
-        {"$sort": {"n": -1, "_id": 1}},
-        {"$limit": EGA_SONI},
-    ])
-    egalar = [d async for d in kursor]
-    jami_ega = len(await kolleksiya.distinct("user_id", {"char_id": p["_id"]}))
-
-    ismlar_xarita = await ismlar.ol(
-        _baza, [d["_id"] for d in egalar], context.bot,
-        update.effective_chat.id,
+    sanash = Counter()
+    async for d in _baza["collection"].find({"char_id": p["_id"]}):
+        sanash[d["user_id"]] += 1
+    k = str(p["rarity"]).lower()
+    yulduz = YULDUZ.get(k, 1)
+    qator = [
+        f"🗽 Ismi : {toza(p['name'])}",
+        f"🔢 Raqam : {p.get('raqam', '?')}",
+        f"🎗️ Daraja : {DARAJA.get(k, str(p['rarity']))}  "
+        + "★" * yulduz + "☆" * (6 - yulduz),
+        f"👀 Manba : {toza(p['anime'])}",
+    ]
+    if p.get("event"):
+        qator.append(f"🎪 Event : {toza(p['event'])}")
+    if ("narx_" + k) in S.RO:
+        qator.append(f"💰 Daraja narxi : 🪙 {S.ol('narx_' + k)}")
+    qator.append(
+        f"👥 Egalari : {len(sanash)} kishi • jami {sum(sanash.values())} ta nusxa"
     )
-
-    if egalar:
-        qatorlar = "\n".join(
-            f"{nishon(i)} {toza(ismlar_xarita[d['_id']])} — ×{d['n']}"
-            for i, d in enumerate(egalar)
+    elonlar = [d async for d in _baza["bozor"].find({"c": p["_id"]})]
+    if elonlar:
+        qator.append(
+            f"🏪 Do'konda : {len(elonlar)} ta e'lon • eng arzoni "
+            f"🪙 {min(d['narx'] for d in elonlar)}"
         )
     else:
-        qatorlar = "Hali hech kimda yo'q"
-
-    daraja = DARAJA.get(str(p["rarity"]).lower(), str(p["rarity"]))
-    matn = (
-        f"🗽 Ismi : {toza(p['name'])}\n"
-        f"🎗️ Daraja : {daraja}\n"
-        f"👀 Manba : {toza(p['anime'])}\n"
-        f"🔢 Raqam : {p.get('raqam', '?')}\n\n"
-        f"👑 Egalari ({jami_ega} kishi):\n{qatorlar}"
-    )
+        qator.append("🏪 Do'konda : yo'q")
+    qator.append(f"\n👑 Egalarini ko'rish : /ega {p.get('raqam', '')}")
     await xabar.reply_photo(
-        photo=p["file_id"], caption=matn, parse_mode="HTML"
+        photo=p["file_id"], caption="\n".join(qator), parse_mode="HTML"
     )
 
 
@@ -272,4 +361,6 @@ def ulash(ilova, baza):
     _baza = baza
     ilova.add_handler(CommandHandler("top", top))
     ilova.add_handler(CommandHandler("ega", ega))
+    ilova.add_handler(CallbackQueryHandler(ega_tugma, pattern=r"^eg:"))
+    ilova.add_handler(CommandHandler("waifu", waifu))
     ilova.add_handler(CommandHandler("coin", coin))

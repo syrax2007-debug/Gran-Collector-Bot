@@ -21,8 +21,9 @@ def narx_ol(k):
     return S.ol("narx_" + k)
 
 
-# Almashib bo'lmaydigan darajalar (faqat tushish bilan olinadi)
-ALMASHMAYDI = ("special", "max")
+# Almashib bo'lmaydigan daraja (faqat mukofot yoki qo'lda beriladi)
+ALMASHMAYDI = ("max",)
+# COLLECTOR faqat COLLECTOR bilan almashadi
 # Kunlik almashish soni, taklif muddati va /claim vaznlari ham /panel da
 
 
@@ -70,7 +71,10 @@ async def narx_buyruq(update: Update, context: ContextTypes.DEFAULT_TYPE):
     qatorlar = []
     for k in ("common", "rare", "epic", "legendary", "special", "max"):
         belgi = _nodirlik[k][0] if k in _nodirlik else k.upper()
-        izoh = "  (almashilmaydi)" if k in ALMASHMAYDI else ""
+        izoh = (
+            "  (almashilmaydi)" if k in ALMASHMAYDI
+            else "  (faqat COLLECTOR bilan)" if k == "special" else ""
+        )
         qatorlar.append(f"{belgi} : 🪙 {narx_ol(k)}{izoh}")
     await update.message.reply_text(
         f"{_ramka}\n"
@@ -286,7 +290,10 @@ async def trade(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await xabar.reply_text("🔍 Ikkinchi raqam bu odamda yo'q")
         return
     if kalit(mening) in ALMASHMAYDI or kalit(uning) in ALMASHMAYDI:
-        await xabar.reply_text("🚫 COLLECTOR va MAX waifular almashilmaydi !")
+        await xabar.reply_text("🚫 MAX waifular almashilmaydi !")
+        return
+    if (kalit(mening) == "special") != (kalit(uning) == "special"):
+        await xabar.reply_text("🚫 COLLECTOR faqat COLLECTOR bilan almashadi !")
         return
     if await _kunlik_son(men.id) >= S.ol('trade_limit'):
         await xabar.reply_text(f"⏳ Bugungi almashish limiti tugadi ({S.ol('trade_limit')} ta)")

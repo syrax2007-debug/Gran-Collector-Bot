@@ -11,7 +11,8 @@ from bson import ObjectId
 from pymongo import AsyncMongoClient
 from main import ilova as telegram_bot
 import haftalik
-import dokon
+import sandiq
+import bozor
 import sozlama as S
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
@@ -414,7 +415,7 @@ async def slot_api(request):
     # Natijani server tanlaydi. Waifu belgisi faqat shu darajada waifu bo'lsa chiqadi
     soni = {}
     for belgi, daraja in SLOT_DARAJA.items():
-        soni[belgi] = await baza["characters"].count_documents(dokon.shart(daraja))
+        soni[belgi] = await baza["characters"].count_documents(sandiq.shart(daraja))
     variantlar = [v for v in S.slot_natijalar() if v[0] not in SLOT_DARAJA or soni[v[0]]]
     rng = random.SystemRandom()
     tanlov = rng.choices(variantlar, weights=[v[1] for v in variantlar])[0]
@@ -431,7 +432,7 @@ async def slot_api(request):
 
     if kalit in SLOT_DARAJA:
         p = await baza["characters"].find_one(
-            dokon.shart(SLOT_DARAJA[kalit]), skip=random.randrange(soni[kalit])
+            sandiq.shart(SLOT_DARAJA[kalit]), skip=random.randrange(soni[kalit])
         )
         await baza["collection"].insert_one(
             {"user_id": uid, "char_id": p["_id"]}
@@ -455,19 +456,19 @@ async def slot_api(request):
     })
 
 
-# ---------- Do'kon ----------
-async def dokon_api(request):
+# ---------- Sandiq ----------
+async def sandiq_api(request):
     f = tekshir(request.headers.get("X-Init-Data", ""))
     if not f:
         raise web.HTTPUnauthorized(text="Ruxsat yo'q")
     baza = request.app["baza"]
     await S.yangila(baza)
     await foydalanuvchi_ol(baza, f)
-    tanga, qutilar = await dokon.holat(baza, f["id"])
+    tanga, qutilar = await sandiq.holat(baza, f["id"])
     return web.json_response({"coins": tanga, "qutilar": qutilar})
 
 
-async def dokon_sotib_api(request):
+async def sandiq_sotib_api(request):
     f = tekshir(request.headers.get("X-Init-Data", ""))
     if not f:
         raise web.HTTPUnauthorized(text="Ruxsat yo'q")
@@ -478,7 +479,7 @@ async def dokon_sotib_api(request):
     baza = request.app["baza"]
     await S.yangila(baza)
     await foydalanuvchi_ol(baza, f)
-    kod, d = await dokon.sotib_ol(baza, f["id"], quti)
+    kod, d = await sandiq.sotib_ol(baza, f["id"], quti)
     holat_kodi = {
         "nomalum": 400, "yopiq": 403, "limit": 429,
         "tanga_yetmaydi": 402, "waifu_yoq": 404, "xato": 500,
@@ -487,12 +488,120 @@ async def dokon_sotib_api(request):
         return web.json_response(dict({"error": kod}, **{
             k: v for k, v in d.items() if k in ("narx", "coins")
         }), status=holat_kodi.get(kod, 500))
-    tanga, qutilar = await dokon.holat(baza, f["id"])
+    tanga, qutilar = await sandiq.holat(baza, f["id"])
     return web.json_response({
         "natija": dict(kartochka_json(d["p"]), tur="personaj"),
         "narx": d["narx"],
         "coins": tanga,
         "qutilar": qutilar,
+    })
+
+
+# ---------- Do'kon (o'yinchilar savdosi) ----------
+BOZOR_STATUS = {
+    "yangi": 403, "yopiq": 403, "taqiq": 403, "limit": 429, "past": 400,
+    "baland": 400, "topilmadi": 404, "yoq": 404, "oz": 400,
+    "tanga_yetmaydi": 402, "xato": 500,
+}
+
+
+def bozor_xato(kod, d):
+    ochiq = {k: v for k, v in d.items() if k in ("min", "max", "limit", "narx", "coins")}
+    if "qolgan" in d:
+        ochiq["qolgan"] = int(d["qolgan"])
+    return web.json_response(dict({"error": kod}, **ochiq), status=BOZOR_STATUS.get(kod, 500))
+
+
+async def json_ol(request):
+    try:
+        return await request.json()
+    except Exception:
+        raise web.HTTPBadRequest(text="JSON kerak")
+
+
+async def bozor_api(request):
+    f = tekshir(request.headers.get("X-Init-Data", ""))
+    if not f:
+        raise web.HTTPUnauthorized(text="Ruxsat yo'q")
+    baza = request.app["baza"]
+    await S.yangila(baza)
+    u = await foydalanuvchi_ol(baza, f)
+    royxat = await bozor.elonlar(baza)
+    natija = []
+    for d, p in royxat[:200]:
+        x = kartochka_json(p)
+        x.update({
+            "elon": d["_id"], "narx": d["narx"], "sotuvchi": d.get("ism", ""),
+            "oz": d["u"] == f["id"],
+        })
+        natija.append(x)
+    return web.json_response({
+        "coins": u.get("coins", 0),
+        "elonlar": natija,
+        "oraliq": bozor.narx_oraliqlari(),
+        "limit": S.ol("bozor_limit"),
+        "qulf": int(await S.yangi_qulf(baza, f["id"])),
+    })
+
+
+async def bozor_sot_api(request):
+    f = tekshir(request.headers.get("X-Init-Data", ""))
+    if not f:
+        raise web.HTTPUnauthorized(text="Ruxsat yo'q")
+    data = await json_ol(request)
+    try:
+        oid = ObjectId(data.get("id"))
+        narx = int(data.get("narx"))
+    except Exception:
+        raise web.HTTPBadRequest(text="id va narx kerak")
+    baza = request.app["baza"]
+    await S.yangila(baza)
+    await foydalanuvchi_ol(baza, f)
+    p = await baza["characters"].find_one({"_id": oid})
+    if not p:
+        raise web.HTTPNotFound(text="Topilmadi")
+    kod, d = await bozor.elon_qil(baza, f["id"], p, narx)
+    if kod != "ok":
+        return bozor_xato(kod, d)
+    return web.json_response({"ok": True, "elon": d["id"], "narx": narx})
+
+
+async def bozor_bekor_api(request):
+    f = tekshir(request.headers.get("X-Init-Data", ""))
+    if not f:
+        raise web.HTTPUnauthorized(text="Ruxsat yo'q")
+    data = await json_ol(request)
+    baza = request.app["baza"]
+    kod, d = await bozor.bekor(baza, f["id"], str(data.get("elon")))
+    if kod != "ok":
+        return bozor_xato(kod, d)
+    return web.json_response({"ok": True})
+
+
+async def bozor_sotib_api(request):
+    f = tekshir(request.headers.get("X-Init-Data", ""))
+    if not f:
+        raise web.HTTPUnauthorized(text="Ruxsat yo'q")
+    data = await json_ol(request)
+    baza = request.app["baza"]
+    await S.yangila(baza)
+    await foydalanuvchi_ol(baza, f)
+    kod, d = await bozor.sotib_ol(baza, f["id"], str(data.get("elon")))
+    if kod != "ok":
+        return bozor_xato(kod, d)
+    # Sotuvchiga xabar (Mini App'dan sotib olinganda ham)
+    try:
+        await telegram_bot.bot.send_message(
+            d["sotuvchi"],
+            f"💰 Waifuingiz sotildi !\n\n🗽 {d['p']['name']} • № {d['p'].get('raqam', '?')}\n"
+            f"🪙 +{d['narx']}",
+        )
+    except Exception:
+        pass
+    return web.json_response({
+        "natija": dict(kartochka_json(d["p"]), tur="personaj"),
+        "narx": d["narx"],
+        "coins": d["coins"],
     })
 
 
@@ -532,8 +641,12 @@ app.router.add_get("/api/me", me_api)
 app.router.add_post("/api/favorite", sevimli_api)
 app.router.add_post("/api/game/play", oyin_api)
 app.router.add_post("/api/slot/play", slot_api)
-app.router.add_get("/api/shop", dokon_api)
-app.router.add_post("/api/shop/buy", dokon_sotib_api)
+app.router.add_get("/api/sandiq", sandiq_api)
+app.router.add_post("/api/sandiq/buy", sandiq_sotib_api)
+app.router.add_get("/api/bozor", bozor_api)
+app.router.add_post("/api/bozor/sot", bozor_sot_api)
+app.router.add_post("/api/bozor/bekor", bozor_bekor_api)
+app.router.add_post("/api/bozor/sotib", bozor_sotib_api)
 
 if __name__ == "__main__":
     web.run_app(app, host="0.0.0.0", port=int(os.environ.get("PORT", "8080")))

@@ -20,7 +20,8 @@ import maxevent
 import adminplus
 import haftalik
 import qoshimcha
-import dokon
+import sandiq
+import bozor
 import sozlama as S
 import panel
 from telegram import (
@@ -909,7 +910,8 @@ S.ulash(ilova, baza)
 haftalik.ulash(ilova, baza, ADMIN_ID)
 panel.ulash(ilova, baza, ADMIN_ID)
 qoshimcha.ulash(ilova, baza, NODIRLIK, yulduz_matni, guruh_tekshir)
-dokon.ulash(ilova, baza, yulduz_matni)
+sandiq.ulash(ilova, baza, yulduz_matni)
+bozor.ulash(ilova, baza, yulduz_matni)
 
 if __name__ == "__main__":
     ilova.run_polling()

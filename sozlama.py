@@ -64,7 +64,12 @@ RO = {
     "sovga_limit": (5, 0, 100, "Kunlik sovga soni"),
     "sovga_collector": (1, 0, 1, "COLLECTOR/MAX sovga qilishni taqiqlash (1 = ha, 0 = yo'q)"),
     "coin_limit": (1000, 0, 100000000, "Kunlik tanga ulashish limiti"),
-    # 🛒 Do'kon (qutilar)
+    # 🏪 Do'kon (o'yinchilar bir-biriga waifu sotadi)
+    "bozor_min": (70, 1, 100000, "Eng kam narx (% : daraja narxidan)"),
+    "bozor_min_col": (80, 1, 100000, "COLLECTOR eng kam narx (% : daraja narxidan)"),
+    "bozor_max": (1000, 0, 1000000, "Eng ko'p narx (% : daraja narxidan, 0 = cheksiz)"),
+    "bozor_limit": (5, 0, 100, "Bitta odamning e'lonlari soni (0 = yopiq)"),
+    # 📦 Sandiq (omadli qutilar)
     "quti_common": (125, 1, 100000000, "ELITA qutisi narxi"),
     "quti_rare": (375, 1, 100000000, "SUPER qutisi narxi"),
     "quti_epic": (875, 1, 100000000, "MEGA qutisi narxi"),
@@ -94,7 +99,9 @@ BOLIMLAR = [
       "trade_limit", "trade_muddat"]),
     ("sovga", "🎁 Sovga va ulashish",
      ["yangi_soat", "sovga_limit", "sovga_collector", "coin_limit"]),
-    ("dokon", "🛒 Do'kon",
+    ("bozor", "🏪 Do'kon (savdo)",
+     ["bozor_min", "bozor_min_col", "bozor_max", "bozor_limit"]),
+    ("sandiq", "📦 Sandiq",
      ["quti_common", "quti_rare", "quti_epic", "quti_legendary",
       "qlimit_common", "qlimit_rare", "qlimit_epic", "qlimit_legendary"]),
 ]

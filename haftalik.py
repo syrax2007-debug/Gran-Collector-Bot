@@ -19,9 +19,9 @@ TOIFALAR = [
     ("coin", "🪙", "Eng ko'p tanga ishlaganlar", "🪙"),
     ("ref", "👥", "Eng ko'p do'st taklif qilganlar", "ta"),
 ]
-# Sovrinlar (uchala toifada bir xil): 1-o'rin Collector waifu, 2-o'rin va 3-o'rin tanga
+# Sovrinlar (uchala toifada bir xil): 1-o'rin TASODIFIY Collector waifu, 2-o'rin va 3-o'rin tanga
 # 2- va 3-o'rin tanga sovrinlari /panel dan o'zgartiriladi (sozlama.py).
-# 1-o'rin Collector waifuni bot BERMAYDI: g'olib adminga yozadi va admin o'zi beradi
+# 1-o'rin Collector waifuni bot o'zi tasodifiy tanlab beradi (Collector waifu yo'q bo'lsa, admin qo'lda beradi)
 def mukofot_tanga(orin):
     return S.ol("hafta_2" if orin == 2 else "hafta_3")
 
@@ -98,7 +98,7 @@ def _qiymat(q, birlik):
 
 def sovrin_matni():
     return (
-        f"🥇 Collector waifu (adminga yozib tanlanadi)\n"
+        f"🥇 Tasodifiy Collector waifu ⛩️\n"
         f"🥈 {mukofot_tanga(2)} 🪙\n"
         f"🥉 {mukofot_tanga(3)} 🪙"
     )
@@ -123,9 +123,15 @@ def matn_tuz(natija, ismlar_, sarlavha):
 
 # ---------- Sovrin berish ----------
 async def _sovrin_ber(baza, uid, orin):
-    # 1-o'rin: Collector waifu admin tomonidan qo'lda beriladi (bot hech narsa bermaydi)
+    # 1-o'rin: tasodifiy Collector waifu kolleksiyaga qo'shiladi
     if orin == 1:
-        return {"tur": "collector"}
+        shart = {"rarity": {"$in": ["special", "Special", "SPECIAL"]}}
+        soni = await baza["characters"].count_documents(shart)
+        if soni == 0:
+            return {"tur": "collector_yoq"}
+        p = await baza["characters"].find_one(shart, skip=random.randrange(soni))
+        await baza["collection"].insert_one({"user_id": uid, "char_id": p["_id"]})
+        return {"tur": "collector", "p": p}
     miqdor = mukofot_tanga(orin)
     await baza["users"].update_one(
         {"_id": uid}, {"$inc": {"coins": miqdor}}, upsert=True
@@ -175,37 +181,54 @@ async def tugat(bot, hid):
     # G'oliblarga shaxsiy xabar
     admin_havola = f'<a href="tg://user?id={_admin_id}">adminga</a>'
     for uid, toifa, orin, s_ in sovrinlar:
+        rasm = None
         if s_["tur"] == "collector":
+            p = s_["p"]
+            rasm = p.get("file_id")
             tarif = (
-                "⛩️ Sovrin : Collector waifu (o'zingiz tanlaysiz)\n"
-                f"Qaysi Collector waifuni xohlasangiz, {admin_havola} yozing."
+                f"⛩️ Sovrin : {html.escape(str(p['name']))} (Collector)\n"
+                f"🔢 Raqam : {p.get('raqam', '?')}\n"
+                "Kolleksiyangizga qo'shildi ! 🫶"
+            )
+        elif s_["tur"] == "collector_yoq":
+            tarif = (
+                "⛩️ Sovrin : Collector waifu\n"
+                f"Hozir Collector waifu yo'q, {admin_havola} yozing, tez orada beriladi."
             )
         else:
             tarif = f"💰 Tanga : +{s_['miqdor']}"
+        matn_ = (
+            f"🎉 Tabriklaymiz! Haftalik {MEDAL[orin]} {orin}-o'rin\n"
+            f"{toifa}\n{tarif}"
+        )
         try:
-            await bot.send_message(
-                uid,
-                f"🎉 Tabriklaymiz! Haftalik {MEDAL[orin]} {orin}-o'rin\n"
-                f"{toifa}\n{tarif}",
-                parse_mode="HTML",
-            )
+            if rasm:
+                await bot.send_photo(uid, rasm, caption=matn_, parse_mode="HTML")
+            else:
+                await bot.send_message(uid, matn_, parse_mode="HTML")
         except Exception:
             pass
-    # Adminga: Collector waifu kutayotganlar ro'yxati
-    kutayotgan = [(u, t) for u, t, o, s_ in sovrinlar if s_["tur"] == "collector"]
+    # Adminga: kim qaysi Collector waifuni oldi / kim qo'lda kutyapti
+    berilgan = [
+        f"▫️ {_bog(u, ismlar_.get(u, 'Foydalanuvchi'))} (<code>{u}</code>) — "
+        f"{html.escape(str(s_['p']['name']))} № {s_['p'].get('raqam', '?')} ({t})"
+        for u, t, o, s_ in sovrinlar if s_["tur"] == "collector"
+    ]
+    kutayotgan = [
+        f"▫️ {_bog(u, ismlar_.get(u, 'Foydalanuvchi'))} (<code>{u}</code>) — {t}"
+        for u, t, o, s_ in sovrinlar if s_["tur"] == "collector_yoq"
+    ]
+    xabar_ = []
+    if berilgan:
+        xabar_.append("🥇 Haftalik 1-o'rin: tasodifiy Collector berildi\n\n" + "\n".join(berilgan))
     if kutayotgan:
-        qatorlar = [
-            f"▫️ {_bog(u, ismlar_.get(u, 'Foydalanuvchi'))} (<code>{u}</code>) — {t}"
-            for u, t in kutayotgan
-        ]
+        xabar_.append(
+            "⚠️ Collector waifu yo'qligi uchun kutayotganlar\n\n" + "\n".join(kutayotgan)
+            + "\n\nBerish : <code>/waifuber ID RAQAM</code>"
+        )
+    if xabar_:
         try:
-            await bot.send_message(
-                _admin_id,
-                "🥇 Haftalik 1-o'rin: Collector waifu kutayotganlar\n\n"
-                + "\n".join(qatorlar)
-                + "\n\nBerish : <code>/waifuber ID RAQAM</code>",
-                parse_mode="HTML",
-            )
+            await bot.send_message(_admin_id, "\n\n".join(xabar_), parse_mode="HTML")
         except Exception:
             pass
 
