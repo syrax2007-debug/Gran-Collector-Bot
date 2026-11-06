@@ -11,6 +11,7 @@ import sozlama as S
 # ---------- Sozlamalar ----------
 TOP_SONI = 10  # /top da nechta odam ko'rsatiladi
 EGA_SONI = 5  # /ega da nechta ega ko'rsatiladi
+WAIFU_RO_SONI = 30  # /waifu ism : bir xil ismlilar ro'yxatidagi eng ko'p qator
 # Kunlik ulashish limiti /panel dan o'zgartiriladi (sozlama.py: coin_limit)
 # Har bir o'rin uchun alohida nishon (o'zgartirsangiz bo'ladi)
 NISHONLAR = ["🥇", "🥈", "🥉", "💎", "🔥", "⚡", "🌟", "🎖️", "🏅", "✨"]
@@ -188,6 +189,7 @@ async def ega_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await q.answer()
 
 
+
 # ---------- /waifu : waifu haqida to'liq ma'lumot ----------
 YULDUZ = {"common": 1, "rare": 2, "epic": 3, "legendary": 4, "special": 5, "max": 6}
 
@@ -208,30 +210,40 @@ async def waifu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if s.isdigit():
         p = await personajlar.find_one({"raqam": int(s)})
     if not p:
-        p = await personajlar.find_one(
-            {"name": {"$regex": f"^{re.escape(s)}$", "$options": "i"}}
-        )
-    if not p:
+        # Bir xil ismli waifular ko'p bo'lishi mumkin (turli manba): hammasini ko'rsatamiz
         topilgan = [
             d async for d in personajlar.find(
-                {"name": {"$regex": re.escape(s), "$options": "i"}}
-            ).limit(6)
+                {"name": {"$regex": f"^{re.escape(s)}$", "$options": "i"}}
+            ).limit(WAIFU_RO_SONI + 1)
         ]
+        if not topilgan:
+            topilgan = [
+                d async for d in personajlar.find(
+                    {"name": {"$regex": re.escape(s), "$options": "i"}}
+                ).limit(WAIFU_RO_SONI + 1)
+            ]
         if not topilgan:
             await xabar.reply_text("🔍 Bunday waifu topilmadi")
             return
         if len(topilgan) > 1:
+            topilgan.sort(key=lambda d: (str(d["name"]).lower(), d.get("raqam") or 0))
+            ortiqcha = len(topilgan) > WAIFU_RO_SONI
             royxat = "\n".join(
-                f"• {toza(d['name'])} — <code>{d.get('raqam', '?')}</code>"
-                for d in topilgan
+                f"• {toza(d['name'])} · {toza(d['anime'])} · "
+                f"{DARAJA.get(str(d['rarity']).lower(), str(d['rarity']))} — "
+                f"<code>{d.get('raqam', '?')}</code>"
+                for d in topilgan[:WAIFU_RO_SONI]
             )
             await xabar.reply_text(
-                "🔎 Bir nechta waifu topildi. Raqami bilan yozing:\n\n"
-                f"{royxat}\n\n<code>/waifu raqam</code>",
+                f"🔎 {min(len(topilgan), WAIFU_RO_SONI)}"
+                f"{'+' if ortiqcha else ''} ta waifu topildi. Raqami bilan yozing:\n\n"
+                f"{royxat}\n\n<code>/waifu raqam</code>"
+                + ("\n\nℹ️ Ro'yxat uzun: ismni aniqroq yozing" if ortiqcha else ""),
                 parse_mode="HTML",
             )
             return
         p = topilgan[0]
+
 
     sanash = Counter()
     async for d in _baza["collection"].find({"char_id": p["_id"]}):
