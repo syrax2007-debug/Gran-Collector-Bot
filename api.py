@@ -200,7 +200,7 @@ async def me_api(request):
         {"referrer": f["id"], "ref_tolangan": True}
     )
     kutilmoqda = await users.count_documents(
-        {"referrer": f["id"], "ref_tolangan": {"$ne": True}}
+        {"referrer": f["id"], "ref_tolangan": {"$ne": True}, "ref_bekor": {"$ne": True}}
     )
     nom = bot_nomi()
     return web.json_response({

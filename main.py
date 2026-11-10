@@ -259,7 +259,7 @@ async def ruxsat_ochir(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def boshlash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     f = update.effective_user
     await foydalanuvchilar.update_one(
-        {"_id": f.id}, {"$set": {"name": f.first_name}}, upsert=True
+        {"_id": f.id}, {"$set": {"name": f.first_name, "start_bosgan": True}}, upsert=True
     )
     matn = (
         "✨━ ━━━━━━━━━━━━ ━✨\n"

@@ -1,6 +1,8 @@
+import asyncio
 import logging
+import time
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import CallbackQueryHandler, CommandHandler, ContextTypes
+from telegram.ext import CallbackQueryHandler, CommandHandler, ContextTypes, TypeHandler
 from stil import stil
 import haftalik
 import sozlama as S
@@ -26,15 +28,28 @@ async def a_zomi(bot, chat, user_id):
     return m.status in ("member", "administrator", "creator")
 
 
+KUTISH_SOAT = 5  # tasdiqlangandan keyin tanga shuncha soatdan so'ng beriladi (fermerlikdan himoya)
+_vazifa = None
+
+
+async def _yangi_odam(uid):
+    # Waifusi bo'lishi mumkin (guruhda o'ynagan), lekin botga shaxsiy /start bosmagan
+    # va hali hech kim taklif qilmagan bo'lishi kerak
+    u = await _baza["users"].find_one({"_id": uid})
+    if u is None:
+        return True
+    return not (u.get("referrer") or u.get("ref_tolangan") or u.get("start_bosgan"))
+
+
 async def ref_yozish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # /start ref_123 : faqat YANGI foydalanuvchiga taklif qilgan odam yoziladi
     if update.effective_chat.type != "private":
         return
     f = update.effective_user
     users = _baza["users"]
-    if await users.find_one({"_id": f.id}, {"_id": 1}) is not None:
-        return
     if not context.args or not context.args[0].startswith("ref_"):
+        return
+    if not await _yangi_odam(f.id):
         return
     try:
         egasi = int(context.args[0][4:])
@@ -99,27 +114,100 @@ async def ref_tekshir(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await q.answer(" va ".join(qolgan) + " qo'shiling !", show_alert=True)
         return
     r = await users.update_one(
-        {"_id": f.id, "ref_tolangan": {"$ne": True}},
-        {"$set": {"ref_tolangan": True}},
+        {"_id": f.id, "ref_tolangan": {"$ne": True}, "ref_tasdiq": {"$exists": False}},
+        {"$set": {"ref_tasdiq": time.time()}},
     )
     if r.modified_count == 0:
-        await q.answer("Allaqachon hisoblangan", show_alert=True)
+        await q.answer("Allaqachon qabul qilingan", show_alert=True)
         return
-    await users.update_one({"_id": egasi}, {"$inc": {"coins": S.ol('referal_tanga')}})
-    await haftalik.qosh(_baza, egasi, "ref", 1)
+    if await _baza["collection"].find_one({"user_id": f.id}) is not None:
+        # Waifusi bor (haqiqiy o'yinchi): tanga darhol beriladi
+        await _tolash(context.bot, {"_id": f.id, "referrer": egasi, "name": f.first_name})
+        try:
+            await q.edit_message_text("✅ Rahmat ! Taklif hisoblandi 🫶")
+        except Exception:
+            pass
+        await q.answer("✅")
+        return
     try:
-        await q.edit_message_text("✅ Rahmat ! Taklif hisoblandi 🫶")
+        await q.edit_message_text(
+            "✅ Rahmat ! Taklif qabul qilindi 🫶\n\n"
+            f"⏳ Taklif qilgan do'stingiz tangasini {KUTISH_SOAT} soatdan keyin oladi.\n"
+            "📢 Kanal va 💬 guruhda qolishingiz kifoya."
+        )
     except Exception:
         pass
     await q.answer("✅")
     try:
-        await context.bot.send_message(
+        fon_boshlash(context.bot)
+    except Exception as xato:
+        logging.warning("Referal to'lov vazifasini yoqib bo'lmadi: %s", xato)
+
+
+async def _tolash(bot, d):
+    # Taklifchiga tanga beradi (bir marta). d: taklif qilingan odamning hujjati
+    users = _baza["users"]
+    uid, egasi = d["_id"], d["referrer"]
+    r = await users.update_one(
+        {"_id": uid, "ref_tolangan": {"$ne": True}}, {"$set": {"ref_tolangan": True}}
+    )
+    if r.modified_count == 0:
+        return False
+    tanga = S.ol("referal_tanga")
+    await users.update_one({"_id": egasi}, {"$inc": {"coins": tanga}})
+    await haftalik.qosh(_baza, egasi, "ref", 1)
+    try:
+        await bot.send_message(
             egasi,
-            f"🎉 {f.first_name} havolangiz orqali qo'shildi !\n"
-            f"💰 Tanga : +{S.ol('referal_tanga')}",
+            f"🎉 {d.get('name') or 'Do`st'} havolangiz orqali qo'shildi !\n💰 Tanga : +{tanga}",
         )
     except Exception:
         pass
+    return True
+
+
+async def tolov_qil(bot):
+    # Kutish muddati o'tgan, hali to'lanmagan takliflarni to'laydi (kanal va guruhda qolgan bo'lsa)
+    users = _baza["users"]
+    chegara = time.time() - KUTISH_SOAT * 3600
+    royxat = [
+        d async for d in users.find(
+            {"ref_tasdiq": {"$lt": chegara}, "ref_tolangan": {"$ne": True},
+             "ref_bekor": {"$ne": True}, "referrer": {"$exists": True}}
+        ).limit(50)
+    ]
+    for d in royxat:
+        uid, egasi = d["_id"], d["referrer"]
+        kanalda = await a_zomi(bot, KANAL_ID, uid)
+        guruhda = await a_zomi(bot, GURUH_ID, uid)
+        if kanalda is None or guruhda is None:
+            continue  # keyingi safar qayta uriniladi
+        if not (kanalda and guruhda):
+            await users.update_one({"_id": uid}, {"$set": {"ref_bekor": True}})
+            continue
+        await _tolash(bot, d)
+
+
+async def _sikl(bot):
+    while True:
+        try:
+            await tolov_qil(bot)
+        except Exception as xato:
+            logging.warning("Referal to'lovida xato: %s", xato)
+        await asyncio.sleep(600)
+
+
+def fon_boshlash(bot):
+    global _vazifa
+    if _vazifa is None or _vazifa.done():
+        _vazifa = asyncio.get_running_loop().create_task(_sikl(bot))
+
+
+async def _kutilgan(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        fon_boshlash(context.bot)
+    except Exception as xato:
+        logging.warning("Referal vazifasini yoqib bo'lmadi: %s", xato)
 
 
 def ulash(ilova, baza):
@@ -128,3 +216,4 @@ def ulash(ilova, baza):
     ilova.add_handler(CommandHandler("start", ref_yozish), group=-1)
     ilova.add_handler(CommandHandler("start", ref_xabar), group=1)
     ilova.add_handler(CallbackQueryHandler(ref_tekshir, pattern=r"^rt$"))
+    ilova.add_handler(TypeHandler(Update, _kutilgan, block=False), group=-4)
