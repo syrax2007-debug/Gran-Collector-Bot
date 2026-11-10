@@ -23,7 +23,7 @@ BELGI = {
     "common": "💠", "rare": "🌟", "epic": "💎", "legendary": "🔥",
     "special": "⛩️", "max": "👑",
 }
-SAHIFA = 5
+SAHIFA = 8
 RAMKA = "✨━ ━━━━━━━━━ ━✨"
 
 _baza = None
