@@ -96,6 +96,22 @@ async def panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(matn, reply_markup=tugma)
 
 
+async def iqtisod(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # /iqtisod : hamma daromad manbalarining hisobi va ogohlantirishlar
+    if not _admin(update):
+        return
+    await S.yangila(_baza, majbur=True)
+    await update.message.reply_text(S.iqtisod_matni())
+
+
+def _ogoh_qatorlari():
+    try:
+        return S.iqtisod()["ogoh"]
+    except Exception as xato:
+        logging.warning("Iqtisodni hisoblab bo'lmadi: %s", xato)
+        return []
+
+
 async def tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     if q.from_user.id != _admin_id:
@@ -184,8 +200,11 @@ async def matn_qabul(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _saqla(k, v)
     _kutish.pop(update.effective_user.id, None)
     matn2, t = await bolim_korinishi(bolimi(k))
+    ogoh = _ogoh_qatorlari()
+    qosh = ("\n\n⚠️ " + "\n⚠️ ".join(html.escape(x) for x in ogoh)) if ogoh else ""
     await xabar.reply_text(
-        f"✅ {html.escape(_nom(k))} : {eski} ➜ <b>{v}</b>\n\n" + matn2,
+        f"✅ {html.escape(_nom(k))} : {eski} ➜ <b>{v}</b>\n\n" + matn2 + qosh
+        + "\n\n📊 To'liq hisob : /iqtisod",
         parse_mode="HTML", reply_markup=t,
     )
 
@@ -195,6 +214,7 @@ def ulash(ilova, baza, admin_id):
     _baza = baza
     _admin_id = admin_id
     ilova.add_handler(CommandHandler("panel", panel))
+    ilova.add_handler(CommandHandler("iqtisod", iqtisod))
     ilova.add_handler(CallbackQueryHandler(tugma, pattern=r"^pn:"))
     ilova.add_handler(
         MessageHandler(

@@ -76,7 +76,9 @@ async def admin_yordam(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "<code>/spawn 4821</code> — guruhda waifu chiqarish\n"
         "<code>/oraliq 75</code> — chiqish oralig'i\n"
         "<code>/eventochir Eski | Yangi</code>\n"
-        "/sozlamalar — hamma sozlama bir joyda",
+        "/sozlamalar — hamma sozlama bir joyda\n"
+        "/panel — sozlamalarni tugmalar bilan o'zgartirish\n"
+        "/iqtisod — daromad va narx hisoboti",
         parse_mode="HTML",
     )
 

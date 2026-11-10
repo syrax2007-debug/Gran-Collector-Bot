@@ -3,6 +3,7 @@ import re
 import html
 import random
 import asyncio
+import time
 import logging
 from datetime import datetime, timedelta, timezone
 import dns.asyncresolver
@@ -397,29 +398,40 @@ def ruletka_hisobla(qiymat):
 
 
 async def ruletka(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Ketma-ket N ta urinish (har biri orasida bir necha daqiqa), keyin uzoq tanaffus
     if not await guruh_tekshir(update):
         return
     f = update.effective_user
-    b = bugun()
     await foydalanuvchilar.update_one(
         {"_id": f.id}, {"$set": {"name": f.first_name}}, upsert=True
     )
+    hozir = time.time()
+    aralik = S.ol("ruletka_aralik")
+    partiya = S.ol("ruletka_limit")
+    tanaffus = S.ol("ruletka_tanaffus") * 3600
     u = await foydalanuvchilar.find_one({"_id": f.id}) or {}
-    ishlatilgan = u.get("ruletka_soni", 0) if u.get("ruletka_sana") == b else 0
-    if u.get("ruletka_sana") != b:
-        await foydalanuvchilar.update_one(
-            {"_id": f.id}, {"$set": {"ruletka_sana": b, "ruletka_soni": 0}}
-        )
-    r = await foydalanuvchilar.update_one(
-        {"_id": f.id, "ruletka_sana": b, "ruletka_soni": {"$lt": S.ol('ruletka_limit')}},
-        {"$inc": {"ruletka_soni": 1}},
-    )
-    if r.modified_count == 0:
+    blok = u.get("rul_blok", 0) or 0
+    if blok > hozir:
         await update.message.reply_text(
-            "⏳ Bugungi urinishlar tugadi. Ertaga qayting !"
+            f"⏳ Urinishlar tugadi. Keyingisi {S.vaqt_matni(blok - hozir)} dan keyin"
         )
         return
-    qolgan = S.ol('ruletka_limit') - (ishlatilgan + 1)
+    sana = hozir - aralik
+    n = (u.get("rul_n", 0) or 0) if not blok else 0  # tanaffus tugagan bo'lsa, yangi seriya
+    yangi_n = n + 1
+    yangi_blok = hozir + tanaffus if (partiya and yangi_n >= partiya and tanaffus) else 0
+    # Bir vaqtda ikki marta bosilsa ham bittasi o'tadi (oxirgi urinish vaqti bo'yicha)
+    r = await foydalanuvchilar.update_one(
+        {"_id": f.id, "$or": [{"rul_oxirgi": {"$exists": False}}, {"rul_oxirgi": {"$lt": sana}}]},
+        {"$set": {"rul_oxirgi": hozir, "rul_n": 0 if yangi_blok else yangi_n, "rul_blok": yangi_blok}},
+    )
+    if r.modified_count == 0:
+        kut = max(1, int((u.get("rul_oxirgi", hozir) or hozir) + aralik - hozir))
+        await update.message.reply_text(
+            f"⏳ Keyingi aylantirish {S.vaqt_matni(kut)} dan keyin"
+        )
+        return
+    qolgan = max(partiya - yangi_n, 0)
 
     dice = await update.message.reply_dice(emoji="🎰")
     await asyncio.sleep(3)  # animatsiya tugashini kutamiz
@@ -430,13 +442,17 @@ async def ruletka(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         await haftalik.qosh(baza, f.id, "coin", miqdor)
     u = await foydalanuvchilar.find_one({"_id": f.id}) or {}
+    keyingi = (
+        f"⏳ Keyingi seriya : {S.vaqt_matni(tanaffus)} dan keyin"
+        if yangi_blok else f"🎟 Seriyada qolgan : {qolgan}"
+    )
     await dice.reply_text(
         f"{RAMKA}\n"
         f"🎰 {natija}\n\n"
         f"🫧 {K(f.first_name)}\n"
         f"💰 Tanga : +{miqdor}\n"
         f"👛 Jami : {u.get('coins', 0)}\n"
-        f"🎟 Qolgan urinish : {qolgan}",
+        f"{keyingi}",
         parse_mode="HTML",
     )
 

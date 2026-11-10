@@ -24,18 +24,10 @@ RUXSAT_ETILGAN = os.environ.get(
 TOSHKENT = timezone(timedelta(hours=5))
 
 # ---------- O'yin sozlamalari ----------
-# Hamma raqam /panel dan o'zgartiriladi (sozlama.py). Sovrinlar shu urinish narxining foizi
-OYIN_FOIZLAR = [20, 30, 40, 50, 60, 70, 80, 90]
-
-
-def oyin_narx(ishlatilgan):
-    # ishlatilgan = bugun nechta urinish bo'lgan; shu urinish narxi
-    return S.ol("oyin_narx_bosh") + S.ol("oyin_narx_qadam") * ishlatilgan
-
-
-def oyin_sovrinlar(narx):
-    # 5 ga yaxlitlaymiz, doim narxdan kam
-    return [min(narx - 5, max(5, round(narx * f / 100 / 5) * 5)) for f in OYIN_FOIZLAR]
+# Narxlar /panel dan o'zgartiriladi, sovrin foizlari sozlama.py (OYIN_FOIZLAR) da:
+# 8 ta tanga kartasi (shundan bittasi "2x") + 1 ta waifu (S.OYIN_DARAJA) kartasi
+oyin_narx = S.oyin_narx
+oyin_sovrinlar = S.oyin_sovrinlar
 
 
 # ---------- Slot sozlamalari ----------
@@ -222,6 +214,9 @@ async def me_api(request):
         "ref_tolangan": tolangan,
         "ref_kutilmoqda": kutilmoqda,
         "ref_tanga": S.ol("referal_tanga"),
+        "narxlar": {k: S.ol("narx_" + k) for k in ("common", "rare", "epic", "legendary", "special", "max")},
+        "oyin_narxlari": [oyin_narx(i) for i in range(S.ol("oyin_kunlik"))],
+        "oyin_daraja": S.OYIN_DARAJA,
         "slot": slot_holat(u, tolangan),
     })
 
@@ -306,8 +301,8 @@ async def oyin_api(request):
         await users.update_one({"_id": uid}, {"$inc": {"coins": narx}})
         return web.json_response({"error": "limit"}, status=429)
 
-    # Taxtani server tuzadi: 8 ta tanga (narxdan kam) + 1 ta Super waifu
-    shart = {"rarity": {"$in": ["rare", "Rare"]}}
+    # Taxtani server tuzadi: 8 ta tanga (shundan bittasi 2x) + 1 ta waifu (S.OYIN_DARAJA)
+    shart = sandiq.shart(S.OYIN_DARAJA)
     nodir_soni = await baza["characters"].count_documents(shart)
     tangalar = oyin_sovrinlar(narx)
     if nodir_soni:
@@ -329,7 +324,7 @@ async def oyin_api(request):
         )
         natija = dict(kartochka_json(p), tur="personaj")
     else:
-        natija = {"tur": "tanga", "miqdor": karta[tanlov]}
+        natija = {"tur": "tanga", "miqdor": karta[tanlov], "x2": karta[tanlov] >= 2 * narx}
         await users.update_one(
             {"_id": uid}, {"$inc": {"coins": karta[tanlov]}}
         )
@@ -343,7 +338,7 @@ async def oyin_api(request):
         "natija": natija,
         "taxta": [
             {"tur": "personaj"} if i == sovrin
-            else {"tur": "tanga", "miqdor": karta[i]}
+            else {"tur": "tanga", "miqdor": karta[i], "x2": karta[i] >= 2 * narx}
             for i in range(9)
         ],
         "pullik": True,
@@ -526,7 +521,8 @@ async def bozor_api(request):
     baza = request.app["baza"]
     await S.yangila(baza)
     u = await foydalanuvchi_ol(baza, f)
-    royxat = await bozor.elonlar(baza)
+    soz = (request.query.get("q") or "").strip()[:40]
+    royxat = await bozor.elonlar(baza, None, None, soz or None)
     natija = []
     for d, p in royxat[:200]:
         x = kartochka_json(p)
