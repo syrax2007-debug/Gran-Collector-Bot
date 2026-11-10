@@ -247,17 +247,18 @@ input{flex:1;min-width:0;padding:10px;background:var(--glass2);border:1px solid 
   background:radial-gradient(ellipse at 50% 42%,#2a0308 0%,#110307 45%,#050208 100%);
   z-index:99999;transition:opacity .6s ease,transform .6s ease;overflow:hidden}
 #splash.off{opacity:0;transform:scale(1.06);pointer-events:none}
-.sp-logo{position:relative;width:min(80vw,360px);aspect-ratio:1;animation:sp-in .9s cubic-bezier(.2,.8,.2,1) both,sp-float 3.2s ease-in-out .9s infinite}
+.sp-logo{position:relative;width:100%;aspect-ratio:1;animation:sp-in .9s cubic-bezier(.2,.8,.2,1) both,sp-float 3.2s ease-in-out .9s infinite}
 .sp-logo img{width:100%;height:100%;display:block;animation:sp-glow 2.2s ease-in-out infinite}
 .sp-logo::after{content:"";position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.85) 50%,transparent 65%) 0 0/250% 100%;
   -webkit-mask:url(logo.png) center/contain no-repeat;mask:url(logo.png) center/contain no-repeat;
   mix-blend-mode:overlay;animation:sp-shine 2.4s ease-in-out infinite}
-.sp-halo{position:absolute;width:min(95vw,460px);aspect-ratio:1;border-radius:50%;
+.sp-pos{position:absolute;left:50%;top:41%;transform:translate(-50%,-50%);width:min(80vw,360px)}
+.sp-halo{position:absolute;left:50%;top:50%;translate:-50% -50%;width:min(118vw,570px);aspect-ratio:1;border-radius:50%;pointer-events:none;
   background:radial-gradient(circle,rgba(255,20,40,.38),transparent 62%);animation:sp-halo 2.2s ease-in-out infinite;filter:blur(10px)}
 .sp-em{position:absolute;bottom:-12px;width:5px;height:5px;border-radius:50%;background:#ff4a3d;
   box-shadow:0 0 8px 2px rgba(255,60,50,.8);opacity:0;animation:sp-up linear infinite}
-.sp-bar{margin-top:6px;width:min(56vw,240px);height:3px;border-radius:3px;background:rgba(255,255,255,.09);overflow:hidden;position:relative}
+.sp-bar{position:absolute;left:50%;top:57%;margin-left:calc(min(56vw,240px) / -2);width:min(56vw,240px);height:3px;border-radius:3px;background:rgba(255,255,255,.09);overflow:hidden}
 .sp-bar::before{content:"";position:absolute;top:0;bottom:0;width:40%;border-radius:3px;
   background:linear-gradient(90deg,transparent,#ff1f2d,#ff8a7a,#ff1f2d,transparent);animation:sp-bar 1.25s ease-in-out infinite}
 #spretry{position:absolute;bottom:9vh;padding:11px 22px;border:1px solid #ff1f2d;border-radius:12px;background:#1a0509;color:#fff;font:600 14px system-ui,sans-serif;letter-spacing:.06em}
@@ -307,8 +308,10 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
 </head>
 <body>
 <div id="splash" role="status" aria-label="Yuklanmoqda">
-  <div class="sp-halo"></div>
-  <div class="sp-logo"><img src="logo.png" alt="Grab Collector"></div>
+  <div class="sp-pos">
+    <div class="sp-halo"></div>
+    <div class="sp-logo"><img src="logo.png" alt="Grab Collector"></div>
+  </div>
   <div class="sp-bar"></div>
   <button id="spretry" hidden>QAYTA URINISH</button>
 </div>
