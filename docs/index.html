@@ -234,7 +234,6 @@ input{flex:1;min-width:0;padding:10px;background:var(--glass2);border:1px solid 
 .field{position:fixed;left:0;right:0;bottom:0;height:150px;z-index:-1;pointer-events:none;opacity:.8;-webkit-mask:linear-gradient(0deg,#000 55%,transparent);mask:linear-gradient(0deg,#000 55%,transparent)}
 .field svg{position:absolute;bottom:-14px;overflow:visible}
 .orn{position:absolute;right:-8px;bottom:-10px;width:120px;height:120px;opacity:.85;pointer-events:none;z-index:1}
-@media (prefers-reduced-motion:reduce){*{animation:none!important}}
 /* SOZLAMALAR */
 .setbtn{display:block;margin:14px auto 0}
 .swg{display:grid;grid-template-columns:repeat(5,1fr);gap:10px 6px;margin:6px 0 12px}
@@ -242,35 +241,43 @@ input{flex:1;min-width:0;padding:10px;background:var(--glass2);border:1px solid 
 .sw i{display:block;width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,255,255,.25)}
 .sw span{font-size:8px;letter-spacing:.04em;line-height:1.2;text-align:center}
 .sw.on i{border-color:#fff;box-shadow:0 0 12px var(--neon)}
-/* ---------- Yuklash ekrani ---------- */
-#splash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  background:radial-gradient(ellipse at 50% 42%,#2a0308 0%,#110307 45%,#050208 100%);
-  z-index:99999;transition:opacity .6s ease,transform .6s ease;overflow:hidden}
-#splash.off{opacity:0;transform:scale(1.06);pointer-events:none}
-.sp-logo{position:relative;width:100%;aspect-ratio:1;animation:sp-in .9s cubic-bezier(.2,.8,.2,1) both,sp-float 3.2s ease-in-out .9s infinite}
-.sp-logo img{width:100%;height:100%;display:block;animation:sp-glow 2.2s ease-in-out infinite}
-.sp-logo::after{content:"";position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.85) 50%,transparent 65%) 0 0/250% 100%;
-  -webkit-mask:url(logo.png) center/contain no-repeat;mask:url(logo.png) center/contain no-repeat;
-  mix-blend-mode:overlay;animation:sp-shine 2.4s ease-in-out infinite}
-.sp-pos{position:absolute;left:50%;top:41%;transform:translate(-50%,-50%);width:min(80vw,360px)}
-.sp-halo{position:absolute;left:50%;top:50%;translate:-50% -50%;width:min(118vw,570px);aspect-ratio:1;border-radius:50%;pointer-events:none;
-  background:radial-gradient(circle,rgba(255,20,40,.38),transparent 62%);animation:sp-halo 2.2s ease-in-out infinite;filter:blur(10px)}
+/* ---------- Yuklash ekrani (eski telefonlar uchun ham ishlaydigan, oddiy effektlar) ---------- */
+#splash{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:#0d0306;background:radial-gradient(ellipse at 50% 42%,#2a0308 0%,#110307 45%,#050208 100%);
+  z-index:99999;-webkit-transition:opacity .6s ease;transition:opacity .6s ease;overflow:hidden}
+#splash.off{opacity:0;pointer-events:none}
+.sp-pos{position:absolute;left:50%;top:41%;width:min(80vw,360px);height:min(80vw,360px);
+  margin-left:calc(min(80vw,360px) / -2);margin-top:calc(min(80vw,360px) / -2)}
+.sp-halo{position:absolute;left:50%;top:50%;width:min(118vw,570px);height:min(118vw,570px);
+  margin-left:calc(min(118vw,570px) / -2);margin-top:calc(min(118vw,570px) / -2);border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(255,20,40,.42),rgba(255,20,40,0) 62%);
+  -webkit-animation:sp-halo 2.2s ease-in-out infinite;animation:sp-halo 2.2s ease-in-out infinite}
+.sp-logo{position:absolute;top:0;left:0;width:100%;height:100%;
+  -webkit-animation:sp-in .9s cubic-bezier(.2,.8,.2,1) both,sp-float 3.2s ease-in-out .9s infinite;
+  animation:sp-in .9s cubic-bezier(.2,.8,.2,1) both,sp-float 3.2s ease-in-out .9s infinite}
+.sp-logo img{display:block;width:100%;height:100%;object-fit:contain;
+  -webkit-animation:sp-glow 1.8s ease-in-out infinite;animation:sp-glow 1.8s ease-in-out infinite}
 .sp-em{position:absolute;bottom:-12px;width:5px;height:5px;border-radius:50%;background:#ff4a3d;
-  box-shadow:0 0 8px 2px rgba(255,60,50,.8);opacity:0;animation:sp-up linear infinite}
-.sp-bar{position:absolute;left:50%;top:57%;margin-left:calc(min(56vw,240px) / -2);width:min(56vw,240px);height:3px;border-radius:3px;background:rgba(255,255,255,.09);overflow:hidden}
-.sp-bar::before{content:"";position:absolute;top:0;bottom:0;width:40%;border-radius:3px;
-  background:linear-gradient(90deg,transparent,#ff1f2d,#ff8a7a,#ff1f2d,transparent);animation:sp-bar 1.25s ease-in-out infinite}
+  box-shadow:0 0 8px 2px rgba(255,60,50,.8);opacity:0;-webkit-animation:sp-up linear infinite;animation:sp-up linear infinite}
+.sp-bar{position:absolute;left:50%;top:57%;width:min(56vw,240px);margin-left:calc(min(56vw,240px) / -2);
+  height:4px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}
+.sp-bar::before{content:"";position:absolute;top:0;bottom:0;left:-45%;width:40%;border-radius:4px;
+  background:linear-gradient(90deg,rgba(255,31,45,0),#ff1f2d,#ff8a7a,#ff1f2d,rgba(255,31,45,0));
+  -webkit-animation:sp-bar 1.25s ease-in-out infinite;animation:sp-bar 1.25s ease-in-out infinite}
 #spretry{position:absolute;bottom:9vh;padding:11px 22px;border:1px solid #ff1f2d;border-radius:12px;background:#1a0509;color:#fff;font:600 14px system-ui,sans-serif;letter-spacing:.06em}
 #spretry[hidden]{display:none}
-@keyframes sp-in{from{opacity:0;transform:scale(.6) rotate(-4deg);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
+@-webkit-keyframes sp-in{from{opacity:0;-webkit-transform:scale(.6)}to{opacity:1;-webkit-transform:scale(1)}}
+@keyframes sp-in{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+@-webkit-keyframes sp-float{50%{-webkit-transform:translateY(-8px)}}
 @keyframes sp-float{50%{transform:translateY(-8px)}}
-@keyframes sp-glow{0%,100%{filter:drop-shadow(0 0 8px rgba(255,20,40,.55))}50%{filter:drop-shadow(0 0 26px rgba(255,40,50,.95))}}
+@-webkit-keyframes sp-glow{0%,100%{-webkit-filter:drop-shadow(0 0 8px rgba(255,20,40,.55)) brightness(1)}50%{-webkit-filter:drop-shadow(0 0 26px rgba(255,40,50,.95)) brightness(1.35)}}
+@keyframes sp-glow{0%,100%{filter:drop-shadow(0 0 8px rgba(255,20,40,.55)) brightness(1)}50%{filter:drop-shadow(0 0 26px rgba(255,40,50,.95)) brightness(1.35)}}
+@-webkit-keyframes sp-halo{0%,100%{opacity:.55;-webkit-transform:scale(.94)}50%{opacity:1;-webkit-transform:scale(1.06)}}
 @keyframes sp-halo{0%,100%{opacity:.55;transform:scale(.94)}50%{opacity:1;transform:scale(1.06)}}
-@keyframes sp-shine{0%{background-position:130% 0}60%,100%{background-position:-60% 0}}
+@-webkit-keyframes sp-bar{0%{left:-45%}100%{left:105%}}
 @keyframes sp-bar{0%{left:-45%}100%{left:105%}}
-@keyframes sp-up{0%{transform:translate(0,0) scale(1);opacity:0}12%{opacity:1}100%{transform:translate(var(--dx),-92vh) scale(.3);opacity:0}}
-@media (prefers-reduced-motion:reduce){.sp-logo,.sp-logo img,.sp-halo,.sp-em,.sp-bar::before,.sp-logo::after{animation:none!important}}
+@-webkit-keyframes sp-up{0%{-webkit-transform:translate(0,0) scale(1);opacity:0}12%{opacity:1}100%{-webkit-transform:translate(var(--dx),-700px) scale(.3);opacity:0}}
+@keyframes sp-up{0%{transform:translate(0,0) scale(1);opacity:0}12%{opacity:1}100%{transform:translate(var(--dx),-700px) scale(.3);opacity:0}}
 </style>
 <script>
 var TEMALAR=[
@@ -1326,7 +1333,7 @@ function splashHide() {
   setTimeout(function () {
     s.classList.add("off");
     setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 800);
-  }, Math.max(0, 900 - (Date.now() - SPLASH_T0)));
+  }, Math.max(0, 1500 - (Date.now() - SPLASH_T0)));
 }
 
 async function load() {
