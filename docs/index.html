@@ -140,6 +140,8 @@ input{flex:1;min-width:0;padding:10px;background:var(--glass2);border:1px solid 
 .gc.open.picked .in{box-shadow:inset 0 0 0 2px #fff}
 .gc.prize{opacity:1}
 .gc.prize .in{background:linear-gradient(180deg,var(--neon3),color-mix(in srgb,var(--neon3) 40%,#000));color:#fff}
+.gc.open.x2{opacity:1}
+.gc.x2 .in{background:linear-gradient(180deg,#c99a12,#5a4300);color:#fff}
 #gmsg{text-align:center;min-height:38px;font-weight:700;font-size:15px;line-height:1.5}
 #again{display:block;margin:10px auto 0}
 .note{margin-top:12px;font-size:11px;color:var(--muted);text-align:center;line-height:1.7}
@@ -333,6 +335,7 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
         <div class="demo">📦 HAR BIR SANDIQ O'Z DARAJASIDA TASODIFIY WAIFU BERADI.<br>HAR BIR SANDIQQA KUNLIK LIMIT BOR.</div>
       </div>
       <div id="d-bozor" hidden>
+        <input class="inp" id="bq" type="search" placeholder="🔎 ISM, MANBA YOKI RAQAM" maxlength="40" autocomplete="off" style="margin-bottom:10px">
         <div class="chips" id="bchips"></div>
         <div class="shop" id="bgrid"></div>
         <div class="demo" id="binfo"></div>
@@ -366,7 +369,7 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
         <div class="board" id="board"></div>
         <div id="gmsg">BITTA KARTANI TANLANG</div>
         <button class="btn" id="again" hidden>🔁 YANA O'YNASH</button>
-        <div class="note">🎁 HAR O'YINDA 9 TA KARTANING BITTASIDA WAIFU YASHIRINGAN.<br>💰 NARX : 100 • 150 • 200 • 250 • 300 (KUNIGA 5 TA).<br>🪙 TANGA SOVRINLARI NARXDAN KAM.</div>
+        <div class="note" id="gnote"></div>
       </div>
 
       <div id="g-slot" hidden>
@@ -475,7 +478,8 @@ var coins = 0;
 var fav = null;
 var modalItem = null;
 var freePlay = true, replayCost = 100, qolgan = 5, limit = 5;
-var ref = { link: "", ok: 0, kut: 0, tanga: 250 };
+var oyinNarx = [100, 150, 200, 250, 300], oyinDaraja = "rare";
+var ref = { link: "", ok: 0, kut: 0, tanga: 200 };
 
 function toItem(x) {
   return {
@@ -654,10 +658,10 @@ $("seg").addEventListener("click", function () {
 
 /* ---------- Sandiq ---------- */
 var QUTI = [
-  { k: "common", r: 1, narx: 125, limit: 10, qolgan: 10, bor: true },
-  { k: "rare", r: 2, narx: 375, limit: 5, qolgan: 5, bor: true },
-  { k: "epic", r: 3, narx: 875, limit: 3, qolgan: 3, bor: true },
-  { k: "legendary", r: 4, narx: 1750, limit: 1, qolgan: 1, bor: true },
+  { k: "common", r: 1, narx: 600, limit: 10, qolgan: 10, bor: true },
+  { k: "rare", r: 2, narx: 1800, limit: 5, qolgan: 5, bor: true },
+  { k: "epic", r: 3, narx: 4200, limit: 3, qolgan: 3, bor: true },
+  { k: "legendary", r: 4, narx: 9600, limit: 1, qolgan: 1, bor: true },
 ];
 var buying = false;
 function shop() {
@@ -730,7 +734,14 @@ async function sotibOl(k) {
 
 /* ---------- Do'kon (o'yinchilar savdosi) ---------- */
 var RKEY = { 1: "common", 2: "rare", 3: "epic", 4: "legendary", 5: "special" };
-var BZ = { elonlar: [], oraliq: {}, limit: 5, qulf: 0, filter: 0, yuklandi: false };
+var BZ = { elonlar: [], oraliq: {}, limit: 3, qulf: 0, filter: 0, yuklandi: false, q: "", token: 0 };
+function bzMos(x, q) {
+  // Qidiruv: faqat raqam bo'lsa raqam bo'yicha, aks holda ism yoki manba ichidan
+  q = String(q || "").trim().replace(/^#/, "").toLowerCase();
+  if (!q) return true;
+  if (/^\d+$/.test(q)) return String(x.item.raqam) === q;
+  return String(x.item.name).toLowerCase().indexOf(q) >= 0 || String(x.item.anime).toLowerCase().indexOf(q) >= 0;
+}
 function bzDemo() {
   return [
     { elon: "x1", narx: 500, sotuvchi: "ALI", oz: false, item: DEMO[0] },
@@ -766,7 +777,7 @@ function bzChips() {
 function bzRender() {
   bzChips();
   var list = BZ.elonlar.filter(function (x) {
-    return BZ.filter === 0 || (BZ.filter === 9 ? x.oz : x.item.r === BZ.filter);
+    return (BZ.filter === 0 || (BZ.filter === 9 ? x.oz : x.item.r === BZ.filter)) && bzMos(x, BZ.q);
   });
   $("bgrid").innerHTML = list.length ? list.map(function (x) {
     var it = x.item;
@@ -778,7 +789,7 @@ function bzRender() {
       (x.oz ? '<button class="btn ghost" data-bzc="' + esc(x.elon) + '">❌ BEKOR</button>'
             : '<button class="btn" data-bzb="' + esc(x.elon) + '">SOTIB OLISH</button>') +
       '</div></div>';
-  }).join("") : '<div class="empty2">📭 E\'LON YO\'Q</div>';
+  }).join("") : '<div class="empty2">' + (BZ.q ? "🔎 HECH NARSA TOPILMADI" : "📭 E'LON YO'Q") + '</div>';
   $("binfo").innerHTML = "🏪 O'Z WAIFUNGIZNI SOTISH : KOLLEKSIYADA WAIFUNI BOSING ➜ «SOTISHGA QO'YISH».<br>SIZNING E'LONLARINGIZ : " +
     BZ.elonlar.filter(function (x) { return x.oz; }).length + " / " + BZ.limit;
 }
@@ -787,13 +798,15 @@ async function loadBozor() {
     if (!BZ.yuklandi) {
       BZ.yuklandi = true;
       BZ.elonlar = bzDemo();
-      BZ.oraliq = { common: { min: 70, max: 1000 }, rare: { min: 210, max: 3000 }, epic: { min: 490, max: 7000 }, legendary: { min: 980, max: 14000 }, special: { min: 4000, max: 50000 } };
+      BZ.oraliq = { common: { min: 350, max: 550 }, rare: { min: 1050, max: 1650 }, epic: { min: 2450, max: 3850 }, legendary: { min: 5600, max: 8800 }, special: { min: 9600, max: 13200 } };
     }
     bzRender();
     return;
   }
+  var tok = ++BZ.token;
   try {
-    var r = await api("/api/bozor");
+    var r = await api("/api/bozor" + (BZ.q ? "?q=" + encodeURIComponent(BZ.q) : ""));
+    if (tok !== BZ.token) return;
     if (r.ok) {
       BZ.elonlar = r.data.elonlar.map(function (x) {
         return { elon: x.elon, narx: x.narx, sotuvchi: x.sotuvchi, oz: x.oz, item: toItem(x) };
@@ -816,6 +829,13 @@ document.getElementById("dsel").addEventListener("click", function (e) {
   $("dsub").innerHTML = m === "bozor" ? "S A V D O" : "O M A D L I &nbsp; Q U T I";
   if (m === "bozor") loadBozor(); else loadShop();
   buzz();
+});
+var bqVaqt = null;
+$("bq").addEventListener("input", function () {
+  BZ.q = this.value.trim().slice(0, 40);
+  bzRender();
+  clearTimeout(bqVaqt);
+  bqVaqt = setTimeout(loadBozor, 350);
 });
 $("bchips").addEventListener("click", function (e) {
   var b = e.target.closest(".chip"); if (!b) return;
@@ -931,6 +951,11 @@ $("refCopy").addEventListener("click", async function () {
 /* ---------- O'yin ---------- */
 var gameBusy = false;
 
+function noteRender() {
+  $("gnote").innerHTML = "🎁 HAR O'YINDA 9 TA KARTANING BITTASIDA " + ({ common: "ELITA", rare: "SUPER", epic: "MEGA", legendary: "ULTRA" }[oyinDaraja] || "SUPER") + " WAIFU YASHIRINGAN.<br>💰 NARX : " +
+    oyinNarx.join(" • ") + " (KUNIGA " + oyinNarx.length + " TA).<br>✨ BITTA KARTADA 2x : NARXNING IKKI BARAVARI QAYTADI.<br>🪙 QOLGAN TANGA SOVRINLARI NARXDAN KAM.";
+}
+
 function gameInfo() {
   var t;
   if (qolgan <= 0) {
@@ -943,6 +968,7 @@ function gameInfo() {
 
 function newGame() {
   gameBusy = false;
+  noteRender();
   $("gmsg").textContent = qolgan <= 0 ? "ERTAGA QAYTING" : "BITTA KARTANI TANLANG";
   $("again").hidden = true;
   var h = "";
@@ -981,6 +1007,9 @@ $("board").addEventListener("click", async function (e) {
       if (c.tur === "personaj") {
         el.classList.add("prize");
         el.firstChild.innerHTML = "<span>🎁</span><small>WAIFU</small>";
+      } else if (c.x2) {
+        el.classList.add("x2");
+        el.firstChild.innerHTML = "<span>✨</span><small>2x · +" + c.miqdor + "</small>";
       } else {
         el.firstChild.innerHTML = "<span>🪙</span><small>+" + c.miqdor + "</small>";
       }
@@ -999,9 +1028,9 @@ $("board").addEventListener("click", async function (e) {
       setTimeout(function () { openModal(toItem(d.natija), false, "🎉 SIZ YUTDINGIZ !"); }, 450);
       loadCollection();
     } else {
-      celebrate(d.natija.miqdor >= 150 ? "mid" : "small");
+      celebrate(d.natija.x2 ? "mid" : "small");
       var sof = d.natija.miqdor - narx;
-      $("gmsg").textContent = "🪙 +" + d.natija.miqdor + (narx
+      $("gmsg").textContent = (d.natija.x2 ? "✨ 2x ! " : "") + "🪙 +" + d.natija.miqdor + (narx
         ? " • NARX −" + narx + " • SOF " + (sof >= 0 ? "+" : "") + sof : "");
     }
     $("again").hidden = qolgan <= 0;
@@ -1051,16 +1080,19 @@ function celebrate(level) {
 function demoPlay(pick) {
   var narx = replayCost;
   coins -= narx;
-  var v = [20, 30, 40, 50, 60, 70, 80, 90].map(function (f) { return Math.max(5, Math.round(narx * f / 100 / 5) * 5); }).sort(function () { return Math.random() - .5; });
+  var v = [200, 10, 15, 20, 30, 35, 40, 50].map(function (f) {
+    var m = Math.max(5, Math.round(narx * f / 100 / 5) * 5);
+    return f < 100 ? Math.min(m, narx - 5) : m;
+  }).sort(function () { return Math.random() - .5; });
   var pz = Math.floor(Math.random() * 9);
   v.splice(pz, 0, 0);
-  var taxta = v.map(function (m, i) { return i === pz ? { tur: "personaj" } : { tur: "tanga", miqdor: m }; });
+  var taxta = v.map(function (m, i) { return i === pz ? { tur: "personaj" } : { tur: "tanga", miqdor: m, x2: m >= 2 * narx }; });
   var natija;
   if (pick === pz) {
     var d2 = DEMO[1];
-    natija = { tur: "personaj", id: d2.id, name: d2.name, anime: d2.anime, rarity: "rare", raqam: d2.raqam, count: 1, image: d2.image };
+    natija = { tur: "personaj", id: d2.id, name: d2.name, anime: d2.anime, rarity: "common", raqam: d2.raqam, count: 1, image: d2.image };
   } else {
-    natija = { tur: "tanga", miqdor: v[pick] };
+    natija = { tur: "tanga", miqdor: v[pick], x2: v[pick] >= 2 * narx };
     coins += v[pick];
   }
   qolgan--; freePlay = false; replayCost = narx + 50;
@@ -1081,8 +1113,8 @@ document.querySelector(".gsel").addEventListener("click", function (e) {
 /* ---------- Slot ---------- */
 var SYM = { w: "👑", m: "🔮", j: "💎", s: "🌟", a: "🔥", e: "🍀", b: "🪙", c: "🌸" };
 var SLOTW = { w: { n: "ULTRA", r: 4 }, m: { n: "MEGA", r: 3 }, s: { n: "SUPER", r: 2 }, e: { n: "ELITA", r: 1 } };
-var OUT = [{ k: "w", p: 3 }, { k: "m", p: 4 }, { k: "j", p: 5, m: 300 }, { k: "s", p: 6 }, { k: "a", p: 7, m: 150 }, { k: "e", p: 9 }, { k: "b", p: 11, m: 100 }, { k: "c", p: 16, m: 60 }, { k: "n", p: 39 }];
-var slotSt = { free: true, bonus: "qulf", pullik: "bor", narx: 100 }, spinning = false;
+var OUT = [{ k: "m", p: 1 }, { k: "s", p: 1 }, { k: "e", p: 2 }, { k: "j", p: 4, m: 200 }, { k: "a", p: 7, m: 100 }, { k: "b", p: 16, m: 50 }, { k: "c", p: 30, m: 30 }, { k: "n", p: 39 }];
+var slotSt = { free: true, bonus: "qulf", pullik: "bor", narx: 150 }, spinning = false;
 function sFree() { return (slotSt.free ? 1 : 0) + (slotSt.bonus === "bor" ? 1 : 0); }
 function sPaid() { return slotSt.pullik === "bor"; }
 function sLeft() { return sFree() + (sPaid() ? 1 : 0); }
@@ -1189,7 +1221,7 @@ async function spin() {
     if (newCoins === null) coins += o.m;
     stats();
     $("smsg").textContent = "🪙 +" + o.m + " TANGA YUTDINGIZ !";
-    celebrate(o.m >= 150 ? "mid" : "small");
+    celebrate(o.m >= slotSt.narx ? "mid" : "small");
   }
   slotInfo();
 }
@@ -1223,10 +1255,12 @@ async function loadMe() {
     qolgan = d.qolgan;
     limit = d.limit;
     replayCost = d.replay_cost;
+    if (d.oyin_narxlari && d.oyin_narxlari.length) oyinNarx = d.oyin_narxlari;
+    if (d.oyin_daraja) oyinDaraja = d.oyin_daraja;
     fav = d.sevimli ? toItem(d.sevimli) : null;
     ref = { link: d.ref_link, ok: d.ref_tolangan, kut: d.ref_kutilmoqda, tanga: d.ref_tanga };
     if (d.slot) slotSt = d.slot;
-    stats(); gameInfo(); favRender(); refRender(); slotInfo();
+    stats(); noteRender(); gameInfo(); favRender(); refRender(); slotInfo();
   } catch (e) {}
 }
 
