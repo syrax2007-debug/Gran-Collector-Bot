@@ -13,6 +13,7 @@ from main import ilova as telegram_bot
 import haftalik
 import sandiq
 import bozor
+import bildirish
 import sozlama as S
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
@@ -212,6 +213,7 @@ async def me_api(request):
         "sevimli": sevimli,
         "ref_link": f"https://t.me/{nom}?start=ref_{f['id']}" if nom else "",
         "ref_tolangan": tolangan,
+        "veb_tayyor": bildirish.veb_tayyor(u),
         "ref_kutilmoqda": kutilmoqda,
         "ref_tanga": S.ol("referal_tanga"),
         "narxlar": {k: S.ol("narx_" + k) for k in ("common", "rare", "epic", "legendary", "special", "max")},
@@ -500,6 +502,37 @@ BOZOR_STATUS = {
 }
 
 
+async def veb_waifu_api(request):
+    f = tekshir(request.headers.get("X-Init-Data", ""))
+    if not f:
+        raise web.HTTPUnauthorized(text="Ruxsat yo'q")
+    baza = request.app["baza"]
+    await foydalanuvchi_ol(baza, f)
+    kod, p = await bildirish.veb_claim(baza, f["id"])
+    if kod != "ok":
+        return web.json_response({"error": kod}, status=400)
+    await haftalik.qosh(baza, f["id"], "waifu", 1)
+    return web.json_response({"natija": kartochka_json(p)})
+
+
+async def bildirish_api(request):
+    f = tekshir(request.headers.get("X-Init-Data", ""))
+    if not f:
+        raise web.HTTPUnauthorized(text="Ruxsat yo'q")
+    baza = request.app["baza"]
+    await S.yangila(baza)
+    u = await foydalanuvchi_ol(baza, f)
+    tolangan = await tolangan_soni(baza, f["id"])
+    kutilmoqda = await baza["users"].count_documents(
+        {"referrer": f["id"], "ref_tolangan": {"$ne": True}, "ref_bekor": {"$ne": True}}
+    )
+    slot = slot_holat(u, tolangan)
+    return web.json_response({
+        "royxat": await bildirish.royxat(baza, u, slot, tolangan, kutilmoqda),
+        "veb_tayyor": bildirish.veb_tayyor(u),
+    })
+
+
 def bozor_xato(kod, d):
     ochiq = {k: v for k, v in d.items() if k in ("min", "max", "limit", "narx", "coins")}
     if "qolgan" in d:
@@ -634,6 +667,8 @@ app.router.add_get("/", bosh)
 app.router.add_get("/api/collection", kolleksiya_api)
 app.router.add_get("/api/photo/{pid}", rasm)
 app.router.add_get("/api/me", me_api)
+app.router.add_post("/api/veb-waifu", veb_waifu_api)
+app.router.add_get("/api/bildirish", bildirish_api)
 app.router.add_post("/api/favorite", sevimli_api)
 app.router.add_post("/api/game/play", oyin_api)
 app.router.add_post("/api/slot/play", slot_api)

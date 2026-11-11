@@ -951,6 +951,8 @@ ilova.add_handler(
 ilova.add_handler(InlineQueryHandler(inline_qidiruv))
 admin_vositalar.ulash(ilova, baza, ADMIN_ID, nodirlik_kaliti, NODIRLIK)
 referal.ulash(ilova, baza)
+import bildirish
+bildirish.ulash(ilova, baza, mini_app_tugmasi)
 reyting.ulash(ilova, baza)
 ismlar.ulash(ilova, baza)
 maxevent.ulash(ilova, baza, ADMIN_ID, RASMIY_GURUH, yulduz_matni)
