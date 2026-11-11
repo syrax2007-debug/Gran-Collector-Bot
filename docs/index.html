@@ -80,6 +80,20 @@ body{
   display:flex;align-items:center;justify-content:center;font-family:var(--head);font-size:20px;font-weight:900;color:var(--neon2)}
 #avatar img{width:100%;height:100%;object-fit:cover}
 #handle{color:#fff;font-size:14px;text-shadow:0 0 6px #000}
+.top{align-items:stretch}
+#handle{display:flex;align-items:center}
+.vebbtn{flex:1;min-width:0;min-height:50px;border:1px solid var(--neon);border-radius:10px;cursor:pointer;color:#fff;font:inherit;font-size:13px;font-weight:700;letter-spacing:.08em;
+  background:linear-gradient(180deg,var(--neon),var(--neon2));background-color:var(--neon);text-shadow:0 1px 4px rgba(0,0,0,.7);box-shadow:var(--glow);
+  -webkit-animation:vebp 1.6s ease-in-out infinite;animation:vebp 1.6s ease-in-out infinite}
+.vebbtn[hidden]{display:none}
+.vebbtn[disabled]{opacity:.6;-webkit-animation:none;animation:none}
+@-webkit-keyframes vebp{50%{-webkit-filter:brightness(1.3)}}
+@keyframes vebp{50%{filter:brightness(1.3)}}
+.pbox.veb .in{display:grid;grid-template-columns:50px 1fr;gap:12px;align-items:stretch}
+.pbox.veb .top{display:contents}
+.pbox.veb .mini{display:none}
+.pbox.veb #avatar{align-self:center}
+.pbox.veb .vebbtn{grid-column:2;min-height:108px;font-size:15px}
 .pbox{--c:12px;margin-top:12px}
 .pbox .in{padding:12px 10px 10px;background:linear-gradient(180deg,color-mix(in srgb,var(--t1) calc(38% * var(--op)),transparent),color-mix(in srgb,var(--t2) calc(50% * var(--op)),transparent))}
 .mini{display:grid;grid-template-columns:repeat(4,1fr);margin-top:10px;border-top:1px solid color-mix(in srgb,var(--neon) 45%,transparent);padding-top:8px}
@@ -237,6 +251,14 @@ input{flex:1;min-width:0;padding:10px;background:var(--glass2);border:1px solid 
 .orn{position:absolute;right:-8px;bottom:-10px;width:120px;height:120px;opacity:.85;pointer-events:none;z-index:1}
 /* SOZLAMALAR */
 .setbtn{display:block;margin:14px auto 0}
+.setrow{display:flex;justify-content:space-between;align-items:stretch;gap:10px;margin-top:14px}
+.setrow .setbtn{margin:0;flex:none;display:flex;align-items:center;justify-content:center}
+.clk{display:inline-block;position:relative;width:.85em;height:.85em;box-sizing:border-box;border:1.4px solid currentColor;border-radius:50%;margin-right:.55em;vertical-align:-.08em}
+.clk::before,.clk::after{content:"";position:absolute;left:50%;bottom:50%;width:1.4px;background:currentColor;-webkit-transform-origin:50% 100%;transform-origin:50% 100%}
+.clk::before{height:30%;margin-left:-.7px}
+.clk::after{height:24%;margin-left:-.7px;-webkit-transform:rotate(90deg);transform:rotate(90deg)}
+/* vinfo : Sozlamalar tugmasi bilan bir xil uslub (.btn.ghost) */
+.setrow .vinfo{flex:1;min-width:0;cursor:default;opacity:1;white-space:nowrap}
 .swg{display:grid;grid-template-columns:repeat(5,1fr);gap:10px 6px;margin:6px 0 12px}
 .sw{background:none;border:0;color:#fff;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;padding:0;min-width:0}
 .sw i{display:block;width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,255,255,.25)}
@@ -349,6 +371,7 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
         <div class="top">
           <div id="avatar">🌸</div>
           <div id="handle"></div>
+          <button class="vebbtn" id="vebBtn" type="button" hidden>🎁 KUNLIK WAIFUNI OLISH</button>
         </div>
         <div class="mini">
           <div class="st"><small>TURLI</small><b id="sXil">0</b></div>
@@ -357,7 +380,7 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
           <div class="st"><small>ULTRA</small><b id="sMega">0</b></div>
         </div>
       </div></div>
-      <button class="btn ghost setbtn" id="setBtn">⚙ SOZLAMALAR</button>
+      <div class="setrow"><button class="btn ghost setbtn vinfo" id="vebInfo" type="button" disabled><i class="clk"></i>KUTILMOQDA</button>      <button class="btn ghost setbtn" id="setBtn">⚙ SOZLAMALAR</button></div>
     </section>
 
     <!-- 2. KOLLEKSIYA -->
@@ -1299,6 +1322,60 @@ async function loadCollection() {
   stats(); render();
 }
 
+/* ---------- Kunlik waifu (web) va bildirishnomalar ---------- */
+var vebTayyor = false, vebBand = false;
+function vebRender() {
+  var b = $("vebBtn"); if (!b) return;
+  b.hidden = !vebTayyor;
+  vebInfoRender();
+  var pb = document.querySelector(".pbox"); if (pb) pb.classList.toggle("veb", !!vebTayyor);
+  $("handle").style.display = vebTayyor ? "none" : "";
+}
+function loadBildirish() {}
+function tashkentQolgan() {
+  // Toshkent (UTC+5) yarim tungigacha qolgan soniya
+  var t = Date.now() + 5 * 3600000;
+  return Math.max(0, Math.floor((86400000 - (t % 86400000)) / 1000));
+}
+function vebInfoRender() {
+  var el = $("vebInfo"); if (!el) return;
+  if (vebTayyor) { el.innerHTML = '<i class="clk"></i>KUTILMOQDA'; return; }
+  var s = tashkentQolgan(), p = function (n) { return (n < 10 ? "0" : "") + n; };
+  el.innerHTML = '<i class="clk"></i>' + p(Math.floor(s / 3600)) + ":" + p(Math.floor(s % 3600 / 60)) + ":" + p(s % 60);
+}
+var vebSoat = null;
+setInterval(function () {
+  vebInfoRender();
+  // Yarim tundan keyin yangi waifu huquqi qaytadi
+  if (!vebTayyor && tashkentQolgan() >= 86399 && onlayn()) loadMe();
+  else if (!vebTayyor && tashkentQolgan() >= 86399) { vebTayyor = true; vebRender(); }
+}, 1000);
+$("vebBtn").addEventListener("click", async function () {
+  if (vebBand || !vebTayyor) return;
+  vebBand = true; this.disabled = true;
+  var item = null;
+  if (onlayn()) {
+    var r;
+    try { r = await api("/api/veb-waifu", { method: "POST", body: "{}" }); } catch (e) { r = null; }
+    if (!r || !r.ok) {
+      var er = r && r.data && r.data.error;
+      if (er === "olingan") { vebTayyor = false; vebRender(); toast("BUGUNGI WAIFU OLINGAN. ERTAGA QAYTING"); }
+      else toast(er === "waifu_yoq" ? "HOZIRCHA WAIFU YO'Q" : "XATO, QAYTA URINIB KO'RING");
+      vebBand = false; this.disabled = false; loadBildirish();
+      return;
+    }
+    item = toItem(r.data.natija);
+    loadCollection(); loadMe();
+  } else {
+    item = DEMO[Math.floor(Math.random() * DEMO.length)];
+  }
+  vebTayyor = false; vebBand = false; this.disabled = false;
+  vebRender(); stats();
+  celebrate(item.r >= 4 ? "big" : item.r >= 3 ? "mid" : "small");
+  openModal(item, false, "🎁 KUNLIK WAIFU !");
+  loadBildirish();
+});
+
 async function loadMe() {
   if (!onlayn()) return;
   try {
@@ -1315,6 +1392,7 @@ async function loadMe() {
     fav = d.sevimli ? toItem(d.sevimli) : null;
     ref = { link: d.ref_link, ok: d.ref_tolangan, kut: d.ref_kutilmoqda, tanga: d.ref_tanga };
     if (d.slot) slotSt = d.slot;
+    vebTayyor = !!d.veb_tayyor; vebRender(); loadBildirish();
     stats(); noteRender(); gameInfo(); favRender(); refRender(); slotInfo();
   } catch (e) {}
 }
@@ -1358,6 +1436,8 @@ async function load() {
     $("handle").textContent = u.username ? "@" + u.username : "";
     avatarOrnat(u);
   }
+  if (!onlayn()) vebTayyor = true;
+  vebRender(); loadBildirish();
   chips(); shop(); newGame(); favRender(); refRender(); render();
   try {
     await loadCollection();
