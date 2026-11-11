@@ -52,35 +52,89 @@ async def yangila(q, matn):
         await q.edit_message_text(matn)
 
 
-# ---------- /admin ----------
+# ---------- /admin (tugmali menyu) ----------
+ADMIN_BOLIMLAR = {
+    "y": ("📤 Yuklash",
+          "📤 <b>Waifu yuklash</b>\n\n"
+          "Rasm yuboring, izohga yozing:\n"
+          "<code>/yuklash Ism | Manba | Daraja</code>\n"
+          "Daraja: Elita, Super, Mega, Ultra, Collector yoki Max\n\n"
+          "⛩️ Collector uchun event nomi ham kerak:\n"
+          "<code>/yuklash Ism | Manba | Collector | Event nomi</code>\n"
+          "(masalan: Qish 2026, Yoz, Halloween)"),
+    "w": ("📚 Waifular",
+          "📚 <b>Waifularni boshqarish</b>\n\n"
+          "/royxat — hamma waifular\n"
+          "<code>/royxat mega</code>  yoki  <code>/royxat re:zero</code>\n"
+          "<code>/ochirish 4821</code> — o'chirish\n"
+          "<code>/tahrirlash 4821 | Ism | Manba | Nodirlik</code>\n"
+          "(o'zgarmasin desangiz - yozing)\n"
+          "<code>/spawn 4821</code> — guruhda waifu chiqarish\n"
+          "<code>/eventochir Eski | Yangi</code>"),
+    "o": ("👤 Odamlar",
+          "👤 <b>Odamlar</b> (odam xabariga <b>reply</b> yoki ID bilan)\n\n"
+          "<code>/tangaber 100</code> — tanga berish (minus bilan olish)\n"
+          "<code>/waifuber 4821</code> — waifu berish\n"
+          "<code>/waifuol 4821</code> — waifuni olib qo'yish\n"
+          "<code>/foydalanuvchi</code> — odam haqida ma'lumot\n"
+          "<code>/ban sabab</code>, <code>/unban</code> — taqiqlash\n"
+          "<code>/xabar matn</code> — hammaga xabar"),
+    "s": ("⚙️ Sozlama",
+          "⚙️ <b>Sozlama va hisobot</b>\n\n"
+          "/panel — sozlamalarni tugmalar bilan o'zgartirish\n"
+          "/sozlamalar — hamma sozlama bir joyda\n"
+          "/iqtisod — daromad va narx hisoboti\n"
+          "/statistika — hisobot\n"
+          "<code>/oraliq 75</code> — chiqish oralig'i"),
+    "z": ("💾 Zaxira",
+          "💾 <b>Zaxira</b>\n\n"
+          "/zaxira — bazaning nusxasi\n"
+          "/tiklash — zaxira faylini yuborib, izohga yozing"),
+}
+
+
+def _admin_menyu():
+    royxat = list(ADMIN_BOLIMLAR.items())
+    qatorlar, juft = [], []
+    for k, (nom, _) in royxat:
+        juft.append(InlineKeyboardButton(nom, callback_data=f"ad:{k}"))
+        if len(juft) == 2:
+            qatorlar.append(juft); juft = []
+    if juft:
+        qatorlar.append(juft)
+    matn = (
+        "🛠 <b>Admin menyusi</b>\n\n"
+        "Bo'limni tanlang. Tez buyruqlar:\n"
+        "/statistika • /royxat • /panel • /iqtisod • /zaxira"
+    )
+    return matn, InlineKeyboardMarkup(qatorlar)
+
+
 async def admin_yordam(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not admin_mi(update):
         return
-    await update.message.reply_text(
-        "🛠 Admin buyruqlari\n\n"
-        "/royxat — hamma waifular\n"
-        "/statistika — hisobot\n"
-        "/zaxira — bazaning nusxasi\n\n"
-        "<code>/ochirish 4821</code>\n"
-        "<code>/tahrirlash 4821 | Ism | Manba | Nodirlik</code>\n"
-        "(o'zgarmasin desangiz - yozing)\n"
-        "<code>/royxat mega</code>  yoki  <code>/royxat re:zero</code>\n"
-        "/tiklash — zaxira faylini yuborib, izohga yozing\n\n"
-        "➕ <b>Qo'shimcha</b> (odam xabariga <b>reply</b> yoki ID bilan)\n"
-        "<code>/tangaber 100</code> — tanga berish (minus bilan olish)\n"
-        "<code>/waifuber 4821</code> — waifu berish\n"
-        "<code>/waifuol 4821</code> — waifuni olib qo'yish\n"
-        "<code>/foydalanuvchi</code> — odam haqida ma'lumot\n"
-        "<code>/ban sabab</code>, <code>/unban</code> — taqiqlash\n"
-        "<code>/xabar matn</code> — hammaga xabar\n"
-        "<code>/spawn 4821</code> — guruhda waifu chiqarish\n"
-        "<code>/oraliq 75</code> — chiqish oralig'i\n"
-        "<code>/eventochir Eski | Yangi</code>\n"
-        "/sozlamalar — hamma sozlama bir joyda\n"
-        "/panel — sozlamalarni tugmalar bilan o'zgartirish\n"
-        "/iqtisod — daromad va narx hisoboti",
-        parse_mode="HTML",
-    )
+    matn, t = _admin_menyu()
+    await update.message.reply_text(matn, parse_mode="HTML", reply_markup=t)
+
+
+async def admin_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    if not q.from_user or q.from_user.id != _admin_id:
+        await q.answer("Bu faqat admin uchun", show_alert=True)
+        return
+    k = q.data.split(":")[1]
+    if k == "m" or k not in ADMIN_BOLIMLAR:
+        matn, t = _admin_menyu()
+    else:
+        matn = ADMIN_BOLIMLAR[k][1]
+        t = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("⬅️ Orqaga", callback_data="ad:m")]]
+        )
+    try:
+        await q.edit_message_text(matn, parse_mode="HTML", reply_markup=t)
+    except Exception:
+        pass
+    await q.answer()
 
 
 # ---------- /royxat ----------
@@ -398,6 +452,7 @@ def ulash(ilova, baza, admin_id, nodirlik_kaliti, nodirlik):
     _kalit = nodirlik_kaliti
     _nodirlik = nodirlik
     ilova.add_handler(CommandHandler("admin", admin_yordam))
+    ilova.add_handler(CallbackQueryHandler(admin_tugma, pattern=r"^ad:"))
     ilova.add_handler(CommandHandler("royxat", royxat))
     ilova.add_handler(CommandHandler("statistika", statistika))
     ilova.add_handler(CommandHandler("ochirish", ochirish))

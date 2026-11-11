@@ -159,14 +159,9 @@ def mini_app_tugmasi():
 
 
 def kolleksiya_tugmasi(egasi, shaxsiy=False):
-    # 1-tugma: bosgan odam O'Z kolleksiyasini ko'radi
-    # 2-tugma: boshqalar kolleksiya EGASINING kolleksiyasini ko'radi
+    # Tugma: kolleksiya EGASINING (buyruqni yuborgan odamning) kolleksiyasini ko'rsatadi
     nom = egasi.first_name[:16]
     qatorlar = [
-        [InlineKeyboardButton(
-            stil("🖼 Mening kolleksiyam"),
-            switch_inline_query_current_chat="",
-        )],
         [InlineKeyboardButton(
             stil(f"👁 {nom} kolleksiyasi"),
             switch_inline_query_current_chat=f"u{egasi.id}",
@@ -276,10 +271,51 @@ async def boshlash(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 InlineKeyboardButton(stil("💬 Guruh"), url=GURUH_URL),
             ],
             [mini_app_tugmasi()],
+            [InlineKeyboardButton(stil("❓ Qanday o'ynayman ?"), callback_data="yd:1")],
         ])
     await update.message.reply_text(
         matn, parse_mode="HTML", reply_markup=tugma
     )
+
+
+YORIQNOMA = (
+    "❓ <b>Qanday o'ynaysiz ?</b>\n\n"
+    "1️⃣ Botni guruhga qo'shing, guruhda suhbatlashing: waifu chiqadi\n"
+    "2️⃣ Waifu ismini yozing: u kolleksiyangizga qo'shiladi\n"
+    "3️⃣ Tanga topish: /kunlik, /bonus, /ruletka, do'st taklif qilish\n"
+    "4️⃣ Tangaga: /sandiq (quti), /dokon (savdo), /trade (almashish)\n"
+    "5️⃣ Ko'rish: /kolleksiya, /profil, /haftalik (reyting)\n\n"
+    "🌐 Hammasi Mini App'da ham bor"
+)
+
+
+async def yoriqnoma(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    amal = q.data.split(":")[1]
+    if amal == "1":
+        t = InlineKeyboardMarkup(
+            [[InlineKeyboardButton(stil("⬅️ Orqaga"), callback_data="yd:0")]]
+        )
+        await q.edit_message_text(YORIQNOMA, parse_mode="HTML", reply_markup=t)
+    else:
+        f = q.from_user
+        tugma = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton(stil("📢 Kanal"), url=KANAL_URL),
+                InlineKeyboardButton(stil("💬 Guruh"), url=GURUH_URL),
+            ],
+            [mini_app_tugmasi()],
+            [InlineKeyboardButton(stil("❓ Qanday o'ynayman ?"), callback_data="yd:1")],
+        ])
+        await q.edit_message_text(
+            "✨━ ━━━━━━━━━━━━ ━✨\n"
+            "💎 WAIFU BOTGA XUSH KELIBSIZ! ✊\n\n"
+            f"👋 SALOM, {K(f.first_name)}!\n\n"
+            "🌟 BOTNI GURUHGA QO'SHING VA PERSONAJLARNI YIG'ING!\n"
+            "✨━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ✨",
+            parse_mode="HTML", reply_markup=tugma,
+        )
+    await q.answer()
 
 
 async def id_korsat(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -897,6 +933,7 @@ ilova.add_handler(CommandHandler(["sovga", "gift"], sovga))
 ilova.add_handler(CallbackQueryHandler(sovga_tugma, pattern=r"^(sh|sb):"))
 ilova.add_handler(CallbackQueryHandler(kolleksiya_sahifa, pattern=r"^kp:"))
 ilova.add_handler(CallbackQueryHandler(bosh_tugma, pattern=r"^kn$"))
+ilova.add_handler(CallbackQueryHandler(yoriqnoma, pattern=r"^yd:"))
 ilova.add_handler(
     MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, xush_kelibsiz)
 )
