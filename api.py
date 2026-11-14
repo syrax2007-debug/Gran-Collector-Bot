@@ -14,6 +14,7 @@ import haftalik
 import sandiq
 import bozor
 import bildirish
+import slot5
 import sozlama as S
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
@@ -214,6 +215,7 @@ async def me_api(request):
         "ref_link": f"https://t.me/{nom}?start=ref_{f['id']}" if nom else "",
         "ref_tolangan": tolangan,
         "veb_tayyor": bildirish.veb_tayyor(u),
+        "slot5_min": S.ol("slot5_waifu_min"),
         "ref_kutilmoqda": kutilmoqda,
         "ref_tanga": S.ol("referal_tanga"),
         "narxlar": {k: S.ol("narx_" + k) for k in ("common", "rare", "epic", "legendary", "special", "max")},
@@ -502,6 +504,29 @@ BOZOR_STATUS = {
 }
 
 
+async def slot5_api(request):
+    f = tekshir(request.headers.get("X-Init-Data", ""))
+    if not f:
+        raise web.HTTPUnauthorized(text="Ruxsat yo'q")
+    baza = request.app["baza"]
+    await S.yangila(baza)
+    await foydalanuvchi_ol(baza, f)
+    try:
+        stavka = int((await request.json()).get("stavka", 0))
+    except Exception:
+        stavka = 0
+    kod, d = await slot5.oyna(baza, f["id"], stavka)
+    if kod != "ok":
+        holat = {"stavka": 400, "tanga_yetmaydi": 402, "limit": 429}.get(kod, 500)
+        return web.json_response(dict(d, error=kod), status=holat)
+    return web.json_response({
+        "g": d["g"], "tanga": d["tanga"], "coins": d["coins"], "ruxsat": d["ruxsat"],
+        "kataklar": d["res"]["kataklar"], "waifu_belgi": [slot5.NOM[x] for x in d["res"]["waifu"]],
+        "chiziq": d["res"]["chiziq"], "scatter": d["res"]["scatter"],
+        "waifular": [dict(belgi=w["belgi"], nom=slot5.NOM[w["belgi"]], natija=kartochka_json(w["p"])) for w in d["waifular"]],
+    })
+
+
 async def veb_waifu_api(request):
     f = tekshir(request.headers.get("X-Init-Data", ""))
     if not f:
@@ -668,6 +693,7 @@ app.router.add_get("/api/collection", kolleksiya_api)
 app.router.add_get("/api/photo/{pid}", rasm)
 app.router.add_get("/api/me", me_api)
 app.router.add_post("/api/veb-waifu", veb_waifu_api)
+app.router.add_post("/api/slot5/play", slot5_api)
 app.router.add_get("/api/bildirish", bildirish_api)
 app.router.add_post("/api/favorite", sevimli_api)
 app.router.add_post("/api/game/play", oyin_api)

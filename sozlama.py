@@ -37,6 +37,8 @@ RO = {
     "oyin_narx_qadam": (50, 0, 1000000, "Har urinishda narx oshishi"),
     # 🎰 Slot
     "slot_narx": (150, 0, 1000000, "Pullik aylantirish narxi"),
+    "slot5_waifu_min": (250, 0, 1000000, "Slot 5x3 : waifu yutish uchun minimal stavka"),
+    "slot5_kunlik": (0, 0, 100000, "Slot 5x3 : kunlik aylantirish limiti (0 = cheksiz)"),
     "s_w": (3, 0, 100, "👑 ULTRA waifu ehtimoli (%)"),
     "s_m": (4, 0, 100, "🔮 MEGA waifu ehtimoli (%)"),
     "s_s": (6, 0, 100, "🌟 SUPER waifu ehtimoli (%)"),
@@ -96,6 +98,7 @@ BOLIMLAR = [
     ("slot", "🎰 Slot",
      ["slot_narx", "s_w", "s_m", "s_s", "s_e", "s_j", "s_a", "s_b", "s_c",
       "sov_j", "sov_a", "sov_b", "sov_c"]),
+    ("slot5", "🎰 Slot 5x3", ["slot5_waifu_min", "slot5_kunlik"]),
     ("hafta", "🏆 Haftalik", ["hafta_2", "hafta_3"]),
     ("trade", "🔁 Trade va narx",
      ["narx_common", "narx_rare", "narx_epic", "narx_legendary", "narx_special", "narx_max",
