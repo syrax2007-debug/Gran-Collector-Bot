@@ -206,6 +206,17 @@ input{flex:1;min-width:0;padding:10px;background:var(--glass2);border:1px solid 
 .sy5.win{background:rgba(255,210,74,.2);box-shadow:inset 0 0 0 2px #ffd24a}
 .sy5.sc{background:rgba(255,45,61,.25);box-shadow:inset 0 0 0 2px var(--neon)}
 #s5info{text-align:center;color:var(--muted);margin-bottom:8px;font-size:13px;line-height:1.6}
+.slotbox.bonus{filter:drop-shadow(0 0 12px rgba(255,210,74,.7))}
+.slotbox.bonus>.in{box-shadow:inset 0 0 26px rgba(255,210,74,.45)}
+#s5bn{display:none;text-align:center;font-family:var(--head);font-size:12px;letter-spacing:.08em;color:#ffd24a;margin:0 0 8px;text-shadow:0 0 10px rgba(255,210,74,.7)}
+#s5bn.on{display:block}
+#s5pr{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px}
+#s5pr span{padding:4px 9px;background:rgba(255,210,74,.14);border:1px solid #ffd24a;font-size:11px;font-weight:700;animation:s5pop .5s ease-out}
+#s5big{position:fixed;inset:0;z-index:95;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:rgba(12,0,3,.86);text-align:center;padding:24px;font-weight:700;line-height:1.5}
+#s5big.on{display:flex}
+#s5big b{font-family:var(--head);font-size:30px;color:#ffd24a;text-shadow:0 0 22px var(--neon);animation:s5pop .8s ease-out}
+#s5big small{opacity:.8;font-size:12px}
+@keyframes s5pop{0%{transform:scale(.3);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
 #s5msg{text-align:center;min-height:38px;margin-top:8px;font-weight:700;font-size:14px;line-height:1.5}
 .s5row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(255,255,255,.08);padding:3px 0;text-align:left}
 .slotbox{--c:14px;margin:4px 0 12px}
@@ -470,10 +481,12 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
       <div id="g-s5" hidden>
         <div id="s5info"></div>
         <div class="chips" id="s5st" style="justify-content:center"></div>
-        <div class="bev slotbox"><div class="in"><div class="reels5" id="reels5"></div></div></div>
+        <div id="s5bn"></div>
+        <div class="bev slotbox" id="s5box"><div class="in"><div class="reels5" id="reels5"></div></div></div>
         <button class="btn" id="s5spin">🎰 AYLANTIRISH</button>
         <div id="s5msg">3 TA BIR XIL BELGI = YUTUQ</div>
-        <div class="note" id="s5note">10 TA CHIZIQ • CHAPDAN O'NGGA KETMA-KET BIR XIL BELGI<br>🔥 ULTRA VA ⛩️ COLLECTOR : 3 TA TUSHSA WAIFU (JOYI MUHIM EMAS)</div>
+        <div id="s5pr"></div>
+        <div class="note" id="s5note">10 TA CHIZIQ • CHAPDAN O'NGGA KETMA-KET BIR XIL BELGI<br>🎁 SCATTER : ISTALGAN JOYDA 3 TA TUSHSA BONUS O'YIN (BONUSDA FAQAT WAIFU BELGILARI, CHIZIQDA 3 TA BIR XIL = WAIFU)</div>
         <button class="chip" id="s5jb" style="display:block;margin:10px auto 0">ℹ️ TO'LOV JADVALI</button>
         <div class="note" id="s5jad" hidden></div>
       </div>
@@ -483,6 +496,7 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
 </div>
 
 <div id="modal"><div class="bev" id="mbox"><div class="in" id="mcont"></div></div></div>
+<div id="s5big"></div>
 <div id="toast"></div>
 <canvas id="fx"></canvas>
 
@@ -1332,33 +1346,28 @@ $("spin").addEventListener("click", spin);
 reelsInit(); slotInfo();
 
 /* ---------- Slot 5x3 ---------- */
-var S5SYM = ["🌸", "🍡", "🎴", "💠", "🌟", "💎", "🔥", "⛩️"];
-var S5NOM = ["SAKURA", "DANGO", "HANAFUDA", "ELITA", "SUPER", "MEGA", "ULTRA", "COLLECTOR"];
-var S5W = [24, 21, 18, 15, 11, 8, 1.15, 0.53];
-var S5PAY = { 0: [10, 30, 100], 1: [12, 38, 145], 2: [15, 58, 240], 3: [19, 96, 380], 4: [29, 145, 670], 5: [48, 290, 1900] };
-var S5SC = { 6: [10, 30, 100], 7: [30, 100, 500] };
+var S5SYM = ["🌸", "🍡", "🎴", "💠", "🌟", "💎", "🔥", "⛩️", "🎁"];
+var S5NOM = ["SAKURA", "DANGO", "HANAFUDA", "ELITA", "SUPER", "MEGA", "ULTRA", "COLLECTOR", "BONUS"];
+var S5W = [30, 26, 20, 12, 8, 5, 0, 0, 4], S5BW = [0, 0, 0, 41, 26, 16, 11, 6, 0], S5N = 20;
+var S5PAY = { 0: [7, 24, 90], 1: [9, 31, 116], 2: [14, 48, 195], 3: [21, 97, 368], 4: [33, 155, 683], 5: [58, 294, 1950] };
 var S5LN = [[1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2],[0,0,1,2,2],[2,2,1,0,0],[1,0,0,0,1],[1,2,2,2,1],[0,1,0,1,0]];
-var S5ST = [50, 100, 250, 500], s5bet = 250, s5min = 250, s5busy = false, s5ready = false;
-function s5rnd() { var t = 0, i; for (i = 0; i < 8; i++) t += S5W[i]; var r = Math.random() * t; for (i = 0; i < 8; i++) { r -= S5W[i]; if (r < 0) return i; } return 0; }
-function s5grid() { var g = [], r, c; for (r = 0; r < 3; r++) { g.push([]); for (c = 0; c < 5; c++) g[r].push(s5rnd()); } return g; }
+var S5ST = [50, 100, 250, 500], s5bet = 250, s5min = 0, s5busy = false, s5ready = false;
+function s5rnd(w) { w = w || S5W; var t = 0, i; for (i = 0; i < 9; i++) t += w[i]; var r = Math.random() * t; for (i = 0; i < 9; i++) { r -= w[i]; if (r < 0) return i; } return 0; }
+function s5grid(w) { var g = [], r, c; for (r = 0; r < 3; r++) { g.push([]); for (c = 0; c < 5; c++) g[r].push(s5rnd(w)); } return g; }
 function s5eval(g, b) {
-  var o = { tanga: 0, kataklar: {}, waifu_belgi: [] };
+  var o = { tanga: 0, kataklar: {}, eng: -1 };
   S5LN.forEach(function (ln) {
     var f = g[ln[0]][0]; if (f > 5) return;
     var n = 1; while (n < 5 && g[ln[n]][n] === f) n++;
     if (n < 3) return;
     o.tanga += S5PAY[f][n - 3] * b / 10;
+    if (f > o.eng) o.eng = f;
     for (var c = 0; c < n; c++) o.kataklar[ln[c] + "," + c] = "win";
-    if ((n === 5 && (f === 3 || f === 4)) || (n >= 4 && f === 5)) o.waifu_belgi.push(S5NOM[f]);
-  });
-  [6, 7].forEach(function (s) {
-    var p = [], r, c;
-    for (r = 0; r < 3; r++) for (c = 0; c < 5; c++) if (g[r][c] === s) p.push(r + "," + c);
-    if (p.length >= 3) { o.tanga += S5SC[s][Math.min(p.length, 5) - 3] * b; p.forEach(function (k) { o.kataklar[k] = "sc"; }); o.waifu_belgi.push(S5NOM[s]); }
   });
   o.tanga = Math.round(o.tanga);
   return o;
 }
+function s5scat(g) { var p = [], r, c; for (r = 0; r < 3; r++) for (c = 0; c < 5; c++) if (g[r][c] === 8) p.push(r + "," + c); return p; }
 function s5cell() { var r = document.querySelector(".r5"); var w = r ? r.clientWidth : 0; return w > 20 ? w : 56; }
 function s5sy(k, cell, cls) { return '<div class="sy5' + (cls ? " " + cls : "") + '" style="height:' + cell + 'px;font-size:' + Math.round(cell * 0.56) + 'px">' + S5SYM[k] + '</div>'; }
 function s5init() {
@@ -1371,12 +1380,12 @@ function s5init() {
       $("s5st").appendChild(b);
     });
     var t = "";
-    for (var s = 0; s < 8; s++) {
-      var p = s < 6 ? S5PAY[s] : S5SC[s], suf = s < 6 ? "" : "×";
-      t += '<div class="s5row"><span>' + S5SYM[s] + " " + S5NOM[s] + '</span><span>' + p[0] + suf + " • " + p[1] + suf + " • " + p[2] + suf + "</span></div>";
+    for (var s = 0; s < 6; s++) {
+      var p = S5PAY[s];
+      t += '<div class="s5row"><span>' + S5SYM[s] + " " + S5NOM[s] + '</span><span>' + p[0] + " • " + p[1] + " • " + p[2] + "</span></div>";
     }
-    $("s5jad").innerHTML = "3 • 4 • 5 TA BIR XIL BELGI<br>🌸...💎 : CHIZIQ STAVKASIGA (STAVKA ÷ 10) KO'PAYTIRILADI<br>🔥 ⛩️ SCATTER : UMUMIY STAVKAGA KO'PAYTIRILADI<br><br>" + t +
-      "<br>WAIFU : 5 TA 💠 = ELITA • 5 TA 🌟 = SUPER • 4+ TA 💎 = MEGA • 3+ TA 🔥 = ULTRA • 3+ TA ⛩️ = COLLECTOR";
+    $("s5jad").innerHTML = "3 • 4 • 5 TA BIR XIL BELGI (CHAPDAN O'NGGA)<br>🌸...💎 : CHIZIQ STAVKASIGA (STAVKA ÷ 10) KO'PAYTIRILADI<br><br>" + t +
+      "<br>🎁 BONUS : ISTALGAN JOYDA 3 TA 🎁 = 5 TA, 4 TA = 8 TA, 5 TA = 12 TA BEPUL AYLANISH (YUQORI STAVKADA +QO'SHIMCHA)<br>BONUSDA FAQAT WAIFU BELGILARI AYLANADI, TANGA YO'Q. CHAPDAN O'NGGA 3+ TA BIR XIL BELGI = WAIFU : 💠 ELITA • 🌟 SUPER • 💎 MEGA • 🔥 ULTRA • ⛩️ COLLECTOR (DARAJA OSHGAN SARI KAM TUSHADI). YUTUQ YO'Q BO'LSA SOVRIN YO'Q";
     s5ready = true;
   }
   var cell = s5cell();
@@ -1388,77 +1397,131 @@ function s5init() {
   s5info();
 }
 function s5info() {
-  $("s5info").innerHTML = "🪙 SIZDA : " + coins + " • WAIFU UCHUN STAVKA KAMIDA 🪙 " + s5min;
+  $("s5info").innerHTML = "🪙 SIZDA : " + coins + (s5min > 0 ? " • BONUS WAIFU UCHUN STAVKA KAMIDA 🪙 " + s5min : "");
   Array.prototype.forEach.call($("s5st").children, function (b) { b.classList.toggle("on", +b.dataset.v === s5bet); });
   $("s5spin").textContent = "🎰 AYLANTIRISH • 🪙 " + s5bet;
   $("s5spin").disabled = s5busy;
 }
 $("s5jb").addEventListener("click", function () { $("s5jad").hidden = !$("s5jad").hidden; });
+function s5spinTo(g, fast, w) {
+  var cell = s5cell(), base = fast ? 0.55 : 0.9, step = fast ? 0.18 : 0.35;
+  document.querySelectorAll(".r5").forEach(function (r, c) {
+    var st = r.firstElementChild, h = "", j;
+    for (j = 0; j < S5N; j++) h += s5sy(s5rnd(w), cell);
+    for (j = 0; j < 3; j++) h += s5sy(g[j][c], cell);
+    r.style.height = (cell * 3) + "px";
+    st.style.transition = "none"; st.style.transform = "translateY(0)"; st.innerHTML = h; void st.offsetHeight;
+    var dur = base + c * step;
+    r.classList.add("spin");
+    st.style.transition = "transform " + dur + "s cubic-bezier(.12,.8,.18,1)";
+    st.style.transform = "translateY(-" + (S5N * cell) + "px)";
+    setTimeout(function () { r.classList.remove("spin"); buzz(); }, dur * 1000);
+  });
+  return wait((base + 4 * step) * 1000 + 350);
+}
+function s5mark(kat) {
+  Object.keys(kat).forEach(function (k) {
+    var p = k.split(","), strip = document.querySelectorAll(".r5")[+p[1]].firstElementChild;
+    var el = strip.children[S5N + (+p[0])]; if (el) el.classList.add(kat[k]);
+  });
+}
+function s5demoBonus(b) {
+  var n = [5, 8, 12][Math.min(b.scatter, 5) - 3] + ({ 50: 0, 100: 1, 250: 2, 500: 3 }[s5bet] || 0), sp = [], i;
+  for (i = 0; i < n; i++) {
+    var g = s5grid(S5BW), kat = {}, bor = {};
+    S5LN.slice(0, 5).forEach(function (ln) {
+      var f = g[ln[0]][0], k = 1; while (k < 5 && g[ln[k]][k] === f) k++;
+      if (k < 3) return;
+      bor[f] = 1; for (var c = 0; c < k; c++) kat[ln[c] + "," + c] = "win";
+    });
+    var wl = Object.keys(bor).map(Number).sort(function (a, c) { return c - a; }).slice(0, 2);
+    sp.push({ g: g, kataklar: kat, waifular: wl.map(function (f) {
+      var nm = S5NOM[f], rk = f - 2;
+      return { nom: nm, demo: DEMO.filter(function (d) { return d.r === rk; })[0] || DEMO[0] };
+    }) });
+  }
+  return { soni: n, scatter: b.scatter, ruxsat: true, spinlar: sp };
+}
+async function s5bonus(res) {
+  var b = res.bonus, box = $("s5box"), bn = $("s5bn"), pr = $("s5pr"), got = [], i, j;
+  celebrate("big"); buzz();
+  $("s5big").innerHTML = "<b>🎁 BONUS O'YIN !</b><div>" + b.scatter + " TA 🎁 SCATTER TUSHDI</div><div>" + b.soni + " TA BEPUL AYLANISH</div><small>BONUSDA FAQAT WAIFU BELGILARI AYLANADI<br>(BOSIB DAVOM ETING)</small>";
+  await new Promise(function (ok) {
+    var big = $("s5big"), done = false;
+    function go() { if (done) return; done = true; big.classList.remove("on"); ok(); }
+    big.classList.add("on"); big.onclick = go; setTimeout(go, 4200);
+  });
+  box.classList.add("bonus"); bn.classList.add("on"); pr.innerHTML = "";
+  for (i = 0; i < b.spinlar.length; i++) {
+    var sp = b.spinlar[i];
+    bn.textContent = "🎁 BONUS " + (i + 1) + " / " + b.soni + " • WAIFU : " + got.length;
+    await s5spinTo(sp.g, true, S5BW);
+    s5mark(sp.kataklar);
+    for (j = 0; j < sp.waifular.length; j++) {
+      var w = sp.waifular[j], it = w.demo || (w.natija ? toItem(w.natija) : null), tx;
+      if (it) { got.push({ nom: w.nom, it: it }); tx = "🏆 " + w.nom + " • " + it.name; }
+      else tx = "🪙 +" + w.tanga + " (" + w.nom + ")";
+      var sp2 = document.createElement("span"); sp2.textContent = tx; pr.appendChild(sp2);
+    }
+    if (sp.waifular.length) { celebrate(sp.waifular.some(function (w) { return w.nom === "ULTRA" || w.nom === "COLLECTOR"; }) ? "big" : "small"); }
+    bn.textContent = "🎁 BONUS " + (i + 1) + " / " + b.soni + " • WAIFU : " + got.length;
+    await wait(sp.waifular.length ? 1300 : 650);
+  }
+  box.classList.remove("bonus"); bn.classList.remove("on");
+  var m = $("s5msg");
+  if (got.length) {
+    m.textContent = "🎁 BONUS TUGADI : " + got.length + " TA WAIFU YUTDINGIZ !";
+    var best = got.reduce(function (a, c) { return c.it.r > a.it.r ? c : a; });
+    celebrate("big");
+    setTimeout(function () { openModal(best.it, false, "🎉 BONUS : " + best.nom + " WAIFU !"); }, 600);
+    if (got.length > 1) toast("+" + got.length + " TA WAIFU KOLLEKSIYAGA QO'SHILDI");
+    if (onlayn()) loadCollection();
+  } else {
+    m.textContent = "🎁 BONUS TUGADI. WAIFU TUSHMADI, " + (res.tanga ? "+" + res.tanga + " 🪙" : "KEYINGI SAFAR OMAD!");
+  }
+}
 async function s5play() {
   if (s5busy) return;
   if (coins < s5bet) { toast("TANGA YETMAYDI : KERAK 🪙 " + s5bet); return; }
   s5busy = true; s5info();
-  $("s5msg").textContent = "🎰 AYLANMOQDA...";
+  $("s5msg").textContent = "🎰 AYLANMOQDA..."; $("s5pr").innerHTML = "";
   var res;
-  if (onlayn()) {
-    var rr;
-    try { rr = await api("/api/slot5/play", { method: "POST", body: JSON.stringify({ stavka: s5bet }) }); } catch (e) { rr = null; }
-    if (!rr || !rr.ok) {
-      var er = rr && rr.data && rr.data.error;
-      toast(er === "limit" ? "BUGUNGI LIMIT TUGADI" : er === "tanga_yetmaydi" ? "TANGA YETMAYDI" : "XATO, QAYTA URINING");
-      s5busy = false; $("s5msg").textContent = "3 TA BIR XIL BELGI = YUTUQ"; s5info(); return;
+  try {
+    if (onlayn()) {
+      var rr;
+      try { rr = await api("/api/slot5/play", { method: "POST", body: JSON.stringify({ stavka: s5bet }) }); } catch (e) { rr = null; }
+      if (!rr || !rr.ok) {
+        var er = rr && rr.data && rr.data.error;
+        toast(er === "limit" ? "BUGUNGI LIMIT TUGADI" : er === "tanga_yetmaydi" ? "TANGA YETMAYDI" : "XATO, QAYTA URINING");
+        $("s5msg").textContent = "3 TA BIR XIL BELGI = YUTUQ"; return;
+      }
+      res = rr.data;
+    } else {
+      var g = s5grid(), ev = s5eval(g, s5bet), sc = s5scat(g);
+      sc.forEach(function (k) { ev.kataklar[k] = "sc"; });
+      res = { g: g, tanga: ev.tanga, kataklar: ev.kataklar, bonus: sc.length >= 3 ? s5demoBonus({ scatter: sc.length }) : null };
+      res.coins = coins - s5bet + ev.tanga;
     }
-    res = rr.data;
-  } else {
-    var g = s5grid(), ev = s5eval(g, s5bet);
-    res = { g: g, tanga: ev.tanga, kataklar: ev.kataklar, waifu_belgi: ev.waifu_belgi, ruxsat: s5bet >= s5min, waifular: [] };
-    res.coins = coins - s5bet + ev.tanga;
-    if (res.ruxsat) res.waifu_belgi.forEach(function (n) {
-      var rk = { ELITA: 1, SUPER: 2, MEGA: 3, ULTRA: 4, COLLECTOR: 5 }[n];
-      var it = DEMO.filter(function (d) { return d.r === rk; })[0] || DEMO[0];
-      res.waifular.push({ nom: n, demo: it });
-    });
+    var base = 0;
+    (res.chiziq || []).forEach(function (c) { base += c.yutuq; });
+    base = onlayn() ? Math.round(base) : res.tanga;
+    coins -= s5bet; stats();
+    await s5spinTo(res.g, false);
+    coins += base; stats();
+    s5mark(res.kataklar);
+    var m = $("s5msg");
+    if (base >= s5bet * 10) { m.textContent = "🔥 KATTA YUTUQ : +" + base + " TANGA !"; celebrate("mid"); }
+    else if (base > 0) { m.textContent = "🪙 +" + base + " TANGA YUTDINGIZ"; if (base >= s5bet) celebrate("small"); }
+    else m.textContent = res.bonus ? "🎁 SCATTER TUSHDI !" : "😔 BU SAFAR YUTUQ YO'Q";
+    if (res.bonus) { await wait(900); await s5bonus(res); }
+    coins = res.coins; stats();
+  } catch (e) {
+    $("s5msg").textContent = "XATO, QAYTA URINING";
+    $("s5box").classList.remove("bonus"); $("s5bn").classList.remove("on"); $("s5big").classList.remove("on");
+    if (onlayn()) loadMe();
+  } finally {
+    s5busy = false; s5info();
   }
-  coins -= s5bet; stats();
-  var cell = s5cell(), N = 20;
-  document.querySelectorAll(".r5").forEach(function (r, c) {
-    var st = r.firstElementChild, h = "", j;
-    for (j = 0; j < N; j++) h += s5sy(s5rnd(), cell);
-    for (j = 0; j < 3; j++) h += s5sy(res.g[j][c], cell);
-    r.style.height = (cell * 3) + "px";
-    st.style.transition = "none"; st.style.transform = "translateY(0)"; st.innerHTML = h; void st.offsetHeight;
-    var dur = 0.9 + c * 0.35;
-    r.classList.add("spin");
-    st.style.transition = "transform " + dur + "s cubic-bezier(.12,.8,.18,1)";
-    st.style.transform = "translateY(-" + (N * cell) + "px)";
-    setTimeout(function () { r.classList.remove("spin"); buzz(); }, dur * 1000);
-  });
-  await wait(900 + 4 * 350 + 350);
-  coins = res.coins; stats();
-  Object.keys(res.kataklar).forEach(function (k) {
-    var p = k.split(","), strip = document.querySelectorAll(".r5")[+p[1]].firstElementChild;
-    strip.children[N + (+p[0])].classList.add(res.kataklar[k]);
-  });
-  var m = $("s5msg"), wn = res.waifu_belgi.length;
-  if (wn && res.ruxsat) {
-    m.textContent = "🏆 " + res.waifu_belgi.join(" + ") + " WAIFU YUTDINGIZ !" + (res.tanga ? " +" + res.tanga + " TANGA" : "");
-    var w0 = res.waifular[0];
-    celebrate(res.waifu_belgi.indexOf("COLLECTOR") >= 0 || res.waifu_belgi.indexOf("ULTRA") >= 0 ? "big" : "mid");
-    if (w0) {
-      var it = w0.demo || toItem(w0.natija);
-      setTimeout(function () { openModal(it, false, "🎉 " + w0.nom + " WAIFU !"); }, 700);
-    }
-    if (onlayn()) loadCollection();
-  } else if (wn) {
-    m.textContent = res.waifu_belgi.join(" + ") + " TUSHDI, LEKIN WAIFU UCHUN STAVKA KAMIDA 🪙 " + s5min + ". +" + res.tanga + " TANGA";
-  } else if (res.tanga >= s5bet * 10) {
-    m.textContent = "🔥 KATTA YUTUQ : +" + res.tanga + " TANGA !"; celebrate("mid");
-  } else if (res.tanga > 0) {
-    m.textContent = "🪙 +" + res.tanga + " TANGA YUTDINGIZ"; if (res.tanga >= s5bet) celebrate("small");
-  } else {
-    m.textContent = "😔 BU SAFAR YUTUQ YO'Q"; 
-  }
-  s5busy = false; s5info();
 }
 $("s5spin").addEventListener("click", s5play);
 
