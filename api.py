@@ -519,11 +519,21 @@ async def slot5_api(request):
     if kod != "ok":
         holat = {"stavka": 400, "tanga_yetmaydi": 402, "limit": 429}.get(kod, 500)
         return web.json_response(dict(d, error=kod), status=holat)
+    bonus = None
+    if d["bonus"]:
+        bd = d["bonus"]
+        bonus = {
+            "soni": bd["soni"], "scatter": bd["scatter"], "ruxsat": bd["ruxsat"],
+            "spinlar": [{
+                "g": sp["g"], "kataklar": sp["kataklar"],
+                "waifular": [dict(belgi=w["belgi"], nom=slot5.NOM[w["belgi"]], tanga=w["tanga"],
+                                  natija=kartochka_json(w["p"]) if w["p"] else None)
+                             for w in sp["waifular"]],
+            } for sp in bd["spinlar"]],
+        }
     return web.json_response({
-        "g": d["g"], "tanga": d["tanga"], "coins": d["coins"], "ruxsat": d["ruxsat"],
-        "kataklar": d["res"]["kataklar"], "waifu_belgi": [slot5.NOM[x] for x in d["res"]["waifu"]],
-        "chiziq": d["res"]["chiziq"], "scatter": d["res"]["scatter"],
-        "waifular": [dict(belgi=w["belgi"], nom=slot5.NOM[w["belgi"]], natija=kartochka_json(w["p"])) for w in d["waifular"]],
+        "g": d["g"], "tanga": d["tanga"], "coins": d["coins"],
+        "kataklar": d["res"]["kataklar"], "chiziq": d["res"]["chiziq"], "bonus": bonus,
     })
 
 

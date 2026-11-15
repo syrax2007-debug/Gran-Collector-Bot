@@ -37,7 +37,7 @@ RO = {
     "oyin_narx_qadam": (50, 0, 1000000, "Har urinishda narx oshishi"),
     # 🎰 Slot
     "slot_narx": (150, 0, 1000000, "Pullik aylantirish narxi"),
-    "slot5_waifu_min": (250, 0, 1000000, "Slot 5x3 : waifu yutish uchun minimal stavka"),
+    "slot5_waifu_min": (0, 0, 1000000, "Slot 5x3 bonus : waifu uchun minimal stavka (0 = har qanday stavkada)"),
     "slot5_kunlik": (0, 0, 100000, "Slot 5x3 : kunlik aylantirish limiti (0 = cheksiz)"),
     "s_w": (3, 0, 100, "👑 ULTRA waifu ehtimoli (%)"),
     "s_m": (4, 0, 100, "🔮 MEGA waifu ehtimoli (%)"),
