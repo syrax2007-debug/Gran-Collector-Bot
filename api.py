@@ -216,6 +216,7 @@ async def me_api(request):
         "ref_tolangan": tolangan,
         "veb_tayyor": bildirish.veb_tayyor(u),
         "slot5_min": S.ol("slot5_waifu_min"),
+        "slot5_jp": {n: slot5.jekpot_summa(d, 100) for n, d, _ in slot5.TB_JEKPOT},
         "ref_kutilmoqda": kutilmoqda,
         "ref_tanga": S.ol("referal_tanga"),
         "narxlar": {k: S.ol("narx_" + k) for k in ("common", "rare", "epic", "legendary", "special", "max")},
@@ -533,6 +534,7 @@ async def slot5_api(request):
         }
     return web.json_response({
         "g": d["g"], "tanga": d["tanga"], "coins": d["coins"],
+        "base": d["chiziq_tanga"], "tb": d["tb"],
         "kataklar": d["res"]["kataklar"], "chiziq": d["res"]["chiziq"], "bonus": bonus,
     })
 
