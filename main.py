@@ -52,7 +52,7 @@ TOSHKENT = timezone(timedelta(hours=5))
 
 # Kanal va rasmiy guruh
 KANAL_URL = "https://t.me/Grab_Collector"
-GURUH_URL = "https://t.me/Grab_Collector_Chat"
+GURUH_URL = os.getenv("GURUH_URL", "https://t.me/Grab_Collector_Chat").strip()
 RASMIY_GURUH = "grab_collector_chat"  # kichik harflarda, @ siz
 
 # Bonuslar
@@ -755,8 +755,11 @@ async def kolleksiya_sahifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await q.edit_message_text(
                 yangi, parse_mode="HTML", reply_markup=klaviatura
             )
-    except Exception:
-        pass
+    except Exception as xato:
+        if "not modified" not in str(xato).lower():
+            logging.warning("Kolleksiya sahifasi almashmadi: %s", xato)
+            await q.answer("Sahifani ochib bo'lmadi, /kolleksiya ni qayta yozing", show_alert=True)
+            return
     await q.answer()
 
 
@@ -900,21 +903,39 @@ async def inline_qidiruv(update: Update, context: ContextTypes.DEFAULT_TYPE):
         egasi_id = int(m.group(1))
         matn = m.group(2).strip()
     idlar = [d["char_id"] async for d in kolleksiya.find({"user_id": egasi_id})]
-    natijalar = []
+    topilgan = []
     async for p in personajlar.find({"_id": {"$in": list(set(idlar))}}):
         if matn and matn not in p["name"].lower():
             continue
-        natijalar.append(
-            InlineQueryResultCachedPhoto(
-                id=str(p["_id"]),
-                photo_file_id=p["file_id"],
-                caption=stil(kartochka(p)),
-                parse_mode="HTML",
-            )
+        topilgan.append(p)
+    # Barqaror tartib: raqam bo'yicha. Telegram bir javobda 50 tagacha oladi,
+    # qolganini odam pastga aylantirganda offset bilan oladi
+    topilgan.sort(key=lambda p: (p.get("raqam", 0), str(p["_id"])))
+    try:
+        boshi = max(int(so_rov.offset or 0), 0)
+    except ValueError:
+        boshi = 0
+    qism = topilgan[boshi:boshi + 50]
+    natijalar = [
+        InlineQueryResultCachedPhoto(
+            id=str(p["_id"]),
+            photo_file_id=p["file_id"],
+            caption=stil(kartochka(p)),
+            parse_mode="HTML",
         )
-        if len(natijalar) >= 50:
-            break
-    await so_rov.answer(natijalar, cache_time=5, is_personal=True)
+        for p in qism
+    ]
+    keyingi = str(boshi + 50) if len(topilgan) > boshi + 50 else ""
+    logging.info(
+        "Inline: egasi=%s jami=%d offset=%d berildi=%d keyingi=%r",
+        egasi_id, len(topilgan), boshi, len(natijalar), keyingi,
+    )
+    try:
+        await so_rov.answer(
+            natijalar, cache_time=0, is_personal=True, next_offset=keyingi
+        )
+    except Exception as xato:
+        logging.warning("Inline javob xatosi: %s", xato)
 
 
 # ---------- Botni ishga tushirish ----------
