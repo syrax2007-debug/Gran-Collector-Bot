@@ -519,6 +519,7 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
         <div id="s5bn"></div>
         <div class="bev slotbox" id="s5box"><div class="in"><div class="reels5" id="reels5"></div></div></div>
         <button class="btn" id="s5spin">🎰 AYLANTIRISH</button>
+        <div class="chips" id="s5ex" style="justify-content:center;margin-top:8px"><button class="chip" data-a="5">🔁 5</button><button class="chip" data-a="10">🔁 10</button><button class="chip" data-a="25">🔁 25</button><button class="chip" id="s5turbo">⚡ TURBO</button></div>
         <div id="s5msg">OMAD SINANG !</div>
         <div id="s5pr"></div>
       </div>
@@ -1395,14 +1396,17 @@ reelsInit(); slotInfo();
 var S5SYM = ["🌸", "🍡", "🎴", "💠", "🌟", "💎", "🔥", "⛩️", "🎁", "🃏", "💰"];
 var S5NOM = ["SAKURA", "DANGO", "HANAFUDA", "ELITA", "SUPER", "MEGA", "ULTRA", "COLLECTOR", "BONUS", "WILD", "TANGA"];
 var S5BW = [0, 0, 0, 41, 26, 16, 11, 6, 0, 0, 0], S5BW1 = [0, 0, 0, 37, 26, 17, 12, 7, 0, 0, 0], S5N = 20;
-var S5PAY = {0: [11, 30, 50], 1: [14, 38, 65], 2: [21, 60, 100], 3: [32, 120, 190], 4: [50, 191, 360], 5: [88, 363, 900]};
-var S5K = { 50: 0.706, 100: 0.706, 250: 0.469, 500: 0.515, 1000: 0.736 };
+var S5PAY = { 0: [0.5, 1.5, 4], 1: [0.6, 1.8, 5], 2: [0.8, 2.5, 7], 3: [1.2, 4, 12], 4: [2, 7, 25], 5: [3.5, 14, 60] };
+var S5K = { 50: 1, 100: 1, 250: 0.6, 500: 0.6, 1000: 1 }, S5WILD = { 50: 2.2, 100: 2.2, 250: 1.5, 500: 1.5, 1000: 2.6 };
 var S5LN = [[1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2],[0,0,1,2,2],[2,2,1,0,0],[1,0,0,0,1],[1,2,2,2,1],[0,1,0,1,0],
   [2,1,2,1,2],[1,0,1,0,1],[1,2,1,2,1],[0,1,1,1,0],[2,1,1,1,2],[1,1,0,1,1],[1,1,2,1,1],[0,2,0,2,0],[2,0,2,0,2],[0,2,2,2,0]];
 var S5ST = [50, 100, 250, 500, 1000], S5TB = [50, 100, 1000], S5WB = [250, 500, 1000];
 var S5JPN = ["ELITA", "SUPER", "MEGA", "ULTRA"], S5JPD = { ELITA: 500, SUPER: 1500, MEGA: 3500, ULTRA: 8000 };
+var s5auto = 0, s5autoRun = false, s5stop = false, s5turbo = false;
+try { s5turbo = localStorage.getItem("s5turbo") === "1"; } catch (e) {}
+function s5t(ms) { return s5turbo ? Math.round(ms * 0.4) : ms; }
 var s5bet = 100, s5min = 0, s5busy = false, s5ready = false, s5jp = null;
-function s5vazn(st) { return [28, 24, 19, 11, 7, 4.5, 0, 0, S5WB.indexOf(st) > -1 ? 4 : 0, 4, S5TB.indexOf(st) > -1 ? 17 : 0]; }
+function s5vazn(st) { return [20, 19, 18, 14, 11, 8, 0, 0, S5WB.indexOf(st) > -1 ? 4 : 0, S5WILD[st], S5TB.indexOf(st) > -1 ? 16 : 0]; }
 function s5rnd(w) { w = w || s5vazn(s5bet); var t = 0, i; for (i = 0; i < 11; i++) t += w[i]; var r = Math.random() * t; for (i = 0; i < 11; i++) { r -= w[i]; if (r < 0) return i; } return 0; }
 function s5grid(w) { var g = [], r, c; for (r = 0; r < 3; r++) { g.push([]); for (c = 0; c < 5; c++) g[r].push(s5rnd(w)); } return g; }
 function s5eval(g, b, bonus) {
@@ -1416,7 +1420,7 @@ function s5eval(g, b, bonus) {
     if (f < lo || f > hi) return;
     var n = 0; while (n < 5 && (g[ln[n]][n] === f || (g[ln[n]][n] === 9 && f <= 5))) n++;
     if (n < 3) return;
-    if (!bonus) o.tanga += S5PAY[f][n - 3] * b / S5LN.length * (S5K[s5bet] || 1);
+    if (!bonus) o.tanga += S5PAY[f][n - 3] * b * (n > 3 ? (S5K[s5bet] || 1) : 1);
     o.bor[f] = 1;
     if (f > o.eng) o.eng = f;
     for (c = 0; c < n; c++) o.kataklar[ln[c] + "," + c] = "win";
@@ -1456,7 +1460,7 @@ function s5init() {
     for (var c = 0; c < 5; c++) { var d = document.createElement("div"); d.className = "r5"; d.innerHTML = '<div class="s5strip"></div>'; box.appendChild(d); }
     S5ST.forEach(function (v) {
       var b = document.createElement("button"); b.className = "chip"; b.dataset.v = v; b.textContent = "🪙 " + v;
-      b.addEventListener("click", function () { if (s5busy) return; s5bet = v; s5info(); buzz(); });
+      b.addEventListener("click", function () { if (s5busy || s5autoRun) return; s5bet = v; s5info(); buzz(); });
       $("s5st").appendChild(b);
     });
     s5ready = true;
@@ -1481,10 +1485,10 @@ function s5lnHtml() {
 function s5jad() {
   var t = "", s, k = S5K[s5bet] || 1, tb = S5TB.indexOf(s5bet) > -1, wb = S5WB.indexOf(s5bet) > -1;
   for (s = 0; s < 6; s++) {
-    var p = S5PAY[s].map(function (x) { return Math.round(x * s5bet / S5LN.length * k); });
+    var p = S5PAY[s].map(function (x, i) { return Math.round(x * s5bet * (i ? k : 1)); });
     t += '<div class="s5row"><span>' + S5SYM[s] + " " + S5NOM[s] + '</span><span>' + p[0] + " • " + p[1] + " • " + p[2] + "</span></div>";
   }
-  var h = "<h3>🎰 SLOT 5×3</h3>" + S5LN.length + " TA YUTUQ CHIZIG'I. CHAPDAN O'NGGA KETMA-KET 3, 4, 5 TA BIR XIL BELGI = YUTUQ.<br>🃏 WILD : HAMMA BARABANDA CHIQADI, 🌸...💎 O'RNINI BOSADI.<br><br><b>🪙 " + s5bet + " STAVKADA CHIZIQ YUTUQLARI (3 • 4 • 5 TA)</b>" + t;
+  var h = "<h3>🎰 SLOT 5×3</h3>" + S5LN.length + " TA YUTUQ CHIZIG'I. CHAPDAN O'NGGA KETMA-KET 3, 4, 5 TA BIR XIL BELGI = YUTUQ. ENG KICHIK YUTUQ STAVKANING YARMI (0.5×).<br>🃏 WILD : HAMMA BARABANDA CHIQADI, 🌸...💎 O'RNINI BOSADI.<br><br><b>🪙 " + s5bet + " STAVKADA CHIZIQ YUTUQLARI (3 • 4 • 5 TA)</b>" + t;
   h += "<br><b>YUTUQ CHIZIQLARI (" + S5LN.length + " TA)</b>" + s5lnHtml();
   if (tb) {
     var jp = S5JPN.map(function (n) { return '<div class="s5row"><span>💰 ' + n + '</span><span>🪙 ' + s5jpText(n) + "</span></div>"; }).join("");
@@ -1499,11 +1503,13 @@ function s5jad() {
 function s5info() {
   $("s5info").innerHTML = "🪙 SIZDA : " + coins;
   Array.prototype.forEach.call($("s5st").children, function (b) { b.classList.toggle("on", +b.dataset.v === s5bet); });
-  $("s5spin").textContent = "🎰 AYLANTIRISH • 🪙 " + s5bet;
-  $("s5spin").disabled = s5busy;
+  $("s5spin").textContent = s5autoRun ? "⏹ TO'XTATISH • QOLDI " + s5auto : "🎰 AYLANTIRISH • 🪙 " + s5bet;
+  $("s5spin").disabled = s5busy && !s5autoRun;
+  Array.prototype.forEach.call(document.querySelectorAll("#s5ex .chip[data-a]"), function (b) { b.disabled = s5busy || s5autoRun; });
+  $("s5turbo").classList.toggle("on", s5turbo);
 }
 function s5spinTo(g, fast, w) {
-  var cell = s5cell(), base = fast ? 0.55 : 0.9, step = fast ? 0.18 : 0.35;
+  var cell = s5cell(), base = (fast ? 0.55 : 0.9) * (s5turbo ? 0.45 : 1), step = (fast ? 0.18 : 0.35) * (s5turbo ? 0.4 : 1);
   document.querySelectorAll(".r5").forEach(function (r, c) {
     var st = r.firstElementChild, h = "", j;
     if (g[0][c] === null) {
@@ -1595,22 +1601,22 @@ async function s5tb(res) {
   function banner() { bn.textContent = "💰 QAYTA AYLANISH : " + left + " • 🪙 " + sum + " • " + Object.keys(held).length + "/15"; }
   box.classList.add("bonus"); bn.classList.add("on");
   tb.boshi.forEach(put); banner();
-  await wait(900);
+  await wait(s5t(900));
   for (i = 0; i < tb.qadamlar.length; i++) {
     banner();
     var iv = setInterval(function () {
       for (var rr = 0; rr < 3; rr++) for (var cc = 0; cc < 5; cc++) if (!held[rr + "," + cc]) { var e2 = el(rr, cc); e2.className = "sy5 empty spinc"; e2.style.fontSize = Math.round(cell * 0.5) + "px"; e2.textContent = S5SYM[Math.floor(Math.random() * 6)]; }
     }, 90);
-    await wait(900); clearInterval(iv); buzz();
+    await wait(s5t(900)); clearInterval(iv); buzz();
     for (r = 0; r < 3; r++) for (c = 0; c < 5; c++) if (!held[r + "," + c]) empty(r, c);
     var nw = tb.qadamlar[i];
     nw.forEach(put);
     if (nw.length) { left = 3; celebrate(nw.some(function (q) { return q.jp; }) ? "big" : "small"); } else left--;
     banner();
-    await wait(nw.length ? 900 : 450);
+    await wait(s5t(nw.length ? 900 : 450));
   }
-  if (tb.tola) { celebrate("big"); bn.textContent = "🎉 15/15 TO'LDI ! ×5 • 🪙 " + tb.jami; await wait(2400); }
-  else { bn.textContent = "💰 TANGA BONUSI TUGADI • 🪙 " + tb.jami; celebrate(tb.jami >= s5bet * 20 ? "big" : "mid"); await wait(1800); }
+  if (tb.tola) { celebrate("big"); bn.textContent = "🎉 15/15 TO'LDI ! ×5 • 🪙 " + tb.jami; await wait(s5t(2400)); }
+  else { bn.textContent = "💰 TANGA BONUSI TUGADI • 🪙 " + tb.jami; celebrate(tb.jami >= s5bet * 20 ? "big" : "mid"); await wait(s5t(1800)); }
   box.classList.remove("bonus"); bn.classList.remove("on");
 }
 async function s5bonus(res) {
@@ -1631,7 +1637,7 @@ async function s5bonus(res) {
     }
     if (sp.waifular.length) { celebrate(sp.waifular.some(function (w) { return w.nom === "ULTRA" || w.nom === "COLLECTOR"; }) ? "big" : "small"); }
     bn.textContent = "🎁 BONUS " + (i + 1) + " / " + b.soni + " • WAIFU : " + got.length;
-    await wait(sp.waifular.length ? 1300 : 650);
+    await wait(s5t(sp.waifular.length ? 1300 : 650));
   }
   box.classList.remove("bonus"); bn.classList.remove("on");
   var m = $("s5msg");
@@ -1645,14 +1651,14 @@ async function s5bonus(res) {
   } else {
     m.textContent = "🎁 BONUS TUGADI. WAIFU TUSHMADI";
   }
-  await wait(1200); s5init();
+  await wait(s5t(1200)); s5init();
 }
 async function s5play() {
   if (s5busy) return;
   if (coins < s5bet) { toast("TANGA YETMAYDI : KERAK 🪙 " + s5bet); return; }
   s5busy = true; s5info();
   $("s5msg").textContent = "🎰 AYLANMOQDA..."; $("s5pr").innerHTML = "";
-  var res, bet = s5bet;
+  var res, bet = s5bet, out = { stop: true };
   try {
     if (onlayn()) {
       var rr;
@@ -1685,6 +1691,7 @@ async function s5play() {
     if (res.tb) { await wait(900); await s5tb(res); m.textContent = "💰 TANGA BONUSI : +" + res.tb.jami + " 🪙" + (base ? " • CHIZIQ +" + base : ""); coins += res.tb.jami; stats(); }
     if (res.bonus) { await wait(900); await s5bonus(res); }
     coins = res.coins; stats();
+    out.stop = !!(res.bonus || res.tb) || base >= bet * 10;
   } catch (e) {
     $("s5msg").textContent = "XATO, QAYTA URINING";
     $("s5box").classList.remove("bonus"); $("s5bn").classList.remove("on"); $("s5big").classList.remove("on"); $("s5hs").classList.remove("on");
@@ -1692,8 +1699,23 @@ async function s5play() {
   } finally {
     s5busy = false; s5info();
   }
+  return out;
 }
-$("s5spin").addEventListener("click", s5play);
+async function s5autoStart(n) {
+  if (s5busy || s5autoRun) return;
+  s5auto = n; s5autoRun = true; s5stop = false; s5info();
+  while (s5auto > 0 && !s5stop) {
+    if (coins < s5bet) { toast("TANGA YETMAYDI"); break; }
+    s5auto--; s5info();
+    var r = await s5play();
+    if (!r || r.stop) break;
+    await wait(s5t(500));
+  }
+  s5auto = 0; s5autoRun = false; s5stop = false; s5info();
+}
+$("s5spin").addEventListener("click", function () { if (s5autoRun) { s5stop = true; s5auto = 0; s5info(); return; } s5play(); });
+Array.prototype.forEach.call(document.querySelectorAll("#s5ex .chip[data-a]"), function (b) { b.addEventListener("click", function () { buzz(); s5autoStart(+b.dataset.a); }); });
+$("s5turbo").addEventListener("click", function () { s5turbo = !s5turbo; try { localStorage.setItem("s5turbo", s5turbo ? "1" : "0"); } catch (e) {} s5info(); buzz(); });
 
 /* ---------- Yuklash ---------- */
 async function loadCollection() {
