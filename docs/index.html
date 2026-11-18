@@ -203,6 +203,13 @@ input{flex:1;min-width:0;padding:10px;background:var(--glass2);border:1px solid 
 .r5{position:relative;overflow:hidden;background:rgba(0,0,0,.6);border:1.5px solid var(--neon);box-shadow:inset 0 0 14px #000}
 .r5.spin .s5strip{-webkit-filter:blur(1.4px);filter:blur(1.4px)}
 .sy5{display:flex;align-items:center;justify-content:center;line-height:1;border-bottom:1px solid rgba(255,255,255,.05)}
+.lns{display:grid;grid-template-columns:repeat(5,1fr);gap:8px 6px;margin:8px 0}
+.ln{display:flex;flex-direction:column;align-items:center;gap:2px}
+.lg{display:grid;grid-template-columns:repeat(5,7px);gap:1px}
+.lg i{width:7px;height:7px;background:rgba(255,255,255,.12);display:block}
+.lg i.on{background:#ffd24a;box-shadow:0 0 4px #ffd24a}
+.ln small{font-size:9px;color:var(--muted)}
+.sy5.lock{color:rgba(255,255,255,.25);background:rgba(0,0,0,.55)}
 .sy5.empty{color:rgba(255,255,255,.18)}
 .sy5.empty.spinc{color:inherit;opacity:.55}
 .sy5.hold{background:rgba(255,210,74,.2);box-shadow:inset 0 0 0 2px #ffd24a;font-size:20px;text-align:center;animation:s5pop .5s ease-out}
@@ -218,6 +225,17 @@ input{flex:1;min-width:0;padding:10px;background:var(--glass2);border:1px solid 
 #s5bn.on{display:block}
 #s5pr{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px}
 #s5pr span{padding:4px 9px;background:rgba(255,210,74,.14);border:1px solid #ffd24a;font-size:11px;font-weight:700;animation:s5pop .5s ease-out}
+.gsel{grid-template-columns:repeat(3,1fr) 34px!important;align-items:center;margin-bottom:10px!important}
+.gsel .gs .ic{font-size:24px}
+.ginf{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--neon);background:rgba(0,0,0,.45);color:var(--neon2);font:700 16px/1 var(--head);cursor:pointer;padding:0;justify-self:center;box-shadow:var(--glow)}
+#ginfM{position:fixed;inset:0;z-index:96;display:none;align-items:center;justify-content:center;background:rgba(10,0,2,.88);padding:16px}
+#ginfM.on{display:flex}
+#ginfM .bev{width:min(94vw,420px);max-height:84vh;display:flex}
+#ginfM .in{padding:16px;display:flex;flex-direction:column;gap:12px;overflow:hidden;min-height:0}
+#ginfT{overflow-y:auto;font-size:12px;line-height:1.6;letter-spacing:.03em;max-height:calc(100vh - 250px)}
+#ginfT h3{font-family:var(--head);font-size:13px;color:var(--neon2);margin:0 0 6px;letter-spacing:.1em}
+#s5st .chip{padding:7px 8px;font-size:12px}
+#s5st{flex-wrap:nowrap!important;gap:5px!important}
 #s5big{position:fixed;inset:0;z-index:95;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:rgba(12,0,3,.86);text-align:center;padding:24px;font-weight:700;line-height:1.5}
 #s5big.on{display:flex}
 #s5big b{font-family:var(--head);font-size:30px;color:#ffd24a;text-shadow:0 0 22px var(--neon);animation:s5pop .8s ease-out}
@@ -468,9 +486,10 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
     <section class="tab" id="tab-oyin">
       <div class="title"><small>O M A D N I &nbsp; S I N A N G</small><h1 data-g="LUCKY">O'YIN</h1></div>
       <div class="gsel">
-        <button class="bev gs on" data-m="kart"><div class="in"><span class="ic">🃏</span><b>KARTALAR</b><small>9 TA KARTA</small></div></button>
-        <button class="bev gs" data-m="slot"><div class="in"><span class="ic">🎰</span><b>SLOT</b><small>KUNIGA 3 URINISH</small></div></button>
-        <button class="bev gs" data-m="s5"><div class="in"><span class="ic">🎲</span><b>SLOT 5×3</b><small>STAVKA BILAN</small></div></button>
+        <button class="bev gs on" data-m="kart"><div class="in"><span class="ic">🃏</span><b>KARTALAR</b></div></button>
+        <button class="bev gs" data-m="slot"><div class="in"><span class="ic">🎰</span><b>SLOT</b></div></button>
+        <button class="bev gs" data-m="s5"><div class="in"><span class="ic">🎲</span><b>SLOT 5×3</b></div></button>
+        <button class="ginf" id="ginfBtn" aria-label="Ma'lumot">?</button>
       </div>
 
       <div id="g-kart">
@@ -478,7 +497,6 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
         <div class="board" id="board"></div>
         <div id="gmsg">BITTA KARTANI TANLANG</div>
         <button class="btn" id="again" hidden>🔁 YANA O'YNASH</button>
-        <div class="note" id="gnote"></div>
       </div>
 
       <div id="g-slot" hidden>
@@ -501,11 +519,8 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
         <div id="s5bn"></div>
         <div class="bev slotbox" id="s5box"><div class="in"><div class="reels5" id="reels5"></div></div></div>
         <button class="btn" id="s5spin">🎰 AYLANTIRISH</button>
-        <div id="s5msg">3 TA BIR XIL BELGI = YUTUQ</div>
+        <div id="s5msg">OMAD SINANG !</div>
         <div id="s5pr"></div>
-        <div class="note" id="s5note">10 TA CHIZIQ • CHAPDAN O'NGGA KETMA-KET BIR XIL BELGI<br>🎁 SCATTER : ISTALGAN JOYDA 3 TA TUSHSA BONUS O'YIN (BONUSDA FAQAT WAIFU BELGILARI, CHIZIQDA 3 TA BIR XIL = WAIFU)</div>
-        <button class="chip" id="s5jb" style="display:block;margin:10px auto 0">ℹ️ TO'LOV JADVALI</button>
-        <div class="note" id="s5jad" hidden></div>
       </div>
     </section>
     </div>
@@ -514,6 +529,7 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
 
 <div id="modal"><div class="bev" id="mbox"><div class="in" id="mcont"></div></div></div>
 <div id="s5big"></div>
+<div id="ginfM"><div class="bev"><div class="in"><div id="ginfT"></div><button class="btn" id="ginfX">✕ YOPISH</button></div></div></div>
 <div id="s5hs"><div id="s5hc"></div><div id="s5hg"></div><div id="s5ht"></div></div>
 <div id="toast"></div>
 <canvas id="fx"></canvas>
@@ -1085,7 +1101,7 @@ $("refCopy").addEventListener("click", async function () {
 var gameBusy = false;
 
 function noteRender() {
-  $("gnote").innerHTML = "🎁 HAR O'YINDA 9 TA KARTANING BITTASIDA " + ({ common: "ELITA", rare: "SUPER", epic: "MEGA", legendary: "ULTRA" }[oyinDaraja] || "SUPER") + " WAIFU YASHIRINGAN.<br>💰 NARX : " +
+  window.__gnote = "🎁 HAR O'YINDA 9 TA KARTANING BITTASIDA " + ({ common: "ELITA", rare: "SUPER", epic: "MEGA", legendary: "ULTRA" }[oyinDaraja] || "SUPER") + " WAIFU YASHIRINGAN.<br>💰 NARX : " +
     oyinNarx.join(" • ") + " (KUNIGA " + oyinNarx.length + " TA).<br>✨ BITTA KARTADA 2x : NARXNING IKKI BARAVARI QAYTADI.<br>🪙 QOLGAN TANGA SOVRINLARI NARXDAN KAM.";
 }
 
@@ -1245,6 +1261,17 @@ document.querySelector(".gsel").addEventListener("click", function (e) {
   buzz();
 });
 
+function ginfOpen() {
+  var on = document.querySelector(".gs.on"), m = on ? on.dataset.m : "kart", h = "";
+  if (m === "kart") { gameInfo(); h = "<h3>🃏 KARTALAR</h3>" + (window.__gnote || "") + "<br><br>" + ($("ginfo").innerHTML || ""); }
+  else if (m === "slot") { slotInfo(); h = "<h3>🎰 SLOT</h3>3 TA BIR XIL BELGI = YUTUQ.<br><br>" + (window.__sinfo || ""); }
+  else { s5jad(); h = window.__s5jad || ""; }
+  $("ginfT").innerHTML = h; $("ginfM").classList.add("on"); buzz();
+}
+$("ginfBtn").addEventListener("click", ginfOpen);
+$("ginfX").addEventListener("click", function () { $("ginfM").classList.remove("on"); });
+$("ginfM").addEventListener("click", function (e) { if (e.target === this) this.classList.remove("on"); });
+
 /* ---------- Slot ---------- */
 var SYM = { w: "👑", m: "🔮", j: "💎", s: "🌟", a: "🔥", e: "🍀", b: "🪙", c: "🌸" };
 var SLOTW = { w: { n: "ULTRA", r: 4 }, m: { n: "MEGA", r: 3 }, s: { n: "SUPER", r: 2 }, e: { n: "ELITA", r: 1 } };
@@ -1264,7 +1291,8 @@ function slotInfo() {
     else if (slotSt.bonus === "qulf") t += "<br>🔒 YANA 1 TA : 1 DO'ST TAKLIF QILING";
     t += sPaid() ? "<br>💰 PULLIK AYLANTIRISH : 🪙 " + slotSt.narx + " (SIZDA 🪙 " + coins + ")" : "<br>💰 PULLIK AYLANTIRISH : ISHLATILDI";
   }
-  $("sinfo").innerHTML = t;
+  window.__sinfo = t;
+  $("sinfo").innerHTML = sLeft() <= 0 ? "⏳ ERTAGA QAYTING" : "AYLANISH : " + sLeft() + " • 🪙 " + coins;
   $("spin").textContent = sFree() > 0 || !sPaid() ? "🎰 AYLANTIRISH" : "🎰 AYLANTIRISH • 🪙 " + slotSt.narx;
   $("spin").disabled = spinning || sLeft() <= 0;
 }
@@ -1366,10 +1394,11 @@ reelsInit(); slotInfo();
 /* ---------- Slot 5x3 ---------- */
 var S5SYM = ["🌸", "🍡", "🎴", "💠", "🌟", "💎", "🔥", "⛩️", "🎁", "🃏", "💰"];
 var S5NOM = ["SAKURA", "DANGO", "HANAFUDA", "ELITA", "SUPER", "MEGA", "ULTRA", "COLLECTOR", "BONUS", "WILD", "TANGA"];
-var S5BW = [0, 0, 0, 41, 26, 16, 11, 6, 0, 5, 0], S5BW1 = [0, 0, 0, 37, 26, 17, 12, 7, 0, 5, 0], S5N = 20;
-var S5PAY = { 0: [7, 23, 86], 1: [9, 29, 110], 2: [13, 46, 185], 3: [20, 92, 350], 4: [31, 147, 649], 5: [55, 279, 1852] };
-var S5K = { 50: 0.713, 100: 0.713, 250: 0.456, 500: 0.521, 1000: 0.778 };
-var S5LN = [[1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2],[0,0,1,2,2],[2,2,1,0,0],[1,0,0,0,1],[1,2,2,2,1],[0,1,0,1,0]];
+var S5BW = [0, 0, 0, 41, 26, 16, 11, 6, 0, 0, 0], S5BW1 = [0, 0, 0, 37, 26, 17, 12, 7, 0, 0, 0], S5N = 20;
+var S5PAY = {0: [11, 30, 50], 1: [14, 38, 65], 2: [21, 60, 100], 3: [32, 120, 190], 4: [50, 191, 360], 5: [88, 363, 900]};
+var S5K = { 50: 0.706, 100: 0.706, 250: 0.469, 500: 0.515, 1000: 0.736 };
+var S5LN = [[1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2],[0,0,1,2,2],[2,2,1,0,0],[1,0,0,0,1],[1,2,2,2,1],[0,1,0,1,0],
+  [2,1,2,1,2],[1,0,1,0,1],[1,2,1,2,1],[0,1,1,1,0],[2,1,1,1,2],[1,1,0,1,1],[1,1,2,1,1],[0,2,0,2,0],[2,0,2,0,2],[0,2,2,2,0]];
 var S5ST = [50, 100, 250, 500, 1000], S5TB = [50, 100, 1000], S5WB = [250, 500, 1000];
 var S5JPN = ["ELITA", "SUPER", "MEGA", "ULTRA"], S5JPD = { ELITA: 500, SUPER: 1500, MEGA: 3500, ULTRA: 8000 };
 var s5bet = 100, s5min = 0, s5busy = false, s5ready = false, s5jp = null;
@@ -1387,12 +1416,26 @@ function s5eval(g, b, bonus) {
     if (f < lo || f > hi) return;
     var n = 0; while (n < 5 && (g[ln[n]][n] === f || (g[ln[n]][n] === 9 && f <= 5))) n++;
     if (n < 3) return;
-    if (!bonus) o.tanga += S5PAY[f][n - 3] * b / 10 * (S5K[s5bet] || 1);
+    if (!bonus) o.tanga += S5PAY[f][n - 3] * b / S5LN.length * (S5K[s5bet] || 1);
     o.bor[f] = 1;
     if (f > o.eng) o.eng = f;
     for (c = 0; c < n; c++) o.kataklar[ln[c] + "," + c] = "win";
   });
   o.tanga = Math.round(o.tanga);
+  return o;
+}
+var S5BL = [[1, 1, 1], [0, 0, 0], [2, 2, 2], [0, 1, 2], [2, 1, 0]];
+function s5evalB(g) {
+  // Waifu bonusi : faqat 2-3-4 barabanlar, 3 ta bir xil katak (WILD faqat ELITA/SUPER/MEGA o'rnini bosadi)
+  var o = { kataklar: {}, bor: {} };
+  S5BL.forEach(function (ln) {
+    var cs = [g[ln[0]][1], g[ln[1]][2], g[ln[2]][3]], f = 5, i;
+    for (i = 0; i < 3; i++) if (cs[i] !== 9) { f = cs[i]; break; }
+    if (f < 3 || f > 7) return;
+    if (!cs.every(function (x) { return x === f || (x === 9 && f <= 5); })) return;
+    o.bor[f] = 1;
+    for (i = 0; i < 3; i++) o.kataklar[ln[i] + "," + (i + 1)] = "win";
+  });
   return o;
 }
 function s5find(g, x) { var p = [], r, c; for (r = 0; r < 3; r++) for (c = 0; c < 5; c++) if (g[r][c] === x) p.push(r + "," + c); return p; }
@@ -1426,30 +1469,48 @@ function s5init() {
   });
   s5info();
 }
+function s5lnHtml() {
+  var h = '<div class="lns">';
+  S5LN.forEach(function (ln, i) {
+    h += '<div class="ln"><div class="lg">';
+    for (var r = 0; r < 3; r++) for (var c = 0; c < 5; c++) h += '<i' + (ln[c] === r ? ' class="on"' : '') + '></i>';
+    h += '</div><small>' + (i + 1) + '</small></div>';
+  });
+  return h + '</div>';
+}
 function s5jad() {
-  var t = "", s;
+  var t = "", s, k = S5K[s5bet] || 1, tb = S5TB.indexOf(s5bet) > -1, wb = S5WB.indexOf(s5bet) > -1;
   for (s = 0; s < 6; s++) {
-    var p = S5PAY[s];
+    var p = S5PAY[s].map(function (x) { return Math.round(x * s5bet / S5LN.length * k); });
     t += '<div class="s5row"><span>' + S5SYM[s] + " " + S5NOM[s] + '</span><span>' + p[0] + " • " + p[1] + " • " + p[2] + "</span></div>";
   }
-  var jp = S5JPN.map(function (k) { return '<div class="s5row"><span>💰 ' + k + '</span><span>🪙 ' + s5jpText(k) + "</span></div>"; }).join("");
-  $("s5jad").innerHTML = "3 • 4 • 5 TA BIR XIL BELGI (CHAPDAN O'NGGA)<br>🌸...💎 : CHIZIQ STAVKASIGA (STAVKA ÷ 10) KO'PAYTIRILADI<br>🃏 WILD : HAMMA BARABANDA CHIQADI, 🌸...💎 O'RNINI BOSADI<br><br>" + t +
-    "<br><b>💰 TANGA YIG'ISH BONUSI</b> (STAVKA 50, 100, 1000)<br>ISTALGAN JOYDA 6+ TA 💰 TUSHSA BOSHLANADI. 💰 LAR QOTIB QOLADI, 3 TA QAYTA AYLANISH BERILADI. YANGI 💰 TUSHSA 3 TAGA QAYTADI. HAR 💰 STAVKA × 0.5...10 YOKI JEKPOT:<br>" + jp +
-    "JEKPOT = WAIFU NARXI (STAVKA 100 DA), STAVKAGA QARAB OSHADI.<br>🎉 15 TA KATAK TO'LSA JAMI YUTUQ ×5 !<br><br>" +
-    "<b>🎁 WAIFU BONUSI</b> (STAVKA 250, 500, 1000)<br>ISTALGAN JOYDA 3 TA 🎁 = 5 TA, 4 TA = 8 TA, 5 TA = 12 TA BEPUL AYLANISH (YUQORI STAVKADA +QO'SHIMCHA). BONUSDA FAQAT WAIFU BELGILARI AYLANADI, TANGA YO'Q. CHAPDAN O'NGGA 3+ TA BIR XIL = WAIFU : 💠 ELITA • 🌟 SUPER • 💎 MEGA • 🔥 ULTRA • ⛩️ COLLECTOR (DARAJA OSHGAN SARI KAM TUSHADI). 🃏 FAQAT ELITA/SUPER/MEGA O'RNINI BOSADI.<br><br>1000 : IKKALA BONUS HAM.";
+  var h = "<h3>🎰 SLOT 5×3</h3>" + S5LN.length + " TA YUTUQ CHIZIG'I. CHAPDAN O'NGGA KETMA-KET 3, 4, 5 TA BIR XIL BELGI = YUTUQ.<br>🃏 WILD : HAMMA BARABANDA CHIQADI, 🌸...💎 O'RNINI BOSADI.<br><br><b>🪙 " + s5bet + " STAVKADA CHIZIQ YUTUQLARI (3 • 4 • 5 TA)</b>" + t;
+  h += "<br><b>YUTUQ CHIZIQLARI (" + S5LN.length + " TA)</b>" + s5lnHtml();
+  if (tb) {
+    var jp = S5JPN.map(function (n) { return '<div class="s5row"><span>💰 ' + n + '</span><span>🪙 ' + s5jpText(n) + "</span></div>"; }).join("");
+    h += "<br><h3>💰 TANGA YIG'ISH BONUSI</h3>ISTALGAN JOYDA 6+ TA 💰 TUSHSA BOSHLANADI. 💰 LAR QOTIB QOLADI, 3 TA QAYTA AYLANISH BERILADI, YANGI 💰 TUSHSA 3 TAGA QAYTADI. HAR 💰 STAVKA × 0.5...10 YOKI JEKPOT :" + jp + "JEKPOT = WAIFU NARXI (STAVKA 100 DA), STAVKAGA QARAB OSHADI.<br>🎉 15 TA KATAK TO'LSA JAMI YUTUQ ×5 !<br>";
+  }
+  if (wb) {
+    h += "<br><h3>🎁 WAIFU BONUSI</h3>ISTALGAN JOYDA 3 TA 🎁 = 5 TA, 4 TA = 8 TA, 5 TA = 12 TA BEPUL AYLANISH (YUQORI STAVKADA +QO'SHIMCHA). BONUSDA 1 VA 5-BARABAN YOPIQ, FAQAT 2-3-4 AYLANADI (FAQAT WAIFU BELGILARI, TANGA YO'Q). 3 TA BIR XIL BELGI (3 QATOR VA 2 DIAGONAL) = WAIFU. BONUSDA 🃏 WILD YO'Q : 💠 ELITA • 🌟 SUPER • 💎 MEGA • 🔥 ULTRA • ⛩️ COLLECTOR (DARAJA OSHGAN SARI KAM TUSHADI)." + (s5min > 0 ? "<br>BONUS WAIFU UCHUN STAVKA KAMIDA 🪙 " + s5min + "." : "");
+  }
+  if (s5bet === 1000) h += "<br>1000 STAVKADA IKKALA BONUS HAM BOR.";
+  window.__s5jad = h;
 }
 function s5info() {
-  $("s5info").innerHTML = "🪙 SIZDA : " + coins + (s5min > 0 && S5WB.indexOf(s5bet) > -1 ? " • BONUS WAIFU UCHUN STAVKA KAMIDA 🪙 " + s5min : "") + "<br><small>" + s5modeText() + "</small>";
+  $("s5info").innerHTML = "🪙 SIZDA : " + coins;
   Array.prototype.forEach.call($("s5st").children, function (b) { b.classList.toggle("on", +b.dataset.v === s5bet); });
   $("s5spin").textContent = "🎰 AYLANTIRISH • 🪙 " + s5bet;
   $("s5spin").disabled = s5busy;
-  s5jad();
 }
-$("s5jb").addEventListener("click", function () { $("s5jad").hidden = !$("s5jad").hidden; });
 function s5spinTo(g, fast, w) {
   var cell = s5cell(), base = fast ? 0.55 : 0.9, step = fast ? 0.18 : 0.35;
   document.querySelectorAll(".r5").forEach(function (r, c) {
     var st = r.firstElementChild, h = "", j;
+    if (g[0][c] === null) {
+      for (j = 0; j < 3; j++) h += '<div class="sy5 lock" style="height:' + cell + 'px;font-size:' + Math.round(cell * 0.4) + 'px">🔒</div>';
+      r.style.height = (cell * 3) + "px"; st.style.transition = "none"; st.style.transform = "translateY(0)"; st.innerHTML = h;
+      return;
+    }
     for (j = 0; j < S5N; j++) h += s5sy(s5rnd(w), cell);
     for (j = 0; j < 3; j++) h += s5sy(g[j][c], cell);
     r.style.height = (cell * 3) + "px";
@@ -1471,7 +1532,8 @@ function s5mark(kat) {
 function s5demoBonus(b) {
   var n = [5, 8, 12][Math.min(b.scatter, 5) - 3] + ({ 250: 2, 500: 3, 1000: 5 }[s5bet] || 0), sp = [], i;
   for (i = 0; i < n; i++) {
-    var g = s5grid(s5bet === 1000 ? S5BW1 : S5BW), ev = s5eval(g, 10, true);
+    var g = s5grid(s5bet === 1000 ? S5BW1 : S5BW), ev = s5evalB(g);
+    g.forEach(function (row) { row[0] = null; row[4] = null; });
     var wl = Object.keys(ev.bor).map(Number).sort(function (a, c) { return c - a; }).slice(0, 2);
     sp.push({ g: g, kataklar: ev.kataklar, waifular: wl.map(function (f) {
       var nm = S5NOM[f], rk = f - 2;
@@ -1553,8 +1615,9 @@ async function s5tb(res) {
 }
 async function s5bonus(res) {
   var b = res.bonus, box = $("s5box"), bn = $("s5bn"), pr = $("s5pr"), got = [], i, j;
-  await s5intro("<b>🎁 BONUS O'YIN !</b><div>" + b.scatter + " TA 🎁 SCATTER TUSHDI</div><div>" + b.soni + " TA BEPUL AYLANISH</div><small>BONUSDA FAQAT WAIFU BELGILARI AYLANADI<br>(BOSIB DAVOM ETING)</small>");
+  await s5intro("<b>🎁 BONUS O'YIN !</b><div>" + b.scatter + " TA 🎁 SCATTER TUSHDI</div><div>" + b.soni + " TA BEPUL AYLANISH</div><small>BONUSDA 1 VA 5-BARABAN YOPIQ,<br>FAQAT 2-3-4 AYLANADI : FAQAT WAIFU BELGILARI<br>(BOSIB DAVOM ETING)</small>");
   box.classList.add("bonus"); bn.classList.add("on"); pr.innerHTML = "";
+  $("s5msg").textContent = "🎁 WAIFU BONUSI";
   for (i = 0; i < b.spinlar.length; i++) {
     var sp = b.spinlar[i];
     bn.textContent = "🎁 BONUS " + (i + 1) + " / " + b.soni + " • WAIFU : " + got.length;
@@ -1582,6 +1645,7 @@ async function s5bonus(res) {
   } else {
     m.textContent = "🎁 BONUS TUGADI. WAIFU TUSHMADI";
   }
+  await wait(1200); s5init();
 }
 async function s5play() {
   if (s5busy) return;
@@ -1596,7 +1660,7 @@ async function s5play() {
       if (!rr || !rr.ok) {
         var er = rr && rr.data && rr.data.error;
         toast(er === "limit" ? "BUGUNGI LIMIT TUGADI" : er === "tanga_yetmaydi" ? "TANGA YETMAYDI" : "XATO, QAYTA URINING");
-        $("s5msg").textContent = "3 TA BIR XIL BELGI = YUTUQ"; return;
+        $("s5msg").textContent = "OMAD SINANG !"; return;
       }
       res = rr.data;
       res.base = Math.round(res.base || 0);
