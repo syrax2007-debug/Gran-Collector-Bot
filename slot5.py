@@ -19,15 +19,16 @@ TANGA_BONUS = (50, 100, 1000)
 WAIFU_BONUS = (250, 500, 1000)
 SCATTER, WILD, TANGA = 8, 9, 10
 
-TANGA_VAZN = 17
+TANGA_VAZN = 16
 SC_VAZN = 4.0
-WILD_VAZN = 4.0
-ASOS = (28, 24, 19, 11, 7, 4.5)
+WILD_MODE = {50: 2.2, 100: 2.2, 250: 1.5, 500: 1.5, 1000: 2.6}  # har rejimda WILD og'irligi
+ASOS = (20, 19, 18, 14, 11, 8)
 
-# 3, 4, 5 ta : chiziq stavkasiga (stavka / 20) ko'paytiriladi
-TOLOV = {0: (11, 30, 50), 1: (14, 38, 65), 2: (21, 60, 100), 3: (32, 120, 190), 4: (50, 191, 360), 5: (88, 363, 900)}
-# Har stavka uchun tanga qaytimini sozlovchi koeffitsient (sim bilan hisoblangan)
-KOEF = {50: 0.706, 100: 0.706, 250: 0.469, 500: 0.515, 1000: 0.736}
+# 3, 4, 5 ta bir xil : STAVKAGA ko'paytma (eng kichigi 0.5x). Har chiziq uchun.
+TOLOV = {0: (0.5, 1.5, 4), 1: (0.6, 1.8, 5), 2: (0.8, 2.5, 7),
+         3: (1.2, 4, 12), 4: (2, 7, 25), 5: (3.5, 14, 60)}
+# 4 va 5 ta bir xil yutuqlarini rejimga qarab sozlovchi koeffitsient (3 ta uchun 1.0, ya'ni 0.5x saqlanadi)
+KOEF = {50: 1.0, 100: 1.0, 250: 0.6, 500: 0.6, 1000: 1.0}
 
 # Waifu bonusi
 BONUS_ASOS = (5, 8, 12)
@@ -64,7 +65,7 @@ def bugun():
 def vazn(stavka):
     # Oddiy o'yin belgilari og'irligi (11 ta)
     return ASOS + (0, 0,
-                   SC_VAZN if stavka in WAIFU_BONUS else 0, WILD_VAZN,
+                   SC_VAZN if stavka in WAIFU_BONUS else 0, WILD_MODE[stavka],
                    TANGA_VAZN if stavka in TANGA_BONUS else 0)
 
 
@@ -104,7 +105,7 @@ def chiziqlar(g, stavka, bonus=False):
         if bonus:
             yutuq = 0
         else:
-            yutuq = TOLOV[belgi][n - 3] * stavka / CHIZIQ_SONI * k
+            yutuq = TOLOV[belgi][n - 3] * stavka * (k if n > 3 else 1.0)
         chiq["tanga"] += yutuq
         chiq["chiziq"].append({"li": li, "s": belgi, "n": n, "yutuq": yutuq})
         for c in range(n):
