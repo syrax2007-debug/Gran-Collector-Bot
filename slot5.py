@@ -24,19 +24,18 @@ SC_VAZN = 4.0
 WILD_VAZN = 4.0
 ASOS = (28, 24, 19, 11, 7, 4.5)
 
-# 3, 4, 5 ta : chiziq stavkasiga (stavka / 10) ko'paytiriladi
-TOLOV = {0: (7, 23, 86), 1: (9, 29, 110), 2: (13, 46, 185),
-         3: (20, 92, 350), 4: (31, 147, 649), 5: (55, 279, 1852)}
+# 3, 4, 5 ta : chiziq stavkasiga (stavka / 20) ko'paytiriladi
+TOLOV = {0: (11, 30, 50), 1: (14, 38, 65), 2: (21, 60, 100), 3: (32, 120, 190), 4: (50, 191, 360), 5: (88, 363, 900)}
 # Har stavka uchun tanga qaytimini sozlovchi koeffitsient (sim bilan hisoblangan)
-KOEF = {50: 0.713, 100: 0.713, 250: 0.456, 500: 0.521, 1000: 0.778}
+KOEF = {50: 0.706, 100: 0.706, 250: 0.469, 500: 0.515, 1000: 0.736}
 
 # Waifu bonusi
 BONUS_ASOS = (5, 8, 12)
 BONUS_QOSH = {250: 2, 500: 3, 1000: 5}
 BONUS_MAX = 2
 BONUS_CHIZIQ = 5
-BVAZN = (0, 0, 0, 41, 26, 16, 11, 6, 0, 5, 0)
-BVAZN_1000 = (0, 0, 0, 37, 26, 17, 12, 7, 0, 5, 0)
+BVAZN = (0, 0, 0, 41, 26, 16, 11, 6, 0, 0, 0)
+BVAZN_1000 = (0, 0, 0, 37, 26, 17, 12, 7, 0, 0, 0)
 
 # Tanga yig'ish bonusi (Hold & Spin)
 TB_QAYTA = 3          # har yangi 💰 dan keyin qayta aylanishlar
@@ -47,8 +46,13 @@ TB_QIYMAT = ((0.5, 32), (1, 30), (2, 15), (3, 8), (5, 4), (10, 1.5))
 TB_JEKPOT = (("ELITA", "common", 0.6), ("SUPER", "rare", 0.3),
              ("MEGA", "epic", 0.1), ("ULTRA", "legendary", 0.03))
 
-CHIZIQLAR = ((1, 1, 1, 1, 1), (0, 0, 0, 0, 0), (2, 2, 2, 2, 2), (0, 1, 2, 1, 0), (2, 1, 0, 1, 2),
-             (0, 0, 1, 2, 2), (2, 2, 1, 0, 0), (1, 0, 0, 0, 1), (1, 2, 2, 2, 1), (0, 1, 0, 1, 0))
+CHIZIQLAR = (
+    (1, 1, 1, 1, 1), (0, 0, 0, 0, 0), (2, 2, 2, 2, 2), (0, 1, 2, 1, 0), (2, 1, 0, 1, 2),
+    (0, 0, 1, 2, 2), (2, 2, 1, 0, 0), (1, 0, 0, 0, 1), (1, 2, 2, 2, 1), (0, 1, 0, 1, 0),
+    (2, 1, 2, 1, 2), (1, 0, 1, 0, 1), (1, 2, 1, 2, 1), (0, 1, 1, 1, 0), (2, 1, 1, 1, 2),
+    (1, 1, 0, 1, 1), (1, 1, 2, 1, 1), (0, 2, 0, 2, 0), (2, 0, 2, 0, 2), (0, 2, 2, 2, 0),
+)
+CHIZIQ_SONI = len(CHIZIQLAR)  # 20 ta yutuq chizig'i
 DARAJA = {3: "common", 4: "rare", 5: "epic", 6: "legendary", 7: "special"}
 NOM = {3: "ELITA", 4: "SUPER", 5: "MEGA", 6: "ULTRA", 7: "COLLECTOR"}
 
@@ -100,7 +104,7 @@ def chiziqlar(g, stavka, bonus=False):
         if bonus:
             yutuq = 0
         else:
-            yutuq = TOLOV[belgi][n - 3] * stavka / 10 * k
+            yutuq = TOLOV[belgi][n - 3] * stavka / CHIZIQ_SONI * k
         chiq["tanga"] += yutuq
         chiq["chiziq"].append({"li": li, "s": belgi, "n": n, "yutuq": yutuq})
         for c in range(n):
@@ -124,19 +128,25 @@ def bonus_soni(scatter_soni, stavka):
     return BONUS_ASOS[min(scatter_soni, 5) - 3] + BONUS_QOSH.get(stavka, 0)
 
 
+# Waifu bonusida 1 va 5-barabanlar yopiq, faqat 2-3-4 aylanadi.
+# Yutuq : 3 ta katak bir xil (3 qator + 2 diagonal), WILD o'rnini bosadi.
+BONUS_LINES = ((1, 1, 1), (0, 0, 0), (2, 2, 2), (0, 1, 2), (2, 1, 0))
+
+
 def bonus_aylanish(rng, stavka=250):
-    # Bitta waifu bonus aylanish: (g, kataklar, waifu belgilari)
-    g = tuz(rng, BVAZN_1000 if stavka == 1000 else BVAZN)
-    ch = chiziqlar(g, 10, bonus=True)
-    kat = dict(ch["kataklar"])
-    # Bonusda faqat dastlabki BONUS_CHIZIQ ta chiziq faol
+    # Bitta waifu bonus aylanish: (g, kataklar, waifu belgilari). g da 0 va 4-ustun None (yopiq)
+    toliq = tuz(rng, BVAZN_1000 if stavka == 1000 else BVAZN)
+    g = [[None] + row[1:4] + [None] for row in toliq]
     kat, bor = {}, set()
-    for li, ln in enumerate(CHIZIQLAR[:BONUS_CHIZIQ]):
-        for q in ch["chiziq"]:
-            if q["li"] == li:
-                bor.add(q["s"])
-                for c in range(q["n"]):
-                    kat[f"{ln[c]},{c}"] = "win"
+    for ln in BONUS_LINES:
+        kataklar = [g[ln[i]][i + 1] for i in range(3)]
+        belgi = next((x for x in kataklar if x != WILD), 5)  # hammasi WILD : MEGA
+        if belgi < 3 or belgi > 7:
+            continue
+        if all(x == belgi or (x == WILD and belgi <= 5) for x in kataklar):
+            bor.add(belgi)
+            for i in range(3):
+                kat[f"{ln[i]},{i + 1}"] = "win"
     return g, kat, sorted(bor, reverse=True)[:BONUS_MAX]
 
 
