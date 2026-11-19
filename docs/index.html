@@ -315,7 +315,13 @@ input{flex:1;min-width:0;padding:10px;background:var(--glass2);border:1px solid 
 .clk::before{height:30%;margin-left:-.7px}
 .clk::after{height:24%;margin-left:-.7px;-webkit-transform:rotate(90deg);transform:rotate(90deg)}
 /* vinfo : Sozlamalar tugmasi bilan bir xil uslub (.btn.ghost) */
-.setrow .vinfo{flex:1;min-width:0;cursor:default;opacity:1;white-space:nowrap}
+.setrow .vinfo{flex:1;min-width:0;cursor:pointer;opacity:1;white-space:nowrap}
+.hlist{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.hrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--rc) 60%,transparent);border-left:4px solid var(--rc);border-radius:10px;background:rgba(3,10,12,.5);cursor:pointer}
+.hrow .hi{flex:1;min-width:0}.hrow b{display:block;color:var(--rc);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hrow small{display:block;color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hrow .hh{flex:none;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--neon2);background:transparent;color:var(--neon2);font-size:18px;cursor:pointer}
+.hrow .hh.on{background:var(--neon);color:#fff;border-color:#fff}
 .swg{display:grid;grid-template-columns:repeat(5,1fr);gap:10px 6px;margin:6px 0 12px}
 .sw{background:none;border:0;color:#fff;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;padding:0;min-width:0}
 .sw i{display:block;width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,255,255,.25)}
@@ -437,7 +443,7 @@ temaQoy(temaOl("tema"),false); shafQoy(Number(temaOl("shaf")),false);
           <div class="st"><small>ULTRA</small><b id="sMega">0</b></div>
         </div>
       </div></div>
-      <div class="setrow"><button class="btn ghost setbtn vinfo" id="vebInfo" type="button" disabled><i class="clk"></i>KUTILMOQDA</button>      <button class="btn ghost setbtn" id="setBtn">⚙ SOZLAMALAR</button></div>
+      <div class="setrow"><button class="btn ghost setbtn vinfo" id="favPick" type="button">💗 SEVIMLI WAIFU</button>      <button class="btn ghost setbtn" id="setBtn">⚙ SOZLAMALAR</button></div>
     </section>
 
     <!-- 2. KOLLEKSIYA -->
@@ -610,6 +616,7 @@ var DEMO = [
   { id: "d5", name: "Asuna", anime: "Sword Art Online", r: 3, raqam: 905, count: 1 },
   { id: "d6", name: "Nezuko", anime: "Demon Slayer", r: 4, raqam: 5521, count: 1 },
 ];
+DEMO.forEach(function (d, k) { d.heart = k < 2; });
 
 var items = [];
 var filter = 0;
@@ -625,7 +632,7 @@ var ref = { link: "", ok: 0, kut: 0, tanga: 200 };
 function toItem(x) {
   return {
     id: x.id, name: x.name, anime: x.anime,
-    r: RMAP[String(x.rarity).toLowerCase()] || 1,
+    r: RMAP[String(x.rarity).toLowerCase()] || 1, heart: !!x.heart,
     raqam: x.raqam, count: x.count || 1,
     image: x.image ? (/^data:/.test(x.image) ? x.image : API_URL + x.image) : "",
   };
@@ -642,7 +649,7 @@ function tile(it, showCnt) {
     '</div>';
 }
 function miniCard(it, i) {
-  var on = fav && fav.id === it.id;
+  var on = !!it.heart;
   return '<div class="it" data-i="' + i + '">' + tile(it, true) +
     '<button class="heart' + (on ? " on" : "") + '" data-heart="1" aria-label="Sevimli">' + (on ? "♥" : "♡") + '</button>' +
     '<span class="nm">' + esc(it.name) + '</span><span class="mn">' + esc(it.anime) + '</span></div>';
@@ -660,7 +667,7 @@ function openModal(it, favBtn, title) {
     (title ? '<h3>' + title + '</h3>' : "") +
     '<div style="width:' + (title ? "80%" : "70%") + ';margin:0 auto">' + tile(it, false) + '</div>' +
     infoBlock(it) +
-    (favBtn ? '<button class="btn" data-act="fav">' + (fav && fav.id === it.id ? "💔 SEVIMLIDAN OLISH" : "❤ SEVIMLI QILISH") + '</button>' : "") +
+    (favBtn ? '<button class="btn" data-act="fav">' + (it.heart ? "💔 SEVIMLIDAN OLISH" : "♥ SEVIMLILARGA QO'SHISH") + '</button>' : "") +
     (favBtn && BZ.oraliq[RKEY[it.r]] ? '<button class="btn ghost" data-act="sell">🏪 SOTISHGA QO\'YISH</button>' : "") +
     '<button class="btn ghost" data-act="close">YOPISH</button>';
   $("modal").classList.add("on");
@@ -673,8 +680,10 @@ $("modal").addEventListener("click", function (e) {
   if (!b) return;
   if (b.dataset.act === "fav" && modalItem) {
     $("modal").classList.remove("on");
-    if (fav && fav.id === modalItem.id) clearFav(); else setFav(modalItem);
+    toggleHeart(modalItem);
   }
+  if (b.dataset.act === "pick") { $("modal").classList.remove("on"); setFav(items[Number(b.dataset.i)]); }
+  if (b.dataset.act === "unpick") { $("modal").classList.remove("on"); clearFav(); }
   if (b.dataset.act === "close") $("modal").classList.remove("on");
   if (b.dataset.act === "buy") sotibOl(b.dataset.k);
   if (b.dataset.act === "bzbuy") bzSotib(b.dataset.e);
@@ -709,7 +718,7 @@ function favRender() {
     bg.style.backgroundImage = "";
     bg.removeAttribute("data-ini");
     tag.className = "favtag hint";
-    tag.textContent = "KOLLEKSIYADA ♡ BOSIB SEVIMLI WAIFUNI TANLANG";
+    tag.textContent = "💗 SEVIMLI WAIFU TUGMASI ORQALI TANLANG";
     fr.classList.remove("has-fav");
     render();
     return;
@@ -749,18 +758,44 @@ async function clearFav() {
   toast("OLIB TASHLANDI");
 }
 
+$("favPick").addEventListener("click", function () {
+  var h = items.filter(function (x) { return x.heart; });
+  $("mcont").innerHTML = '<h3>💗 PROFIL SEVIMLISI</h3>' +
+    (h.length ? '<div class="hlist" style="max-height:48vh;overflow:auto">' + h.map(function (it) {
+      var on = fav && fav.id === it.id;
+      return '<div class="hrow" data-act="pick" data-i="' + items.indexOf(it) + '" style="--rc:var(--c' + it.r + ')"><div class="hi"><b>' + esc(it.name) + '</b><small>' + esc(RAR[it.r].n) + ' · ' + esc(it.anime) + '</small></div><span>' + (on ? "❤" : "") + '</span></div>';
+    }).join("") + '</div>' : '<div class="empty2">Avval Kolleksiyada waifularga ♡ bosing</div>') +
+    (fav ? '<button class="btn ghost" data-act="unpick">💔 OLIB TASHLASH</button>' : "") +
+    '<button class="btn ghost" data-act="close">YOPISH</button>';
+  $("modal").classList.add("on"); buzz();
+});
+
 /* ---------- Kolleksiya ---------- */
 function render() {
+  var sh = !!query;
   var list = items.filter(function (it) {
     if (filter && it.r !== filter) return false;
-    var t = (it.name + " " + it.anime).toLowerCase();
-    return !query || t.indexOf(query) > -1;
+    if (!sh) return it.heart;
+    return (it.name + " " + it.anime).toLowerCase().indexOf(query) > -1;
   });
-  $("grid").className = "grid c" + cols;
-  $("grid").innerHTML = list.length
-    ? list.map(function (it) { return miniCard(it, items.indexOf(it)); }).join("")
-    : '<div class="empty2">📭 WAIFU TOPILMADI</div>';
+  var g = $("grid");
+  g.className = "grid c" + cols;
+  var kor = sh ? list.slice(0, 12) : list;
+  g.innerHTML = kor.length ? kor.map(function (it) { return miniCard(it, items.indexOf(it)); }).join("") +
+    (sh && list.length > 12 ? '<div class="empty2">YANA ' + (list.length - 12) + ' TA — ANIQROQ YOZING</div>' : "")
+    : (sh ? '<div class="empty2">📭 WAIFU TOPILMADI</div>' : '<div class="empty2">♡ HALI SEVIMLI WAIFU YO\'Q<br><small>Qidiruvdan waifu topib ♡ bosing.<br>Qolgan waifularni botda inline orqali ko\'rasiz.</small></div>');
   $("seg").textContent = cols === 3 ? "▦ 3" : "▥ 4";
+}
+
+async function toggleHeart(it) {
+  var on = !it.heart;
+  if (onlayn()) {
+    var r = await api("/api/heart", { method: "POST", body: JSON.stringify({ id: it.id, on: on }) });
+    if (!r.ok) { toast("XATO, QAYTA URINING"); return; }
+  }
+  it.heart = on;
+  render(); buzz();
+  toast(on ? "♥ SEVIMLILARGA QO'SHILDI" : "SEVIMLILARDAN OLINDI");
 }
 
 function chips() {
@@ -782,13 +817,10 @@ $("q").addEventListener("input", function (e) {
   render();
 });
 $("grid").addEventListener("click", function (e) {
-  var c = e.target.closest(".it");
+  var c = e.target.closest(".it, .hrow");
   if (!c) return;
   var it = items[Number(c.dataset.i)];
-  if (e.target.closest("[data-heart]")) {
-    if (fav && fav.id === it.id) clearFav(); else setFav(it);
-    return;
-  }
+  if (e.target.closest("[data-heart]")) { toggleHeart(it); return; }
   openModal(it, true, "");
 });
 $("seg").addEventListener("click", function () {
