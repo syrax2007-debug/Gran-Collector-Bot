@@ -25,10 +25,10 @@ WILD_MODE = {50: 2.2, 100: 2.2, 250: 1.5, 500: 1.5, 1000: 2.6}  # har rejimda WI
 ASOS = (20, 19, 18, 14, 11, 8)
 
 # 3, 4, 5 ta bir xil : STAVKAGA ko'paytma (eng kichigi 0.5x). Har chiziq uchun.
-TOLOV = {0: (0.5, 1.5, 4), 1: (0.6, 1.8, 5), 2: (0.8, 2.5, 7),
-         3: (1.2, 4, 12), 4: (2, 7, 25), 5: (3.5, 14, 60)}
+TOLOV = {0: (0.5, 1.5, 4), 1: (1.0, 2.5, 7), 2: (1.2, 3.2, 8),
+         3: (1.5, 4.5, 11), 4: (2.3, 7, 20), 5: (4, 12, 40)}
 # 4 va 5 ta bir xil yutuqlarini rejimga qarab sozlovchi koeffitsient (3 ta uchun 1.0, ya'ni 0.5x saqlanadi)
-KOEF = {50: 1.0, 100: 1.0, 250: 0.6, 500: 0.6, 1000: 1.0}
+KOEF = {50: 0.5, 100: 0.5, 250: 0.4, 500: 0.4, 1000: 0.7}
 
 # Waifu bonusi
 BONUS_ASOS = (5, 8, 12)
@@ -56,6 +56,17 @@ CHIZIQLAR = (
 CHIZIQ_SONI = len(CHIZIQLAR)  # 20 ta yutuq chizig'i
 DARAJA = {3: "common", 4: "rare", 5: "epic", 6: "legendary", 7: "special"}
 NOM = {3: "ELITA", 4: "SUPER", 5: "MEGA", 6: "ULTRA", 7: "COLLECTOR"}
+
+
+def tolov(belgi, n, k):
+    # 3 ta : jadval; 4 va 5 ta : jadval x koeffitsient, lekin oldingisidan kam bo'lmaydi
+    t = TOLOV[belgi]
+    y = t[0]
+    if n >= 4:
+        y = max(t[1] * k, y * 1.3)
+    if n >= 5:
+        y = max(t[2] * k, y * 1.6)
+    return y
 
 
 def bugun():
@@ -105,7 +116,7 @@ def chiziqlar(g, stavka, bonus=False):
         if bonus:
             yutuq = 0
         else:
-            yutuq = TOLOV[belgi][n - 3] * stavka * (k if n > 3 else 1.0)
+            yutuq = tolov(belgi, n, k) * stavka
         chiq["tanga"] += yutuq
         chiq["chiziq"].append({"li": li, "s": belgi, "n": n, "yutuq": yutuq})
         for c in range(n):
