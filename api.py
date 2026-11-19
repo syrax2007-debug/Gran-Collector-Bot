@@ -137,9 +137,18 @@ async def kolleksiya_api(request):
     async for d in baza["collection"].find({"user_id": f["id"]}):
         sanash[d["char_id"]] = sanash.get(d["char_id"], 0) + 1
     royxat = []
+    u = await baza["users"].find_one({"_id": f["id"]}) or {}
+    yur = set(u.get("yuraklar") or [])
+    if "yuraklar" not in u:
+        # eski sevimli waifu birinchi yurak bo'ladi (bir martalik)
+        yur = {u["sevimli"]} if u.get("sevimli") else set()
+        await baza["users"].update_one(
+            {"_id": f["id"]}, {"$set": {"yuraklar": list(yur)}}
+        )
     async for p in baza["characters"].find({"_id": {"$in": list(sanash)}}):
         x = kartochka_json(p)
         x["count"] = sanash[p["_id"]]
+        x["heart"] = p["_id"] in yur
         royxat.append(x)
     return web.json_response(royxat)
 
@@ -224,6 +233,24 @@ async def me_api(request):
         "oyin_daraja": S.OYIN_DARAJA,
         "slot": slot_holat(u, tolangan),
     })
+
+
+async def yurak_api(request):
+    f = tekshir(request.headers.get("X-Init-Data", ""))
+    if not f:
+        raise web.HTTPUnauthorized(text="Ruxsat yo'q")
+    try:
+        data = await request.json()
+        oid = ObjectId(data.get("id"))
+    except Exception:
+        raise web.HTTPBadRequest(text="id xato")
+    baza = request.app["baza"]
+    await foydalanuvchi_ol(baza, f)
+    if not await baza["collection"].find_one({"user_id": f["id"], "char_id": oid}):
+        raise web.HTTPForbidden(text="Bu waifu sizda yo'q")
+    amal = "$addToSet" if data.get("on") else "$pull"
+    await baza["users"].update_one({"_id": f["id"]}, {amal: {"yuraklar": oid}})
+    return web.json_response({"ok": True, "on": bool(data.get("on"))})
 
 
 async def sevimli_api(request):
@@ -708,6 +735,7 @@ app.router.add_post("/api/veb-waifu", veb_waifu_api)
 app.router.add_post("/api/slot5/play", slot5_api)
 app.router.add_get("/api/bildirish", bildirish_api)
 app.router.add_post("/api/favorite", sevimli_api)
+app.router.add_post("/api/heart", yurak_api)
 app.router.add_post("/api/game/play", oyin_api)
 app.router.add_post("/api/slot/play", slot_api)
 app.router.add_get("/api/sandiq", sandiq_api)

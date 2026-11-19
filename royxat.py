@@ -18,6 +18,11 @@ RAQAM_MAX = 9999
 _qulf = asyncio.Lock()
 
 
+def _u(s):
+    # Telegram uzunlikni UTF-16 birligida sanaydi (emoji 2 ta bo'ladi)
+    return len(s.encode("utf-16-le")) // 2
+
+
 def manba_kalit(s):
     # Bo'sh joy va harf farqini hisobga olmaydi
     return " ".join(str(s).split()).casefold()
@@ -98,13 +103,13 @@ async def guruhlar_tuz(baza, sanash, royxat):
             belgi = DARAJA_EMOJI.get(str(p.get("rarity", "")).lower(), "🔸")
             qatorlar.append(
                 f"⤷〔{belgi}〕 {p.get('raqam', '?')} "
-                f"{html.escape(str(p['name']))} ×{sanash[p['_id']]}"
+                f"{html.escape(str(p.get('name', '?')))} ×{sanash[p['_id']]}"
             )
         natija.append((sarlavha, qatorlar))
     return natija
 
 
-def qismlarga_bol(guruhlar, maks=3500):
+def qismlarga_bol(guruhlar, maks=700):
     # Uzun ro'yxatni bir nechta xabarga bo'ladi
     qismlar = []
     joriy = ""
@@ -114,7 +119,7 @@ def qismlarga_bol(guruhlar, maks=3500):
         for q in qatorlar:
             kerak = (boshi if yangi_blok else "") + q + "\n"
             ajratgich = "\n" if (joriy and yangi_blok) else ""
-            if joriy and len(joriy) + len(ajratgich) + len(kerak) > maks:
+            if joriy and _u(joriy) + _u(ajratgich) + _u(kerak) > maks:
                 qismlar.append(joriy.rstrip())
                 joriy = ""
                 kerak = boshi + q + "\n"
@@ -126,7 +131,7 @@ def qismlarga_bol(guruhlar, maks=3500):
     return qismlar
 
 #yangi joy
-async def kolleksiya_malumot(baza, user_id, maks=800):
+async def kolleksiya_malumot(baza, user_id, maks=700):
     # Foydalanuvchi kolleksiyasini sahifalarga bo'lib beradi
     idlar = [
         d["char_id"]
@@ -142,19 +147,35 @@ async def kolleksiya_malumot(baza, user_id, maks=800):
         p
         async for p in baza["characters"].find({"_id": {"$in": list(sanash)}})
     ]
+    if not royxat:
+        return None
+    jami = sum(sanash[p["_id"]] for p in royxat)
+    # Veb-ilovada ♥ bosilgan waifular bo'lsa, ro'yxatda faqat shular chiqadi
+    yurakli = 0
+    u = await baza["users"].find_one({"_id": user_id}) or {}
+    yur = set(u.get("yuraklar") or [])
+    tanlangan = [p for p in royxat if p["_id"] in yur]
+    if tanlangan:
+        royxat = tanlangan
+        sanash = {p["_id"]: sanash[p["_id"]] for p in royxat}
+        yurakli = len(royxat)
     guruhlar = await guruhlar_tuz(baza, sanash, royxat)
     return {
-        "jami": len(idlar),
+        # Bazadan o'chirilgan waifular sanalmaydi (ro'yxat bilan mos bo'lsin)
+        "jami": jami,
+        "yurakli": yurakli,
         "royxat": royxat,
         "qismlar": qismlarga_bol(guruhlar, maks),
     }
 
 
-def kolleksiya_izohi(ism, jami, qismlar, sahifa):
+def kolleksiya_izohi(ism, jami, qismlar, sahifa, yurakli=0):
     # Rasm izohi: sarlavha + sahifa matni + sahifa raqami
     matn = (
         "✨━ ━━━━━━━━ ━✨\n"
-        f"🫧 {html.escape(ism)} kolleksiyasi |🧧 Jami : {jami} ta Waifu!\n\n"
+        f"🫧 {html.escape(str(ism)[:30])} kolleksiyasi |🧧 Jami : {jami} ta Waifu!\n"
+        + (f"♥ Sevimlilar : {yurakli} ta (qolganlari: inline 🔎)\n" if yurakli else "")
+        + "\n"
         + qismlar[sahifa]
     )
     if len(qismlar) > 1:

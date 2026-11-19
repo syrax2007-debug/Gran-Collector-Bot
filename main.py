@@ -691,7 +691,7 @@ async def kolleksiyam(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     qismlar = malumot["qismlar"]
-    izoh = kolleksiya_izohi(f.first_name, malumot["jami"], qismlar, 0)
+    izoh = kolleksiya_izohi(f.first_name, malumot["jami"], qismlar, 0, malumot.get("yurakli", 0))
     shaxsiy = update.effective_chat.type == "private" and ozi
     qatorlar = [
         list(r) for r in kolleksiya_tugmasi(f, shaxsiy).inline_keyboard
@@ -730,7 +730,8 @@ async def kolleksiya_sahifa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     rasmli = bool(q.message.photo)
     eski = (q.message.caption_html if rasmli else q.message.text_html) or ""
-    sarlavha = "\n".join(eski.split("\n")[:2])
+    satrlar = eski.split("\n")
+    sarlavha = "\n".join(satrlar[:3] if len(satrlar) > 2 and satrlar[2].startswith("♥") else satrlar[:2])
     yangi = sarlavha + "\n\n" + qismlar[sahifa]
     if len(qismlar) > 1:
         yangi += f"\n\n📄 {sahifa + 1}/{len(qismlar)}"
