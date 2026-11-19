@@ -771,6 +771,7 @@ $("favPick").addEventListener("click", function () {
 });
 
 /* ---------- Kolleksiya ---------- */
+var qLim = 12;
 function render() {
   var sh = !!query;
   var list = items.filter(function (it) {
@@ -780,9 +781,9 @@ function render() {
   });
   var g = $("grid");
   g.className = "grid c" + cols;
-  var kor = sh ? list.slice(0, 12) : list;
+  var kor = sh ? list.slice(0, qLim) : list;
   g.innerHTML = kor.length ? kor.map(function (it) { return miniCard(it, items.indexOf(it)); }).join("") +
-    (sh && list.length > 12 ? '<div class="empty2">YANA ' + (list.length - 12) + ' TA — ANIQROQ YOZING</div>' : "")
+    (sh && list.length > qLim ? '<div class="empty2"><button class="btn" id="qMore">KO\'PROQ (' + (list.length - qLim) + ')</button></div>' : "")
     : (sh ? '<div class="empty2">📭 WAIFU TOPILMADI</div>' : '<div class="empty2">♡ HALI SEVIMLI WAIFU YO\'Q<br><small>Qidiruvdan waifu topib ♡ bosing.<br>Qolgan waifularni botda inline orqali ko\'rasiz.</small></div>');
   $("seg").textContent = cols === 3 ? "▦ 3" : "▥ 4";
 }
@@ -813,10 +814,11 @@ $("chips").addEventListener("click", function (e) {
   chips(); render(); buzz();
 });
 $("q").addEventListener("input", function (e) {
-  query = e.target.value.trim().toLowerCase();
+  query = e.target.value.trim().toLowerCase(); qLim = 12;
   render();
 });
 $("grid").addEventListener("click", function (e) {
+  if (e.target.closest("#qMore")) { qLim += 12; render(); return; }
   var c = e.target.closest(".it, .hrow");
   if (!c) return;
   var it = items[Number(c.dataset.i)];
