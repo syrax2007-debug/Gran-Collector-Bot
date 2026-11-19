@@ -1430,8 +1430,14 @@ reelsInit(); slotInfo();
 var S5SYM = ["🌸", "🍡", "🎴", "💠", "🌟", "💎", "🔥", "⛩️", "🎁", "🃏", "💰"];
 var S5NOM = ["SAKURA", "DANGO", "HANAFUDA", "ELITA", "SUPER", "MEGA", "ULTRA", "COLLECTOR", "BONUS", "WILD", "TANGA"];
 var S5BW = [0, 0, 0, 41, 26, 16, 11, 6, 0, 0, 0], S5BW1 = [0, 0, 0, 37, 26, 17, 12, 7, 0, 0, 0], S5N = 20;
-var S5PAY = { 0: [0.5, 1.5, 4], 1: [0.6, 1.8, 5], 2: [0.8, 2.5, 7], 3: [1.2, 4, 12], 4: [2, 7, 25], 5: [3.5, 14, 60] };
-var S5K = { 50: 1, 100: 1, 250: 0.6, 500: 0.6, 1000: 1 }, S5WILD = { 50: 2.2, 100: 2.2, 250: 1.5, 500: 1.5, 1000: 2.6 };
+var S5PAY = { 0: [0.5, 1.5, 4], 1: [1.0, 2.5, 7], 2: [1.2, 3.2, 8], 3: [1.5, 4.5, 11], 4: [2.3, 7, 20], 5: [4, 12, 40] };
+function s5pay(f, n, k) {
+  var t = S5PAY[f], y = t[0];
+  if (n >= 4) y = Math.max(t[1] * k, y * 1.3);
+  if (n >= 5) y = Math.max(t[2] * k, y * 1.6);
+  return y;
+}
+var S5K = { 50: 0.5, 100: 0.5, 250: 0.4, 500: 0.4, 1000: 0.7 }, S5WILD = { 50: 2.2, 100: 2.2, 250: 1.5, 500: 1.5, 1000: 2.6 };
 var S5LN = [[1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2],[0,0,1,2,2],[2,2,1,0,0],[1,0,0,0,1],[1,2,2,2,1],[0,1,0,1,0],
   [2,1,2,1,2],[1,0,1,0,1],[1,2,1,2,1],[0,1,1,1,0],[2,1,1,1,2],[1,1,0,1,1],[1,1,2,1,1],[0,2,0,2,0],[2,0,2,0,2],[0,2,2,2,0]];
 var S5ST = [50, 100, 250, 500, 1000], S5TB = [50, 100, 1000], S5WB = [250, 500, 1000];
@@ -1454,7 +1460,7 @@ function s5eval(g, b, bonus) {
     if (f < lo || f > hi) return;
     var n = 0; while (n < 5 && (g[ln[n]][n] === f || (g[ln[n]][n] === 9 && f <= 5))) n++;
     if (n < 3) return;
-    if (!bonus) o.tanga += S5PAY[f][n - 3] * b * (n > 3 ? (S5K[s5bet] || 1) : 1);
+    if (!bonus) o.tanga += s5pay(f, n, S5K[s5bet] || 1) * b;
     o.bor[f] = 1;
     if (f > o.eng) o.eng = f;
     for (c = 0; c < n; c++) o.kataklar[ln[c] + "," + c] = "win";
@@ -1519,7 +1525,7 @@ function s5lnHtml() {
 function s5jad() {
   var t = "", s, k = S5K[s5bet] || 1, tb = S5TB.indexOf(s5bet) > -1, wb = S5WB.indexOf(s5bet) > -1;
   for (s = 0; s < 6; s++) {
-    var p = S5PAY[s].map(function (x, i) { return Math.round(x * s5bet * (i ? k : 1)); });
+    var p = [3, 4, 5].map(function (n) { return Math.round(s5pay(s, n, k) * s5bet); });
     t += '<div class="s5row"><span>' + S5SYM[s] + " " + S5NOM[s] + '</span><span>' + p[0] + " • " + p[1] + " • " + p[2] + "</span></div>";
   }
   var h = "<h3>🎰 SLOT 5×3</h3>" + S5LN.length + " TA YUTUQ CHIZIG'I. CHAPDAN O'NGGA KETMA-KET 3, 4, 5 TA BIR XIL BELGI = YUTUQ. ENG KICHIK YUTUQ STAVKANING YARMI (0.5×).<br>🃏 WILD : HAMMA BARABANDA CHIQADI, 🌸...💎 O'RNINI BOSADI.<br><br><b>🪙 " + s5bet + " STAVKADA CHIZIQ YUTUQLARI (3 • 4 • 5 TA)</b>" + t;
