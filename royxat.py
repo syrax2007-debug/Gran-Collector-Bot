@@ -100,7 +100,7 @@ async def guruhlar_tuz(baza, sanash, royxat):
         )
         qatorlar = []
         for p in g["royxat"]:
-            belgi = DARAJA_EMOJI.get(str(p.get("rarity", "")).lower(), "🔸")
+            belgi = p.get("emoji") or DARAJA_EMOJI.get(str(p.get("rarity", "")).lower(), "🔸")
             qatorlar.append(
                 f"⤷〔{belgi}〕 {p.get('raqam', '?')} "
                 f"{html.escape(str(p.get('name', '?')))} ×{sanash[p['_id']]}"

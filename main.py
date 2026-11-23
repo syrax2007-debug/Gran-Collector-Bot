@@ -972,6 +972,8 @@ ilova.add_handler(
 )
 ilova.add_handler(InlineQueryHandler(inline_qidiruv))
 admin_vositalar.ulash(ilova, baza, ADMIN_ID, nodirlik_kaliti, NODIRLIK)
+import yuklash_tugma
+yuklash_tugma.ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti)
 referal.ulash(ilova, baza)
 import bildirish
 bildirish.ulash(ilova, baza, mini_app_tugmasi)
