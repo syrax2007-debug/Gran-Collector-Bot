@@ -8,7 +8,8 @@ from telegram.ext import ContextTypes, TypeHandler
 # Har bir sozlama: kalit: (standart, eng kam, eng ko'p, nomi)
 RO = {
     # 🎴 Chiqish
-    "event_foiz": (20, 0, 100, "Event ulushi (%)"),
+    "event_foiz": (20, 0, 100, "Event ulushi (%) - faqat event_oraliq 0 bo'lsa"),
+    "event_oraliq": (300, 0, 100000, "Event Collector asosiy guruhda har nechta xabardan keyin chiqadi (0 = foiz bilan)"),
     "w_common": (60, 0, 1000, "ELITA chiqish vazni"),
     "w_rare": (25, 0, 1000, "SUPER chiqish vazni"),
     "w_epic": (10, 0, 1000, "MEGA chiqish vazni"),
@@ -88,7 +89,7 @@ RO = {
 # Panel bo'limlari: (kalit, nomi, [sozlamalar])
 BOLIMLAR = [
     ("chiqish", "🎴 Chiqish",
-     ["oraliq", "event_foiz", "w_common", "w_rare", "w_epic", "w_legendary", "w_special"]),
+     ["oraliq", "event_oraliq", "event_foiz", "w_common", "w_rare", "w_epic", "w_legendary", "w_special"]),
     ("bonus", "🎁 Bonuslar",
      ["xush_tanga", "kunlik_bonus", "kunlik_qosh", "kunlik_seriya",
       "ruletka_limit", "ruletka_aralik", "ruletka_tanaffus",

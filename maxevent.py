@@ -1,5 +1,4 @@
 import html
-import logging
 import sozlama as S
 import random
 import re
@@ -236,7 +235,11 @@ async def event_buyruq(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await xabar.reply_text(
         f"✅ Event yoqildi : {tanlangan[0]}\n"
         f"⛩️ Collector waifular : {tanlangan[1]} ta\n"
-        f"🎲 Chiqish ulushi : {S.ol('event_foiz')}%"
+        + (
+            f"🎲 Asosiy guruhda har {S.ol('event_oraliq')} xabardan keyin chiqadi"
+            if S.ol("event_oraliq") > 0
+            else f"🎲 Chiqish ulushi : {S.ol('event_foiz')}%"
+        )
     )
 
 
@@ -279,9 +282,9 @@ async def event_qosh(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-async def event_personaji():
-    # Event faol bo'lsa va tasodif tushsa, shu eventdan Collector beradi
-    if random.random() * 100 >= S.ol('event_foiz'):
+async def event_personaji(majbur=False):
+    # Event faol bo'lsa va tasodif tushsa (majbur bo'lsa har doim), Collector beradi
+    if not majbur and random.random() * 100 >= S.ol('event_foiz'):
         return None
     d = await _baza["sozlamalar"].find_one({"_id": "event"})
     nom = (d or {}).get("nom")
@@ -299,6 +302,41 @@ async def event_personaji():
         return None
     return await _baza["characters"].find_one(
         shart, skip=random.randrange(soni)
+    )
+
+
+_event_hisob = 0
+
+
+async def event_sana(update, context):
+    # Asosiy guruhda har N ta xabardan keyin faol eventning Collector waifusi chiqadi
+    # (N = /panel dagi event_oraliq; 0 bo'lsa bu yo'l o'chiq, foiz ishlaydi)
+    global _event_hisob
+    n = S.ol("event_oraliq")
+    chat = update.effective_chat
+    if n <= 0 or (chat.username or "").lower() != _rasmiy:
+        return
+    _event_hisob += 1
+    if _event_hisob < n:
+        return
+    if await max_kutilyapti(chat.id):  # MAX hali topilmagan bo'lsa, tegmaymiz
+        return
+    p = await event_personaji(majbur=True)
+    if not p:  # event yoqilmagan yoki Collector yo'q: hisobni to'xtatmaymiz
+        return
+    _event_hisob = 0
+    await _baza["spawns"].update_one(
+        {"_id": chat.id}, {"$set": {"char_id": p["_id"]}}, upsert=True
+    )
+    await context.bot.send_photo(
+        chat.id, p["file_id"],
+        caption=(
+            "✨━ ━━━━━━━━━ ━✨\n"
+            " ⛩️ EVENT COLLECTOR CHIQDI!\n"
+            f"🎗️ RANK : {_yulduz(p)}\n\n"
+            "🐾   <code>/topish ism</code> 🇺🇿"
+        ),
+        parse_mode="HTML",
     )
 
 

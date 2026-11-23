@@ -1,7 +1,7 @@
 """Tugmali /yuklash (faqat admin, shaxsiy chatda).
 
 Oqim: /yuklash -> rasm -> ism -> anime (bosh harf -> tugma) -> daraja ->
-(Collector/Max: emoji) -> (Collector: event, event emoji) -> tasdiqlash.
+(Collector: event) -> tasdiqlash.
 Anime, event va emojilar bazadagi waifularning o'zidan yig'iladi, shuning
 uchun alohida ro'yxat saqlash shart emas. Eski "rasm + /yuklash Ism | ..."
 usuli o'zgarmagan.
@@ -22,11 +22,6 @@ KALIT = "yt"  # context.user_data kaliti
 
 def _k(s):
     return html.escape(str(s))
-
-
-def _emoji_mi(t):
-    t = (t or "").strip()
-    return 0 < len(t) <= 12 and not any(c.isalnum() for c in t)
 
 
 def _qator(tugmalar, n):
@@ -55,21 +50,13 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
         return d
 
     async def eventlar():
-        # [(event nomi, emoji yoki "")]
-        d = {}
-        async for p in chars.find({"event": {"$exists": True}}, {"event": 1, "event_emoji": 1}):
+        # [(event nomi, "")]
+        d = set()
+        async for p in chars.find({"event": {"$exists": True}}, {"event": 1}):
             e = " ".join(str(p.get("event", "")).split())
-            if e and (e not in d or not d[e]):
-                d[e] = p.get("event_emoji") or ""
-        return sorted(d.items())
-
-    async def emojilar():
-        s = []
-        async for p in chars.find({"emoji": {"$exists": True}}, {"emoji": 1}):
-            e = p.get("emoji")
-            if e and e not in s:
-                s.append(e)
-        return s[:24]
+            if e:
+                d.add(e)
+        return [(e, "") for e in sorted(d)]
 
     def bekor_qatori():
         return [T("❌ Bekor", callback_data="yt:x")]
@@ -114,20 +101,6 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
             klav,
         )
 
-    async def q_emoji(update, st):
-        st["qadam"] = "emoji"
-        em = await emojilar()
-        klav = _qator([T(e, callback_data=f"yt:e:{i}") for i, e in enumerate(em)], 6)
-        st["emojilar"] = em
-        klav.append(bekor_qatori())
-        await yuborish(
-            update,
-            f"🎴 <b>{_k(st['ism'])}</b> ({NODIRLIK[st['daraja']][0]})\n\n"
-            "4️⃣ Waifu uchun <b>1 ta emoji</b> yuboring"
-            + (" yoki saqlanganidan tanlang:" if em else ":"),
-            klav,
-        )
-
     async def q_event(update, st):
         st["qadam"] = "event"
         ev = await eventlar()
@@ -135,25 +108,17 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
         klav = _qator([T(n, callback_data=f"yt:v:{i}") for i, (n, _) in enumerate(ev)], 2)
         klav.append([T("✍️ Yangi event", callback_data="yt:ev")])
         klav.append(bekor_qatori())
-        await yuborish(update, "5️⃣ <b>Event</b> nomini tanlang yoki yangisini yozing:", klav)
-
-    async def q_event_emoji(update, st):
-        st["qadam"] = "event_emoji"
-        await yuborish(
-            update,
-            f"🎪 Event: <b>{_k(st['event'])}</b>\n\n6️⃣ Event uchun <b>1 ta emoji</b> yuboring:",
-            [bekor_qatori()],
-        )
+        await yuborish(update, "4️⃣ <b>Event</b> nomini tanlang yoki yangisini yozing:", klav)
 
     async def q_tasdiq(update, st):
         st["qadam"] = "tasdiq"
         n = NODIRLIK[st["daraja"]][0]
         matn = (
             "📝 <b>Tekshiring:</b>\n"
-            f"👤 Ism : {_k(st['ism'])}{' ' + st['emoji'] if st.get('emoji') else ''}\n"
+            f"👤 Ism : {_k(st['ism'])}\n"
             f"🎬 Manba : {_k(st['anime'])}\n"
             f"🏷 Daraja : {n}\n"
-            + (f"🎪 Event : {st.get('event_emoji', '')} {_k(st['event'])}\n" if st.get("event") else "")
+            + (f"🎪 Event : {_k(st['event'])}\n" if st.get("event") else "")
         )
         klav = [
             [T("✅ Yuklash", callback_data="yt:ok"), T("✏️ Qayta", callback_data="yt:re")],
@@ -170,10 +135,6 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
         }
         if st.get("event"):
             h["event"] = st["event"]
-        if st.get("event_emoji"):
-            h["event_emoji"] = st["event_emoji"]
-        if st.get("emoji"):
-            h["emoji"] = st["emoji"]
         await chars.insert_one(h)
         jami = await chars.count_documents({})
         await yuborish(
@@ -227,33 +188,15 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
             else:
                 st["anime"] = t
                 await q_daraja(update, st)
-        elif q == "emoji":
-            if not _emoji_mi(t):
-                await update.message.reply_text("Faqat 1 ta emoji yuboring (harf yoki raqam emas).")
-            else:
-                st["emoji"] = t
-                await keyin_emoji(update, st)
         elif q == "event_yangi":
             if not t or len(t) > 60:
                 await update.message.reply_text("Event nomi 1–60 belgi bo'lishi kerak.")
             else:
                 st["event"] = t
-                await q_event_emoji(update, st)
-        elif q == "event_emoji":
-            if not _emoji_mi(t):
-                await update.message.reply_text("Faqat 1 ta emoji yuboring.")
-            else:
-                st["event_emoji"] = t
                 await q_tasdiq(update, st)
         else:
             return
         raise ApplicationHandlerStop
-
-    async def keyin_emoji(update, st):
-        if st["daraja"] == "special":
-            await q_event(update, st)
-        else:
-            await q_tasdiq(update, st)
 
     async def tugma(update, context):
         q = update.callback_query
@@ -302,29 +245,19 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
             if d[2] not in NODIRLIK:
                 return
             st["daraja"] = d[2]
-            for k in ("emoji", "event", "event_emoji"):
+            for k in ("event",):
                 st.pop(k, None)
-            if d[2] in ("special", "max"):
-                await q_emoji(update, st)
+            if d[2] == "special":
+                await q_event(update, st)
             else:
                 await q_tasdiq(update, st)
-        elif amal == "e":
-            try:
-                st["emoji"] = st["emojilar"][int(d[2])]
-            except Exception:
-                return
-            await keyin_emoji(update, st)
         elif amal == "v":
             try:
                 n, em = st["eventlar"][int(d[2])]
             except Exception:
                 return
             st["event"] = n
-            if em:
-                st["event_emoji"] = em
-                await q_tasdiq(update, st)
-            else:
-                await q_event_emoji(update, st)
+            await q_tasdiq(update, st)
         elif amal == "ev":
             st["qadam"] = "event_yangi"
             await yuborish(update, "✍️ Yangi <b>event nomini</b> yozing:", [bekor_qatori()])
@@ -343,8 +276,8 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
 
     private = filters.ChatType.PRIVATE
     # Oddiy "/yuklash" (rasmsiz). Rasm+izoh usuli eski ishlovchida qoladi.
-    ilova.add_handler(CommandHandler("yuklash", boshlash, filters=private & filters.UpdateType.MESSAGE), group=-2)
-    ilova.add_handler(CommandHandler("yuklash_bekor", bekor_buyruq, filters=private), group=-2)
-    ilova.add_handler(MessageHandler(private & filters.PHOTO & ~filters.CaptionRegex(r"^/(yuklash|upload)"), rasm), group=-2)
-    ilova.add_handler(MessageHandler(private & filters.TEXT & ~filters.COMMAND, matn), group=-2)
-    ilova.add_handler(CallbackQueryHandler(tugma, pattern=r"^yt:"), group=-2)
+    ilova.add_handler(CommandHandler("yuklash", boshlash, filters=private & filters.UpdateType.MESSAGE), group=-4)
+    ilova.add_handler(CommandHandler("yuklash_bekor", bekor_buyruq, filters=private), group=-4)
+    ilova.add_handler(MessageHandler(private & filters.PHOTO & ~filters.CaptionRegex(r"^/(yuklash|upload)"), rasm), group=-4)
+    ilova.add_handler(MessageHandler(private & filters.TEXT & ~filters.COMMAND, matn), group=-4)
+    ilova.add_handler(CallbackQueryHandler(tugma, pattern=r"^yt:"), group=-4)

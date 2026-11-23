@@ -18,6 +18,11 @@ RAQAM_MAX = 9999
 _qulf = asyncio.Lock()
 
 
+def ism_belgi(p):
+    # Waifu ismi (HTML uchun xavfsiz)
+    return html.escape(str(p.get("name", "?")))
+
+
 def _u(s):
     # Telegram uzunlikni UTF-16 birligida sanaydi (emoji 2 ta bo'ladi)
     return len(s.encode("utf-16-le")) // 2
@@ -100,7 +105,7 @@ async def guruhlar_tuz(baza, sanash, royxat):
         )
         qatorlar = []
         for p in g["royxat"]:
-            belgi = p.get("emoji") or DARAJA_EMOJI.get(str(p.get("rarity", "")).lower(), "🔸")
+            belgi = DARAJA_EMOJI.get(str(p.get("rarity", "")).lower(), "🔸")
             qatorlar.append(
                 f"⤷〔{belgi}〕 {p.get('raqam', '?')} "
                 f"{html.escape(str(p.get('name', '?')))} ×{sanash[p['_id']]}"

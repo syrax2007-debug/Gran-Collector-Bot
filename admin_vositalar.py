@@ -56,7 +56,10 @@ async def yangila(q, matn):
 ADMIN_BOLIMLAR = {
     "y": ("📤 Yuklash",
           "📤 <b>Waifu yuklash</b>\n\n"
-          "Rasm yuboring, izohga yozing:\n"
+          "🔘 <b>Tugmali:</b> /yuklash yozing, rasm yuboring, ism yozing, "
+          "keyin anime, daraja (va emoji, event) tugmalardan tanlanadi. "
+          "Bekor: /yuklash_bekor\n\n"
+          "✍️ <b>Tez usul:</b> rasm yuboring, izohga yozing:\n"
           "<code>/yuklash Ism | Manba | Daraja</code>\n"
           "Daraja: Elita, Super, Mega, Ultra, Collector yoki Max\n\n"
           "⛩️ Collector uchun event nomi ham kerak:\n"
@@ -86,6 +89,29 @@ ADMIN_BOLIMLAR = {
           "/iqtisod — daromad va narx hisoboti\n"
           "/statistika — hisobot\n"
           "<code>/oraliq 75</code> — chiqish oralig'i"),
+    "p": ("👑 MAX / Promo",
+          "👑 <b>MAX waifu</b>\n\n"
+          "<b>Promo kod bilan:</b>\n"
+          "<code>/maxkod</code> — tasodifiy MAX waifu uchun 5 belgili 1 martalik kod\n"
+          "<code>/maxkod 4821</code> — aniq MAX waifu uchun\n"
+          "/maxkodlar — ishlatilmagan kodlar\n"
+          "<code>/maxkod_ochir KOD</code> — kodni bekor qilish\n"
+          "Bot bergan kodni <code>*AB7K2*</code> ko'rinishida asosiy guruhdagi "
+          "xabaringizga yashiring. Birinchi topgan odam MAX waifuni oladi.\n\n"
+          "<b>Xabar soni bilan:</b>\n"
+          "<code>/max 500</code> — asosiy guruhda 500 so'zdan keyin MAX chiqadi\n"
+          "<code>/max 0</code> — to'xtatish, /max — holat\n\n"
+          "MAX va Collector eventi faqat asosiy guruhda chiqadi."),
+    "e": ("⛩️ Event",
+          "⛩️ <b>Collector eventi</b>\n\n"
+          "/event — eventlar ro'yxati\n"
+          "<code>/event Qish 2026</code> — eventni yoqish\n"
+          "/eventtugat — to'xtatish\n"
+          "<code>/eventqosh 4821 | Qish 2026</code> — waifuni eventga qo'shish\n"
+          "<code>/eventochir Eski | Yangi</code> — event nomini almashtirish\n\n"
+          "Event Collector faqat asosiy guruhda chiqadi: har N ta xabardan keyin. "
+          "N ni /panel → 🎴 Chiqish → <b>event_oraliq</b> dan o'zgartirasiz "
+          "(0 bo'lsa foiz bilan chiqadi)."),
     "z": ("💾 Zaxira",
           "💾 <b>Zaxira</b>\n\n"
           "/zaxira — bazaning nusxasi\n"
@@ -93,8 +119,33 @@ ADMIN_BOLIMLAR = {
 }
 
 
+# Oddiy foydalanuvchi buyruqlari (qolganlari adminniki deb ko'rsatiladi)
+ODDIY_BUYRUQLAR = {
+    "start", "id", "balans", "bonus", "kunlik", "ruletka", "slot", "topish",
+    "guess", "kolleksiya", "harem", "sovga", "gift", "narx", "claim", "profil",
+    "profile", "trade", "haftalik", "hafta", "dokon", "sotish", "elonlarim",
+    "top", "ega", "waifu", "coin", "holat", "bildirish",
+}
+_ilova = None
+
+
+def _hamma_buyruqlar():
+    # Botga ulangan hamma buyruqlar ichidan oddiylarini olib tashlab, avtomatik ro'yxat
+    nomlar = set()
+    for guruh in _ilova.handlers.values():
+        for h in guruh:
+            for k in getattr(h, "commands", ()):
+                nomlar.add(k)
+    adminniki = sorted(n for n in nomlar if n not in ODDIY_BUYRUQLAR)
+    return (
+        "📋 <b>Barcha admin buyruqlari</b> (avtomatik)\n\n"
+        + "  ".join(f"/{n}" for n in adminniki)
+        + "\n\nBatafsil: bo'limlarni ochib ko'ring."
+    )
+
+
 def _admin_menyu():
-    royxat = list(ADMIN_BOLIMLAR.items())
+    royxat = list(ADMIN_BOLIMLAR.items()) + [("h", ("📋 Hammasi", ""))]
     qatorlar, juft = [], []
     for k, (nom, _) in royxat:
         juft.append(InlineKeyboardButton(nom, callback_data=f"ad:{k}"))
@@ -123,10 +174,10 @@ async def admin_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await q.answer("Bu faqat admin uchun", show_alert=True)
         return
     k = q.data.split(":")[1]
-    if k == "m" or k not in ADMIN_BOLIMLAR:
+    if k == "m" or (k not in ADMIN_BOLIMLAR and k != "h"):
         matn, t = _admin_menyu()
     else:
-        matn = ADMIN_BOLIMLAR[k][1]
+        matn = _hamma_buyruqlar() if k == "h" else ADMIN_BOLIMLAR[k][1]
         t = InlineKeyboardMarkup(
             [[InlineKeyboardButton("⬅️ Orqaga", callback_data="ad:m")]]
         )
@@ -446,7 +497,8 @@ async def tiklash_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------- main.py ga ulash ----------
 def ulash(ilova, baza, admin_id, nodirlik_kaliti, nodirlik):
-    global _baza, _admin_id, _kalit, _nodirlik
+    global _baza, _admin_id, _kalit, _nodirlik, _ilova
+    _ilova = ilova
     _baza = baza
     _admin_id = admin_id
     _kalit = nodirlik_kaliti

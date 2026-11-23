@@ -11,7 +11,7 @@ from bson import ObjectId
 from pymongo import AsyncMongoClient
 from stil import stil, StilBot
 from royxat import (
-    raqam_tuzat, keyingi_raqam, kolleksiya_malumot, kolleksiya_izohi,
+    raqam_tuzat, keyingi_raqam, kolleksiya_malumot, kolleksiya_izohi, ism_belgi,
 )
 import admin_vositalar
 import referal
@@ -145,7 +145,7 @@ def yulduz_matni(p):
 def kartochka(p):
     # Inline natijalar uchun qisqa kartochka
     return (
-        f"🗽 Ismi : {K(p['name'])}\n"
+        f"🗽 Ismi : {ism_belgi(p)}\n"
         f"🎗️ RANK : {yulduz_matni(p)}\n"
         f"👀 Manba : {K(p['anime'])}\n"
         f"🔢 Raqam : {p.get('raqam', '?')}"
@@ -172,11 +172,12 @@ def kolleksiya_tugmasi(egasi, shaxsiy=False):
     return InlineKeyboardMarkup(qatorlar)
 
 
-async def tasodifiy_personaj():
-    # Event faol bo'lsa, ba'zan shu eventning Collector waifusi chiqadi
-    p = await maxevent.event_personaji()
-    if p:
-        return p
+async def tasodifiy_personaj(asosiy=False):
+    # Collector eventi faqat asosiy guruhda chiqadi
+    if asosiy and S.ol("event_oraliq") <= 0:
+        p = await maxevent.event_personaji()
+        if p:
+            return p
     # Chiqish vaznlari /panel dan o'zgartiriladi (max faqat /max orqali)
     vazn = {k: S.ol("w_" + k) for k in NODIRLIK if k != "max"}
     kalitlar = [k for k in vazn if vazn[k] > 0]
@@ -364,7 +365,7 @@ async def bonus(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"{RAMKA}\n"
         "🎁 Xush kelibsiz bonusi !\n\n"
         f"🫧 {K(f.first_name)} sovg'a oldi !\n"
-        f"🗽 Ismi : {K(p['name'])}\n"
+        f"🗽 Ismi : {ism_belgi(p)}\n"
         f"🎗️ RANK : {yulduz_matni(p)}\n"
         f"👀 Manba : {K(p['anime'])}\n"
         f"💰 Tanga : +{S.ol('xush_tanga')}\n\n"
@@ -597,6 +598,10 @@ async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await maxevent.sana(update, context)
     except Exception as xato:
         logging.warning("MAX sanashda xato: %s", xato)
+    try:
+        await maxevent.event_sana(update, context)
+    except Exception as xato:
+        logging.warning("Event sanashda xato: %s", xato)
     hisoblagich[chat_id] = hisoblagich.get(chat_id, 0) + 1
     if hisoblagich[chat_id] < await adminplus.oraliq_ol(CHIQISH_ORALIGI):
         return
@@ -604,7 +609,8 @@ async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # MAX personaj hali topilmagan bo'lsa, uning ustiga oddiysi chiqmasin
     if await maxevent.max_kutilyapti(chat_id):
         return
-    p = await tasodifiy_personaj()
+    asosiy = (update.effective_chat.username or "").lower() == RASMIY_GURUH
+    p = await tasodifiy_personaj(asosiy)
     if not p:
         return
     await chiqqanlar.update_one(
@@ -641,7 +647,7 @@ async def topish(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await haftalik.qosh(baza, f.id, "waifu", 1)
         matn = (
             f"🫧 {K(f.first_name)} waifuni topdi !\n\n"
-            f"🗽 Ismi : {K(p['name'])}\n"
+            f"🗽 Ismi : {ism_belgi(p)}\n"
             f"🎗️ RANK : {yulduz_matni(p)}\n"
             f"👀 Manba : {K(p['anime'])}\n"
             "Kolleksiyangizga Qo'shildi !🤙\n\n"
@@ -840,7 +846,7 @@ async def sovga(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"{RAMKA}\n"
         "🎁 Sovga\n\n"
         f"🫧 {eslatma(yuboruvchi)} ➜ {eslatma(oluvchi)}\n"
-        f"🗽 Ismi : {K(tanlangan['name'])}\n"
+        f"🗽 Ismi : {ism_belgi(tanlangan)}\n"
         f"🎗️ RANK : {yulduz_matni(tanlangan)}\n\n"
         "Tasdiqlaysizmi ?",
         parse_mode="HTML",
@@ -974,6 +980,8 @@ ilova.add_handler(InlineQueryHandler(inline_qidiruv))
 admin_vositalar.ulash(ilova, baza, ADMIN_ID, nodirlik_kaliti, NODIRLIK)
 import yuklash_tugma
 yuklash_tugma.ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti)
+import promo
+promo.ulash(ilova, baza, ADMIN_ID, RASMIY_GURUH, yulduz_matni)
 referal.ulash(ilova, baza)
 import bildirish
 bildirish.ulash(ilova, baza, mini_app_tugmasi)
