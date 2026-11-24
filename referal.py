@@ -1,4 +1,5 @@
 import asyncio
+import os
 import logging
 import time
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -8,9 +9,12 @@ import haftalik
 import sozlama as S
 
 KANAL_ID = "@Grab_Collector"
-GURUH_ID = "@Grab_Collector_Chat"
+# Maxfiy (arizali) guruh uchun Render'da GURUH_ID (masalan -1001234567890) va GURUH_URL (taklif havolasi) qo'yiladi
+GURUH_ID = os.getenv("GURUH_ID", "@Grab_Collector_Chat").strip()
+if GURUH_ID.lstrip("-").isdigit():
+    GURUH_ID = int(GURUH_ID)
 KANAL_URL = "https://t.me/Grab_Collector"
-GURUH_URL = "https://t.me/Grab_Collector_Chat"
+GURUH_URL = os.getenv("GURUH_URL", "https://t.me/Grab_Collector_Chat").strip()
 REFERAL_TANGA = 250  # har bir shartni bajargan do'st uchun
 
 _baza = None
@@ -111,7 +115,8 @@ async def ref_tekshir(update: Update, context: ContextTypes.DEFAULT_TYPE):
             qolgan.append("📢 Kanalga")
         if not guruhda:
             qolgan.append("💬 Guruhga")
-        await q.answer(" va ".join(qolgan) + " qo'shiling !", show_alert=True)
+        izoh = "\nGuruhga ariza yuborgan bo'lsangiz, admin qabul qilishini kuting." if not guruhda else ""
+        await q.answer(" va ".join(qolgan) + " qo'shiling !" + izoh, show_alert=True)
         return
     r = await users.update_one(
         {"_id": f.id, "ref_tolangan": {"$ne": True}, "ref_tasdiq": {"$exists": False}},
@@ -216,4 +221,4 @@ def ulash(ilova, baza):
     ilova.add_handler(CommandHandler("start", ref_yozish), group=-1)
     ilova.add_handler(CommandHandler("start", ref_xabar), group=1)
     ilova.add_handler(CallbackQueryHandler(ref_tekshir, pattern=r"^rt$"))
-    ilova.add_handler(TypeHandler(Update, _kutilgan, block=False), group=-4)
+    ilova.add_handler(TypeHandler(Update, _kutilgan, block=False), group=-10)

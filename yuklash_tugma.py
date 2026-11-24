@@ -15,6 +15,7 @@ from telegram.ext import (
     MessageHandler, filters,
 )
 
+import yordamchi
 from royxat import keyingi_raqam, manba_kalit, raqam_tuzat
 
 KALIT = "yt"  # context.user_data kaliti
@@ -35,10 +36,22 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
     def holat(context):
         return context.user_data.get(KALIT)
 
-    def admin_mi(update):
+    async def admin_mi(update):
+        # Admin yoki yordamchi (faqat shaxsiy chatda)
         u = update.effective_user
         c = update.effective_chat
-        return bool(u and u.id == ADMIN_ID and c and c.type == "private")
+        if not (u and c and c.type == "private"):
+            return False
+        return u.id == ADMIN_ID or await yordamchi.yordamchi_mi(u.id)
+
+    def rol_ol(update):
+        return "admin" if update.effective_user.id == ADMIN_ID else "yordamchi"
+
+    async def ruxsatli(st, uid):
+        # Shu odam tanlay oladigan darajalar
+        if st.get("rol") != "yordamchi":
+            return list(TARTIB)
+        return await yordamchi.darajalar(uid)
 
     async def animelar():
         # {kalit: ko'rinadigan nom}
@@ -91,8 +104,9 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
 
     async def q_daraja(update, st):
         st["qadam"] = "daraja"
+        ruxsat = await ruxsatli(st, update.effective_user.id)
         klav = _qator(
-            [T(NODIRLIK[k][0], callback_data=f"yt:d:{k}") for k in TARTIB], 2
+            [T(NODIRLIK[k][0], callback_data=f"yt:d:{k}") for k in TARTIB if k in ruxsat], 2
         )
         klav.append(bekor_qatori())
         await yuborish(
@@ -126,7 +140,23 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
         ]
         await yuborish(update, matn, klav)
 
-    async def saqla(update, st):
+    async def saqla(update, context, st):
+        if st.get("rol") == "yordamchi":
+            u = update.effective_user
+            h = {
+                "name": st["ism"], "anime": st["anime"], "rarity": st["daraja"],
+                "file_id": st["file_id"], "yukladi": u.id, "yukladi_ism": u.first_name,
+            }
+            if st.get("event"):
+                h["event"] = st["event"]
+            raqam = await yordamchi.kutilmoqdaga(context.bot, h)
+            await yuborish(
+                update,
+                (f"✅ {_k(st['ism'])} qo'shildi (№ {raqam})." if raqam else
+                 f"⏳ {_k(st['ism'])} adminga yuborildi.\nTasdiqlangach o'yinga chiqadi, sizga xabar beraman."),
+                [[T("➕ Yana yuklash", callback_data="yt:new")]],
+            )
+            return
         await raqam_tuzat(baza)
         raqam = await keyingi_raqam(baza)
         h = {
@@ -147,23 +177,23 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
 
     # ---------- Buyruq va xabarlar ----------
     async def boshlash(update, context):
-        if not admin_mi(update):
+        if not await admin_mi(update):
             return
-        context.user_data[KALIT] = {"qadam": "rasm"}
+        context.user_data[KALIT] = {"qadam": "rasm", "rol": rol_ol(update)}
         await update.message.reply_text(
             "📸 Waifu rasmini yuboring.\n(Bekor qilish: /yuklash_bekor)"
         )
         raise ApplicationHandlerStop
 
     async def bekor_buyruq(update, context):
-        if not admin_mi(update):
+        if not await admin_mi(update):
             return
         context.user_data.pop(KALIT, None)
         await update.message.reply_text("❌ Bekor qilindi")
 
     async def rasm(update, context):
         st = holat(context)
-        if not admin_mi(update) or not st or st["qadam"] != "rasm":
+        if not await admin_mi(update) or not st or st["qadam"] != "rasm":
             return
         st["file_id"] = update.message.photo[-1].file_id
         st["qadam"] = "ism"
@@ -172,7 +202,7 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
 
     async def matn(update, context):
         st = holat(context)
-        if not admin_mi(update) or not st:
+        if not await admin_mi(update) or not st:
             return
         t = " ".join((update.message.text or "").split())
         q = st["qadam"]
@@ -200,7 +230,7 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
 
     async def tugma(update, context):
         q = update.callback_query
-        if not admin_mi(update):
+        if not await admin_mi(update):
             await q.answer()
             return
         d = q.data.split(":")
@@ -212,7 +242,7 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
             await yuborish(update, "❌ Bekor qilindi")
             return
         if amal == "new":
-            context.user_data[KALIT] = {"qadam": "rasm"}
+            context.user_data[KALIT] = {"qadam": "rasm", "rol": rol_ol(update)}
             await q.answer()
             await q.message.reply_text("📸 Waifu rasmini yuboring.")
             return
@@ -242,7 +272,7 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
             st["qadam"] = "anime_yangi"
             await yuborish(update, "✍️ Yangi <b>anime nomini</b> yozing:", [bekor_qatori()])
         elif amal == "d":
-            if d[2] not in NODIRLIK:
+            if d[2] not in NODIRLIK or d[2] not in await ruxsatli(st, update.effective_user.id):
                 return
             st["daraja"] = d[2]
             for k in ("event",):
@@ -269,7 +299,7 @@ def ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti):
                 return
             context.user_data.pop(KALIT, None)
             try:
-                await saqla(update, st)
+                await saqla(update, context, st)
             except Exception as xato:
                 logging.warning("Tugmali yuklash xato: %s", xato)
                 await yuborish(update, "⚠️ Yuklashda xato. /yuklash ni qayta boshlang.")

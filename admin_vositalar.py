@@ -112,6 +112,21 @@ ADMIN_BOLIMLAR = {
           "Event Collector faqat asosiy guruhda chiqadi: har N ta xabardan keyin. "
           "N ni /panel → 🎴 Chiqish → <b>event_oraliq</b> dan o'zgartirasiz "
           "(0 bo'lsa foiz bilan chiqadi)."),
+    "u": ("👥 Yordamchi",
+          "👥 <b>Yordamchi (waifu yuklovchi)</b>\n\n"
+          "<b>/yordamchi</b> — tugmali panel: yordamchi qo'shish, har biriga ruxsat "
+          "berish yoki olib tashlash, olib tashlash.\n"
+          "/kutilmoqda — tasdiq kutayotgan waifular\n\n"
+          "Standart: yordamchi faqat ELITA..ULTRA yuklaydi, yuklagani sizning "
+          "<b>✅ Tasdiqlash / 🏷 Daraja / ❌ Rad etish</b> tugmalaringizdan o'tadi.\n"
+          "Ruxsatlar: ⛩️ COLLECTOR, 👑 MAX, 🎪 Event buyruqlari, ⚡ Tasdiqsiz yuklash."),
+    "t": ("🧩 Topishmoq",
+          "🧩 <b>Topishmoq (asosiy guruh)</b>\n\n"
+          "Aralashtirilgan waifu ismi har 10 xabardan keyin chiqadi, 8 daqiqa turadi. "
+          "Birinchi topgan tanga oladi. Topilsa 3, topilmasa 2 daqiqa kutiladi.\n"
+          "/topishmoq — asosiy guruhda hoziroq ochish\n\n"
+          "Hamma son /panel → 🧩 Topishmoq dan o'zgaradi: xabar soni, vaqt, mukofot, "
+          "kutish, ketma-ket yozganlarni o'tkazish, yoqish/o'chirish."),
     "z": ("💾 Zaxira",
           "💾 <b>Zaxira</b>\n\n"
           "/zaxira — bazaning nusxasi\n"

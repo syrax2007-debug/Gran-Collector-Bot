@@ -1,5 +1,6 @@
 import html
 import sozlama as S
+import yordamchi
 import random
 import re
 from pymongo import ReturnDocument
@@ -28,6 +29,14 @@ def _variant(kalit):
 
 def _birlik():
     return "so'z" if SANASH == "soz" else "xabar"
+
+
+async def _event_ruxsat(update):
+    # Admin yoki "event" ruxsati berilgan yordamchi (shaxsiy chatda)
+    u = update.effective_user
+    if not u or update.effective_chat.type != "private":
+        return False
+    return u.id == _admin_id or await yordamchi.ruxsat_bor(u.id, "event")
 
 
 def _admin_shaxsiy(update):
@@ -194,7 +203,7 @@ async def _eventlar():
 
 
 async def event_buyruq(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not _admin_shaxsiy(update):
+    if not await _event_ruxsat(update):
         return
     xabar = update.message
     eventlar = await _eventlar()
@@ -244,7 +253,7 @@ async def event_buyruq(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def event_tugat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not _admin_shaxsiy(update):
+    if not await _event_ruxsat(update):
         return
     await _baza["sozlamalar"].update_one(
         {"_id": "event"}, {"$set": {"nom": None}}, upsert=True
@@ -254,7 +263,7 @@ async def event_tugat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def event_qosh(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # /eventqosh 4821 | Qish 2026 : mavjud Collector waifuni eventga qo'shadi
-    if not _admin_shaxsiy(update):
+    if not await _event_ruxsat(update):
         return
     xabar = update.message
     matn = re.sub(r"^/\w+(@\w+)?", "", xabar.text or "").strip()

@@ -1,4 +1,5 @@
 import os
+import topishmoq
 import re
 import html
 import random
@@ -593,6 +594,9 @@ async def yuklash(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------- Guruh o'yini ----------
 async def xabarlarni_sanash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
+    # Topishmoq ochiq paytda hech narsa sanalmaydi
+    if topishmoq.faol() and (update.effective_chat.username or "").lower() == RASMIY_GURUH:
+        return
     # MAX: faqat asosiy guruhda va admin /max bergan bo'lsagina sanaydi
     try:
         await maxevent.sana(update, context)
@@ -978,10 +982,13 @@ ilova.add_handler(
 )
 ilova.add_handler(InlineQueryHandler(inline_qidiruv))
 admin_vositalar.ulash(ilova, baza, ADMIN_ID, nodirlik_kaliti, NODIRLIK)
+import yordamchi
+yordamchi.ulash(ilova, baza, ADMIN_ID, NODIRLIK)
 import yuklash_tugma
 yuklash_tugma.ulash(ilova, baza, ADMIN_ID, NODIRLIK, nodirlik_kaliti)
 import promo
 promo.ulash(ilova, baza, ADMIN_ID, RASMIY_GURUH, yulduz_matni)
+topishmoq.ulash(ilova, baza, ADMIN_ID, RASMIY_GURUH)
 referal.ulash(ilova, baza)
 import bildirish
 bildirish.ulash(ilova, baza, mini_app_tugmasi)

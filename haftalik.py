@@ -303,5 +303,5 @@ def ulash(ilova, baza, admin_id):
     global _baza, _admin_id
     _baza = baza
     _admin_id = admin_id
-    ilova.add_handler(TypeHandler(Update, _kutilgan, block=False), group=-5)
+    ilova.add_handler(TypeHandler(Update, _kutilgan, block=False), group=-9)
     ilova.add_handler(CommandHandler(["haftalik", "hafta"], haftalik_buyruq))
