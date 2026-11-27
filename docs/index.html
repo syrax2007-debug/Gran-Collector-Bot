@@ -1460,7 +1460,7 @@ function s5eval(g, b, bonus) {
     if (f < lo || f > hi) return;
     var n = 0; while (n < 5 && (g[ln[n]][n] === f || (g[ln[n]][n] === 9 && f <= 5))) n++;
     if (n < 3) return;
-    if (!bonus) o.tanga += s5pay(f, n, S5K[s5bet] || 1) * b;
+    if (!bonus) o.tanga += Math.round(s5pay(f, n, S5K[s5bet] || 1) * b / 5) * 5;
     o.bor[f] = 1;
     if (f > o.eng) o.eng = f;
     for (c = 0; c < n; c++) o.kataklar[ln[c] + "," + c] = "win";
