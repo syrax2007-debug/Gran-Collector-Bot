@@ -915,6 +915,9 @@ async def inline_qidiruv(update: Update, context: ContextTypes.DEFAULT_TYPE):
         egasi_id = int(m.group(1))
         matn = m.group(2).strip()
     idlar = [d["char_id"] async for d in kolleksiya.find({"user_id": egasi_id})]
+    nusxa = {}
+    for i in idlar:
+        nusxa[i] = nusxa.get(i, 0) + 1  # bir waifudan nechta borligi
     topilgan = []
     async for p in personajlar.find({"_id": {"$in": list(set(idlar))}}):
         if matn and matn not in p["name"].lower():
@@ -932,7 +935,9 @@ async def inline_qidiruv(update: Update, context: ContextTypes.DEFAULT_TYPE):
         InlineQueryResultCachedPhoto(
             id=str(p["_id"]),
             photo_file_id=p["file_id"],
-            caption=stil(kartochka(p)),
+            caption=stil(
+                kartochka(p) + f"\n📦 Kolleksiyada : {nusxa.get(p['_id'], 1)} ta"
+            ),
             parse_mode="HTML",
         )
         for p in qism
