@@ -116,7 +116,7 @@ def chiziqlar(g, stavka, bonus=False):
         if bonus:
             yutuq = 0
         else:
-            yutuq = tolov(belgi, n, k) * stavka
+            yutuq = r5(tolov(belgi, n, k) * stavka)
         chiq["tanga"] += yutuq
         chiq["chiziq"].append({"li": li, "s": belgi, "n": n, "yutuq": yutuq})
         for c in range(n):
@@ -162,9 +162,14 @@ def bonus_aylanish(rng, stavka=250):
     return g, kat, sorted(bor, reverse=True)[:BONUS_MAX]
 
 
+def r5(x):
+    # Hamma to'lov 5 yoki 0 bilan tugaydi
+    return int(round(x / 5.0)) * 5
+
+
 def jekpot_summa(daraja, stavka):
     # Jekpot = waifu narxi (stavka 100 da), stavkaga mutanosib; panel foizi bilan
-    return int(round(S.ol("narx_" + daraja) * stavka / 100 * S.ol("slot5_jekpot_foiz") / 100))
+    return r5(S.ol("narx_" + daraja) * stavka / 100 * S.ol("slot5_jekpot_foiz") / 100)
 
 
 def tanga_qiymat(rng, stavka):
@@ -172,7 +177,7 @@ def tanga_qiymat(rng, stavka):
     ro = [(("x", m), w) for m, w in TB_QIYMAT] + [(("jp", n, d), w) for n, d, w in TB_JEKPOT]
     t = rng.choices([x for x, _ in ro], weights=[w for _, w in ro], k=1)[0]
     if t[0] == "x":
-        return {"v": int(round(t[1] * stavka)), "jp": None}
+        return {"v": r5(t[1] * stavka), "jp": None}
     return {"v": jekpot_summa(t[2], stavka), "jp": t[1]}
 
 

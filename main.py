@@ -23,6 +23,7 @@ import adminplus
 import haftalik
 import qoshimcha
 import sandiq
+import craft
 import bozor
 import sozlama as S
 import panel
@@ -1005,6 +1006,7 @@ haftalik.ulash(ilova, baza, ADMIN_ID)
 panel.ulash(ilova, baza, ADMIN_ID)
 qoshimcha.ulash(ilova, baza, NODIRLIK, yulduz_matni, guruh_tekshir)
 sandiq.ulash(ilova, baza, yulduz_matni)
+craft.ulash(ilova, baza, RASMIY_GURUH, yulduz_matni)
 bozor.ulash(ilova, baza, yulduz_matni)
 
 if __name__ == "__main__":

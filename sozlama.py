@@ -93,6 +93,17 @@ RO = {
     "qlimit_rare": (5, 0, 1000, "SUPER qutisi : kunlik limit (0 = yopiq)"),
     "qlimit_epic": (3, 0, 1000, "MEGA qutisi : kunlik limit (0 = yopiq)"),
     "qlimit_legendary": (1, 0, 1000, "ULTRA qutisi : kunlik limit (0 = yopiq)"),
+    "craft_limit": (3, 0, 100, "Craft : kunlik limit (0 = yopiq)"),
+    "craft_soni_common": (5, 2, 100, "Craft ELITA → SUPER : kerakli nusxa soni"),
+    "craft_soni_rare": (5, 2, 100, "Craft SUPER → MEGA : kerakli nusxa soni"),
+    "craft_soni_epic": (6, 2, 100, "Craft MEGA → ULTRA : kerakli nusxa soni"),
+    "craft_soni_legendary": (8, 2, 100, "Craft ULTRA → COLLECTOR : kerakli nusxa soni"),
+    "craft_soni_special": (10, 2, 100, "Craft COLLECTOR → MAX : kerakli nusxa soni"),
+    "craft_narx_common": (150, 0, 100000000, "Craft ELITA → SUPER : to'lov"),
+    "craft_narx_rare": (400, 0, 100000000, "Craft SUPER → MEGA : to'lov"),
+    "craft_narx_epic": (900, 0, 100000000, "Craft MEGA → ULTRA : to'lov"),
+    "craft_narx_legendary": (3500, 0, 100000000, "Craft ULTRA → COLLECTOR : to'lov"),
+    "craft_narx_special": (9000, 0, 100000000, "Craft COLLECTOR → MAX : to'lov"),
 }
 
 # Panel bo'limlari: (kalit, nomi, [sozlamalar])
@@ -125,6 +136,10 @@ BOLIMLAR = [
     ("sandiq", "📦 Sandiq",
      ["quti_common", "quti_rare", "quti_epic", "quti_legendary",
       "qlimit_common", "qlimit_rare", "qlimit_epic", "qlimit_legendary"]),
+    ("craft", "⚒️ Craft",
+     ["craft_limit", "craft_soni_common", "craft_soni_rare", "craft_soni_epic",
+      "craft_soni_legendary", "craft_soni_special", "craft_narx_common", "craft_narx_rare",
+      "craft_narx_epic", "craft_narx_legendary", "craft_narx_special"]),
 ]
 SLOT_KALITLAR = ("s_w", "s_m", "s_s", "s_e", "s_j", "s_a", "s_b", "s_c")
 CLAIM_KALITLAR = ("claim_common", "claim_rare", "claim_epic", "claim_legendary")

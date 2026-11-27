@@ -139,7 +139,7 @@ ODDIY_BUYRUQLAR = {
     "start", "id", "balans", "bonus", "kunlik", "ruletka", "slot", "topish",
     "guess", "kolleksiya", "harem", "sovga", "gift", "narx", "claim", "profil",
     "profile", "trade", "haftalik", "hafta", "dokon", "sotish", "elonlarim",
-    "top", "ega", "waifu", "coin", "holat", "bildirish",
+    "top", "ega", "waifu", "coin", "holat", "bildirish", "craft", "sandiq", "quti",
 }
 _ilova = None
 
