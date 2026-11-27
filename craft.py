@@ -246,6 +246,39 @@ async def _royxat(uid, sahifa):
     return bosh + "Tanlang :", InlineKeyboardMarkup(qator)
 
 
+async def _tasdiq(egasi, raqam, uid):
+    # (matn, tugmalar). Craft qilib bo'lmasa tugmasiz sabab matni
+    p = await _baza["characters"].find_one({"raqam": raqam})
+    if not p:
+        return f"⚠️ {raqam} raqamli waifu topilmadi", None
+    d = daraja(p)
+    if not d or d == "max":
+        return "⚠️ Bu waifuni yuqoriga craft qilib bo'lmaydi", None
+    v = await versiyalar(_baza, p)
+    if not v:
+        return f"⚠️ {K(p['name'])} : keyingi daraja versiyasi yo'q", None
+    bor = await _baza["collection"].count_documents({"user_id": uid, "char_id": p["_id"]})
+    kerak = soni(d)
+    if bor < kerak:
+        return (f"⚠️ {K(p['name'])} : nusxa yetmaydi\n"
+                f"{BELGI[d]} {NOM[d]} : kerak {kerak}, sizda {bor}"), None
+    qol, tanga = await qolgan(_baza, uid)
+    t = InlineKeyboardMarkup([[
+        _t("✅ Craft qilish", f"cr:y:{egasi}:{raqam}"),
+        _t("❌ Bekor", f"cr:x:{egasi}"),
+    ]])
+    return (
+        f"{RAMKA}\n⚒️ Craft\n\n"
+        f"🗽 {K(p['name'])}\n"
+        f"{BELGI[d]} {NOM[d]} × {kerak} (sizda {bor}) → {BELGI[keyingi(d)]} {NOM[keyingi(d)]}"
+        + (f" (tasodifiy, {len(v)} xil versiya)" if len(v) > 1 else "") + "\n"
+        f"💰 To'lov : 🪙 {narx(d)}\n"
+        f"👛 Tangangiz : {tanga}\n"
+        f"🔁 Bugungi qolgan : {qol}/{limit()}\n\n"
+        f"⚠️ {kerak} ta nusxa ketadi. Davom etasizmi ?"
+    ), t
+
+
 async def craft(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _asosiy(update):
         await update.message.reply_text(
@@ -255,13 +288,22 @@ async def craft(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]]),
         )
         return
+    args = context.args or []
+    if not args or not args[0].isdigit():
+        await update.message.reply_text(
+            "⚒️ Craft\n\n"
+            "Foydalanish : /craft 1234\n"
+            "(1234 o'rniga waifuning raqami)\n\n"
+            "Bir xil waifuning kerakli nusxasi bo'lsa, uning keyingi daraja versiyasini olasiz"
+        )
+        return
     try:
-        matn, t = await _royxat(update.effective_user.id, 0)
+        matn, t = await _tasdiq(update.effective_user.id, int(args[0]), update.effective_user.id)
     except Exception as xato:
-        logging.exception("Craft ro'yxatida xato")
+        logging.exception("Craft tasdiqida xato")
         await update.message.reply_text(f"❌ Craft xatosi : {type(xato).__name__} {xato}")
         return
-    await update.message.reply_text(matn, reply_markup=t)
+    await update.message.reply_text(matn, parse_mode="HTML", reply_markup=t)
 
 
 async def craft_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -285,38 +327,11 @@ async def _tugma_ish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _asosiy(update):
         await q.answer("Craft faqat asosiy guruhda", show_alert=True)
         return
-    if amal == "l":
-        matn, t = await _royxat(egasi, int(qism[3]))
-        await q.edit_message_text(matn, reply_markup=t)
+    if amal == "x":
+        await q.edit_message_text("❌ Craft bekor qilindi")
         await q.answer()
         return
     raqam = int(qism[3])
-    if amal == "s":
-        p = await _baza["characters"].find_one({"raqam": raqam})
-        v = await versiyalar(_baza, p) if p else []
-        d = daraja(p) if p else None
-        if not p or not v or not d or d == "max":
-            await q.answer("Bu waifuni craft qilib bo'lmaydi", show_alert=True)
-            return
-        qol, tanga = await qolgan(_baza, egasi)
-        bor = await _baza["collection"].count_documents({"user_id": egasi, "char_id": p["_id"]})
-        t = InlineKeyboardMarkup([[
-            _t("✅ Craft qilish", f"cr:y:{egasi}:{raqam}"),
-            _t("⬅️ Orqaga", f"cr:l:{egasi}:0"),
-        ]])
-        await q.edit_message_text(
-            f"{RAMKA}\n⚒️ Craft\n\n"
-            f"🗽 {K(p['name'])}\n"
-            f"{BELGI[d]} {NOM[d]} × {soni(d)} (sizda {bor}) → {BELGI[keyingi(d)]} {NOM[keyingi(d)]}"
-            + (f" (tasodifiy, {len(v)} xil versiya)" if len(v) > 1 else "") + "\n"
-            f"💰 To'lov : 🪙 {narx(d)}\n"
-            f"👛 Tangangiz : {tanga}\n"
-            f"🔁 Bugungi qolgan : {qol}/{limit()}\n\n"
-            f"⚠️ {soni(d)} ta nusxa ketadi. Davom etasizmi ?",
-            parse_mode="HTML", reply_markup=t,
-        )
-        await q.answer()
-        return
     kod, d = await craft_qil(_baza, egasi, raqam)
     if kod != "ok":
         xabar = {
@@ -347,8 +362,7 @@ async def _tugma_ish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as xato:
         logging.warning("Craft rasmini yuborib bo'lmadi: %s", xato)
         await q.message.reply_text(f"⚒️ Craft : {K(m['name'])} ({NOM[daraja(m)]})", parse_mode="HTML")
-    matn, t = await _royxat(egasi, 0)
-    await q.edit_message_text(matn, reply_markup=t)
+    await q.edit_message_text(f"✅ Craft bajarildi : {K(m['name'])}", parse_mode="HTML")
     await q.answer("⚒️")
 
 
