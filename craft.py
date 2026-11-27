@@ -1,4 +1,5 @@
 import html
+import inspect
 import logging
 import random
 import re
@@ -124,6 +125,8 @@ async def mumkinlar(baza, uid):
         {"$group": {"_id": "$char_id", "n": {"$sum": 1}}},
         {"$match": {"n": {"$gte": eng_kam}}},
     ])
+    if inspect.isawaitable(guruh):  # pymongo AsyncMongoClient: aggregate await qilinadi
+        guruh = await guruh
     sonlar = {g["_id"]: g["n"] async for g in guruh}
     if not sonlar:
         return []
