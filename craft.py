@@ -44,16 +44,33 @@ def keyingi(d):
     return TARTIB[i + 1] if i + 1 < len(TARTIB) else None
 
 
+# Zaxira qiymatlar: sozlama.py eski bo'lsa ham craft ishlayveradi
+ZAXIRA = {
+    "craft_limit": 3,
+    "craft_soni_common": 5, "craft_soni_rare": 5, "craft_soni_epic": 6,
+    "craft_soni_legendary": 8, "craft_soni_special": 10,
+    "craft_narx_common": 150, "craft_narx_rare": 400, "craft_narx_epic": 900,
+    "craft_narx_legendary": 3500, "craft_narx_special": 9000,
+}
+
+
+def _ol(kalit):
+    try:
+        return S.ol(kalit)
+    except Exception:
+        return ZAXIRA[kalit]
+
+
 def soni(d):
-    return S.ol("craft_soni_" + d)
+    return _ol("craft_soni_" + d)
 
 
 def narx(d):
-    return S.ol("craft_narx_" + d)
+    return _ol("craft_narx_" + d)
 
 
 def limit():
-    return S.ol("craft_limit")
+    return _ol("craft_limit")
 
 
 def shart(d):
@@ -229,14 +246,33 @@ async def _royxat(uid, sahifa):
 async def craft(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _asosiy(update):
         await update.message.reply_text(
-            f"⚒️ Craft faqat asosiy guruhda ishlaydi : t.me/{_guruh}"
+            "⚒️ Craft faqat asosiy guruhda ishlaydi",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton(stil("➡️ Asosiy guruhga o'tish"), url=f"https://t.me/{_guruh}")
+            ]]),
         )
         return
-    matn, t = await _royxat(update.effective_user.id, 0)
+    try:
+        matn, t = await _royxat(update.effective_user.id, 0)
+    except Exception as xato:
+        logging.exception("Craft ro'yxatida xato")
+        await update.message.reply_text(f"❌ Craft xatosi : {type(xato).__name__} {xato}")
+        return
     await update.message.reply_text(matn, reply_markup=t)
 
 
 async def craft_tugma(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        await _tugma_ish(update, context)
+    except Exception as xato:
+        logging.exception("Craft tugmasida xato")
+        try:
+            await update.callback_query.answer(f"❌ Xato : {type(xato).__name__}", show_alert=True)
+        except Exception:
+            pass
+
+
+async def _tugma_ish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     qism = q.data.split(":")
     amal, egasi = qism[1], int(qism[2])
